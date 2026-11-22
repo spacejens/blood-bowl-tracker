@@ -11,6 +11,8 @@ import type {
   TpFeedHistoryReport,
   TpFeedHistoryReports,
 } from '../read-tp-feed-history/tp-feed-history-index.service';
+import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
+import type { TpPositionIdRow, TpSkillIdRow } from './snapshot-fill.types';
 
 /** The five characteristics, by the keys a fill entry uses. */
 export const CHARACTERISTIC_KEYS = ['ma', 'st', 'ag', 'pa', 'av'] as const;
@@ -117,11 +119,19 @@ export interface FillPlannerRows {
   teamCompetitions: TeamCompetitionRow[];
   /** Candidate positions that are not basic in the candidate's era. */
   bigGuyPositions: BigGuyPositionRow[];
+  /** Every skill's `tourplay.net` ids, which roster snapshots name it by. */
+  tpSkillIds: TpSkillIdRow[];
+  /** The `tourplay.net` ids of the candidates' positions. */
+  tpPositionIds: TpPositionIdRow[];
+  /** Skills a player or a position holds with a variant; a snapshot names none. */
+  attributedSkillIds: number[];
 }
 
 export interface FillPlannerInput extends FillPlannerRows {
   /** The feed channel's saved `reports.json`; null leaves the advancement stage off. */
   feed: TpFeedHistoryReports | null;
+  /** The saved roster snapshots; null leaves the snapshot stage off. */
+  snapshots: TpRosterSnapshots | null;
 }
 
 export interface ProfileSkill {
@@ -144,6 +154,13 @@ export const SKIP_REASONS = [
   'era-unpriced',
   'feed-match-ambiguous',
   'spp-too-high',
+  'snapshot-missing',
+  'snapshot-disagrees',
+  'snapshot-conflicts-stored',
+  'snapshot-level-mismatch',
+  'snapshot-characteristic-increase',
+  'snapshot-order-ambiguous',
+  'snapshot-spend-mismatch',
   'free-skill-risk',
   'lasting-injury-uncertain',
   'unspent-spp-missing',
@@ -468,4 +485,5 @@ export type FeedPricingRows = Pick<
 export type StageDecision = { entry: FillEntry } | { reason: SkipReason };
 
 /** Which kind of proof filled a player. */
-export type FillStage = 'noAdvancement' | 'advancement' | 'injuryOnly';
+export type FillStage =
+  'noAdvancement' | 'advancement' | 'injuryOnly' | 'snapshot';

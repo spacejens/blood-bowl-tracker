@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { TpFeedHistoryStoreService } from '../read-tp-feed-history/tp-feed-history-store.service';
+import { TpRosterSnapshotsStoreService } from '../read-tp-roster-snapshots/tp-roster-snapshots-store.service';
 import { eligibleInput, report } from './fill-plan.test-helpers';
 import {
   type FillEntry,
@@ -65,6 +66,7 @@ function planWith(entries: FillEntry[]): FillPlan {
         noAdvancement: entries.length,
         advancement: 0,
         injuryOnly: 0,
+        snapshot: 0,
       },
       journeymenFilled: 0,
       feed: null,
@@ -81,6 +83,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
   let writeFile: MockProxy<WriteFileService>;
   let feedHistory: MockProxy<TpFeedHistoryStoreService>;
   let repairSelector: MockProxy<LastingInjuryRepairSelectorService>;
+  let snapshotStore: MockProxy<TpRosterSnapshotsStoreService>;
 
   beforeEach(async () => {
     queries = mock<IncompletePlayerFillQueriesService>();
@@ -89,6 +92,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
     writeFile = mock<WriteFileService>();
     feedHistory = mock<TpFeedHistoryStoreService>();
     repairSelector = mock<LastingInjuryRepairSelectorService>();
+    snapshotStore = mock<TpRosterSnapshotsStoreService>();
     queries.load.mockResolvedValue(eligibleInput());
     queries.loadLastingInjuryRepairCandidates.mockResolvedValue([]);
     repairSelector.select.mockReturnValue([]);
@@ -106,6 +110,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
           provide: LastingInjuryRepairSelectorService,
           useValue: repairSelector,
         },
+        { provide: TpRosterSnapshotsStoreService, useValue: snapshotStore },
       ],
     }).compile();
     service = moduleRef.get(GenerateIncompletePlayerFillsService);
@@ -200,7 +205,12 @@ describe('GenerateIncompletePlayerFillsService', () => {
       report: {
         considered: 2,
         eligible: 0,
-        eligibleByStage: { noAdvancement: 0, advancement: 0, injuryOnly: 0 },
+        eligibleByStage: {
+          noAdvancement: 0,
+          advancement: 0,
+          injuryOnly: 0,
+          snapshot: 0,
+        },
         journeymenFilled: 0,
         feed: null,
         skipped: skippedWith({
@@ -269,5 +279,33 @@ describe('GenerateIncompletePlayerFillsService', () => {
 
     expect(feedHistory.readReports).not.toHaveBeenCalled();
     expect(planner.plan).toHaveBeenCalledWith(eligibleInput());
+  });
+
+  it('reads the saved roster snapshots before any query, and hands them to the planner', async () => {
+    const snapshots = { players: {}, conflicts: [], unreadable: [] };
+    snapshotStore.readSnapshots.mockResolvedValue(snapshots);
+    await service.run({ snapshots: true });
+
+    expect(planner.plan).toHaveBeenCalledWith(eligibleInput({ snapshots }));
+    expect(
+      snapshotStore.readSnapshots.mock.invocationCallOrder[0],
+    ).toBeLessThan(queries.load.mock.invocationCallOrder[0]);
+  });
+
+  it('stops before any query when the snapshots cannot be read', async () => {
+    snapshotStore.readSnapshots.mockRejectedValue(
+      new Error('run read-tp-roster-snapshots first.'),
+    );
+
+    await expect(service.run({ snapshots: true })).rejects.toThrow(
+      /read-tp-roster-snapshots/,
+    );
+    expect(queries.load).not.toHaveBeenCalled();
+  });
+
+  it('reads no snapshots without the flag', async () => {
+    await service.run({});
+
+    expect(snapshotStore.readSnapshots).not.toHaveBeenCalled();
   });
 });

@@ -15,6 +15,7 @@ import {
 } from './fill-plan.types';
 import {
   ADVANCEMENT_COSTS_SQL,
+  ATTRIBUTED_SKILLS_SQL,
   BIG_GUY_POSITIONS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
@@ -35,6 +36,8 @@ import {
   TEAM_COMPETITIONS_SQL,
   TEAM_PLAYERS_SQL,
   TEAM_ROSTERS_SQL,
+  TP_POSITION_IDS_SQL,
+  TP_SKILL_IDS_SQL,
 } from './incomplete-player-fill.sql';
 import { ProductionJsonQueryService } from './production-json-query.service';
 
@@ -145,6 +148,18 @@ const TeamRosterRowSchema = z.object({
   rosterId: z.string().min(1),
 });
 
+const TpSkillIdRowSchema = z.object({
+  skillId: id,
+  masterId: z.string().min(1),
+});
+
+const TpPositionIdRowSchema = z.object({
+  positionId: id,
+  tpPositionId: z.string().min(1),
+});
+
+const SkillIdRowSchema = z.object({ skillId: id });
+
 const SkillNameRowSchema = z.object({
   skillId: id,
   skillName: z.string(),
@@ -228,7 +243,8 @@ const LastingInjuryRepairCandidateRowSchema = z.object({
  * players of the candidates' teams), their paid advancements and rosters,
  * skill names and categories, position access, advancement costs and
  * stat-reduction events, the competitions and death times that decide
- * whether they last, and Big Guy positions; separately, the complete
+ * whether they last, Big Guy positions, the TP ids of skills and candidate
+ * positions, and the skills held with a variant; separately, the complete
  * players who may need a lasting-reduction repair.
  */
 @Injectable()
@@ -300,6 +316,14 @@ export class IncompletePlayerFillQueriesService {
         BIG_GUY_POSITIONS_SQL,
         BigGuyPositionRowSchema,
       ),
+      tpSkillIds: await this.rows(TP_SKILL_IDS_SQL, TpSkillIdRowSchema),
+      tpPositionIds: await this.rows(
+        TP_POSITION_IDS_SQL,
+        TpPositionIdRowSchema,
+      ),
+      attributedSkillIds: (
+        await this.rows(ATTRIBUTED_SKILLS_SQL, SkillIdRowSchema)
+      ).map((row) => row.skillId),
     };
   }
 

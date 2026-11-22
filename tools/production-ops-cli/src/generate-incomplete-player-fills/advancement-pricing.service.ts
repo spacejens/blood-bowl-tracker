@@ -97,6 +97,34 @@ export class AdvancementPricingService {
     };
   }
 
+  /**
+   * Whether the rows of any skill kind price it differently at an
+   * advancement number from 1 to maxNumber: a kind price() would leave
+   * unpriced for that reason. Under fixed thresholds the kind is
+   * `table_roll`.
+   */
+  hasConflictingCosts(input: {
+    costs: readonly AdvancementCostRow[];
+    maxNumber: number;
+  }): boolean {
+    const kinds: readonly AdvancementKind[] = this.isFixedThreshold(input.costs)
+      ? ['table_roll']
+      : Object.values(SKILL_KINDS).flatMap((byCategory) =>
+          Object.values(byCategory),
+        );
+    const prices = new Map<string, Set<number>>();
+    for (const cost of input.costs) {
+      if (
+        kinds.includes(cost.advancementKind) &&
+        cost.advancementNumber <= input.maxNumber
+      ) {
+        const key = `${cost.advancementKind}:${cost.advancementNumber}`;
+        prices.set(key, (prices.get(key) ?? new Set()).add(cost.sppCost));
+      }
+    }
+    return [...prices.values()].some((set) => set.size > 1);
+  }
+
   private priceUnder(
     steps: readonly ResolvedStep[],
     rulesSet: RulesSetPricingInput,

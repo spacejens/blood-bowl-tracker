@@ -46,6 +46,9 @@ export const BATCH_012 = 'batches/012-trophy-skill-grants';
 /** Batch 013: the data of incomplete TP players whose lasting injuries are proven to last, generated from production. */
 export const BATCH_013 = 'batches/013-tp-lasting-injury-fills';
 
+/** Batch 014: the data of incomplete TP players whose roster snapshots prove their advancements, generated from production. */
+export const BATCH_014 = 'batches/014-tp-roster-snapshot-fills';
+
 /** Every batch directory, as `batches/<name>`, in name order. */
 export function listBatches(): string[] {
   return readdirSync(join(DATA_ROOT, 'batches'), { withFileTypes: true })

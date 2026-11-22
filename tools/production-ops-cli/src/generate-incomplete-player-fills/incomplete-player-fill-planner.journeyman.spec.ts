@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import { AdvancementFillStageService } from './advancement-fill-stage.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
 import { FeedPlayerMatcherService } from './feed-player-matcher.service';
@@ -21,6 +22,7 @@ import type {
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { InjuryFillStageService } from './injury-fill-stage.service';
 import { PositionProfileService } from './position-profile.service';
+import { SnapshotFillStageService } from './snapshot-fill-stage.service';
 
 const SUMMARY: FeedSummary = {
   reportKeys: 1,
@@ -63,6 +65,7 @@ describe('IncompletePlayerFillPlannerService journeymen', () => {
   let matcher: MockProxy<FeedPlayerMatcherService>;
   let advancementStage: MockProxy<AdvancementFillStageService>;
   let injuryStage: MockProxy<InjuryFillStageService>;
+  let snapshotStage: MockProxy<SnapshotFillStageService>;
 
   beforeEach(async () => {
     const validity = mock<CharacteristicValidityService>();
@@ -70,6 +73,7 @@ describe('IncompletePlayerFillPlannerService journeymen', () => {
     matcher = mock<FeedPlayerMatcherService>();
     advancementStage = mock<AdvancementFillStageService>();
     injuryStage = mock<InjuryFillStageService>();
+    snapshotStage = mock<SnapshotFillStageService>();
     matcher.match.mockReturnValue({ byPlayer: new Map(), summary: SUMMARY });
     profiles.resolve.mockReturnValue(profile());
     validity.isValid.mockReturnValue(true);
@@ -81,6 +85,7 @@ describe('IncompletePlayerFillPlannerService journeymen', () => {
         { provide: FeedPlayerMatcherService, useValue: matcher },
         { provide: AdvancementFillStageService, useValue: advancementStage },
         { provide: InjuryFillStageService, useValue: injuryStage },
+        { provide: SnapshotFillStageService, useValue: snapshotStage },
         // Pure and dependency-free, so passed real to keep asserting real entries.
         FillEntryBuilderService,
       ],
@@ -191,6 +196,35 @@ describe('IncompletePlayerFillPlannerService journeymen', () => {
         }),
       ),
     ).toBe('spp-too-high');
+  });
+
+  it('skips one whose total reaches the cheapest advancement even when a snapshot shows him', () => {
+    const snapshots: TpRosterSnapshots = {
+      players: {
+        '500': [
+          {
+            lineUpMasterId: 288,
+            level: 0,
+            skillMasterIds: [],
+            totalSpp: 6,
+            unspentSpp: 6,
+            sources: ['e/match_1.json'],
+          },
+        ],
+      },
+      conflicts: [],
+      unreadable: [],
+    };
+
+    expect(
+      reasonFor(
+        journeymanInput({
+          candidates: [candidate({ isJourneyman: true, sppTotal: 6 })],
+          snapshots,
+        }),
+      ),
+    ).toBe('spp-too-high');
+    expect(snapshotStage.decide).not.toHaveBeenCalled();
   });
 
   it('skips one holding an award of a skill-granting trophy', () => {

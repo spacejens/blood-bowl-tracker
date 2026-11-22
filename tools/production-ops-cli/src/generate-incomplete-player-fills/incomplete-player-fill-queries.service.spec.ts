@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 
 import {
   ADVANCEMENT_COSTS_SQL,
+  ATTRIBUTED_SKILLS_SQL,
   BIG_GUY_POSITIONS_SQL,
   CANDIDATES_SQL,
   CONSEQUENCES_SQL,
@@ -27,6 +28,8 @@ import {
   TEAM_PLAYERS_CTE,
   TEAM_PLAYERS_SQL,
   TEAM_ROSTERS_SQL,
+  TP_POSITION_IDS_SQL,
+  TP_SKILL_IDS_SQL,
 } from './incomplete-player-fill.sql';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
 import { ProductionJsonQueryService } from './production-json-query.service';
@@ -180,6 +183,9 @@ describe('IncompletePlayerFillQueriesService', () => {
       [STAT_REDUCTION_EVENTS_SQL, [REDUCTION]],
       [TEAM_COMPETITIONS_SQL, [TEAM_COMPETITION]],
       [BIG_GUY_POSITIONS_SQL, [{ positionId: 30, eraId: 4 }]],
+      [TP_SKILL_IDS_SQL, [{ skillId: 200, masterId: '92' }]],
+      [TP_POSITION_IDS_SQL, [{ positionId: 30, tpPositionId: '288' }]],
+      [ATTRIBUTED_SKILLS_SQL, [{ skillId: 300 }]],
       [LASTING_INJURY_REPAIRS_SQL, [REPAIR]],
     ]);
     // Canned rows per statement; unknown SQL is a test bug, so fail loudly.
@@ -228,7 +234,24 @@ describe('IncompletePlayerFillQueriesService', () => {
       statReductionEvents: [REDUCTION],
       teamCompetitions: [TEAM_COMPETITION],
       bigGuyPositions: [{ positionId: 30, eraId: 4 }],
+      tpSkillIds: [{ skillId: 200, masterId: '92' }],
+      tpPositionIds: [{ positionId: 30, tpPositionId: '288' }],
+      attributedSkillIds: [300],
     });
+  });
+
+  it('names skills and candidate positions by their tourplay.net ids', () => {
+    expect(TP_SKILL_IDS_SQL).toContain('skills_external_ids');
+    expect(TP_SKILL_IDS_SQL).toContain("es.name = 'tourplay.net'");
+    expect(TP_POSITION_IDS_SQL).toContain('positions_external_ids');
+    expect(TP_POSITION_IDS_SQL).toContain("es.name = 'tourplay.net'");
+    expect(TP_POSITION_IDS_SQL).toContain('SELECT position_id FROM candidates');
+  });
+
+  it('finds skills held with a variant by a player or a position', () => {
+    expect(ATTRIBUTED_SKILLS_SQL).toContain('player_advancements');
+    expect(ATTRIBUTED_SKILLS_SQL).toContain('position_rules_set_skills');
+    expect(ATTRIBUTED_SKILLS_SQL).toContain('attribute_value IS NOT NULL');
   });
 
   it('finds Big Guy positions by keyword name, per candidate era', () => {
@@ -347,6 +370,16 @@ describe('IncompletePlayerFillQueriesService', () => {
       'an unknown paid characteristic',
       PAID_ADVANCEMENTS_SQL,
       { ...PAID[1], characteristic: 'xx' },
+    ],
+    [
+      'a TP skill id that is empty',
+      TP_SKILL_IDS_SQL,
+      { skillId: 200, masterId: '' },
+    ],
+    [
+      'a TP position id that is not text',
+      TP_POSITION_IDS_SQL,
+      { positionId: 30, tpPositionId: 288 },
     ],
     [
       'a team player without a journeyman marker',

@@ -2,6 +2,7 @@ import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
+import type { TpRosterSnapshotVariant } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import type { AdvancementStageInput } from './advancement-fill-stage.service';
 import { AdvancementFillStageService } from './advancement-fill-stage.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
@@ -36,6 +37,11 @@ import {
 } from './fill-plan.types';
 import { InjuryFillStageService } from './injury-fill-stage.service';
 import { PositionProfileService } from './position-profile.service';
+import type { TpPositionIdRow, TpSkillIdRow } from './snapshot-fill.types';
+import {
+  SnapshotFillStageService,
+  type SnapshotStageInput,
+} from './snapshot-fill-stage.service';
 
 interface PlannerIndex {
   statReduction: Set<number>;
@@ -56,6 +62,11 @@ interface PlannerIndex {
   competitions: Map<number, TeamCompetitionRow[]>;
   bigGuyPositions: Set<string>;
   lonerSkillIds: Set<number>;
+  /** Null without snapshot evidence. */
+  snapshots: Map<string, TpRosterSnapshotVariant[]> | null;
+  tpSkillIds: TpSkillIdRow[];
+  tpPositionIds: Map<number, TpPositionIdRow[]>;
+  attributedSkillIds: Set<number>;
 }
 
 type Decision = { entry: FillEntry; stage: FillStage } | { reason: SkipReason };
@@ -75,6 +86,10 @@ interface Gated {
  *
  * - a player the TP feed reports name goes to AdvancementFillStageService,
  *   with his stat reductions, which must certainly last when he has any;
+ * - with roster snapshot evidence, a player the feed does not name whose
+ *   total is at or above the cheapest advancement goes to
+ *   SnapshotFillStageService, which reports a free-skill risk as
+ *   `free-skill-risk`, as the feed stage does;
  * - a player whose total is below the cheapest advancement of his era, and
  *   with no free-skill risk, goes to InjuryFillStageService when stat
  *   reductions are recorded for him;
@@ -86,8 +101,9 @@ interface Gated {
  *
  * A player the feed matcher cannot tell apart from another possible owner of
  * his reports is skipped, and a player the feed does not name is never taken
- * to have advanced: his total must be below the cheapest advancement, which
- * proves he has none.
+ * to have advanced unless his roster snapshots prove his advancements:
+ * otherwise his total must be below the cheapest advancement, which proves
+ * he has none.
  *
  * Pure decision logic, with no I/O; its collaborators are pure as well.
  */
@@ -100,6 +116,7 @@ export class IncompletePlayerFillPlannerService {
     private readonly matcher: FeedPlayerMatcherService,
     private readonly advancementStage: AdvancementFillStageService,
     private readonly injuryStage: InjuryFillStageService,
+    private readonly snapshotStage: SnapshotFillStageService,
   ) {}
 
   plan(input: FillPlannerInput): FillPlan {
@@ -130,6 +147,7 @@ export class IncompletePlayerFillPlannerService {
       noAdvancement: 0,
       advancement: 0,
       injuryOnly: 0,
+      snapshot: 0,
     };
     let journeymenFilled = 0;
     const entries: FillEntry[] = [];
@@ -195,7 +213,12 @@ export class IncompletePlayerFillPlannerService {
       );
     }
     if (sppTotal >= cheapest) {
-      return { reason: 'spp-too-high' };
+      return index.snapshots === null
+        ? { reason: 'spp-too-high' }
+        : this.staged(
+            'snapshot',
+            this.snapshotStage.decide(this.snapshotInput(gated)),
+          );
     }
     if (this.freeSkillRisk(gated)) {
       return { reason: 'free-skill-risk' };
@@ -304,12 +327,29 @@ export class IncompletePlayerFillPlannerService {
     gated: Gated,
     reports: TpFeedHistoryReport[],
   ): AdvancementStageInput {
+    return { ...this.stageInput(gated), reports };
+  }
+
+  private snapshotInput(gated: Gated): SnapshotStageInput {
+    const { candidate, index } = gated;
+    return {
+      ...this.stageInput(gated),
+      snapshot: index.snapshots?.get(candidate.tpId),
+      positionTpIds: (index.tpPositionIds.get(candidate.positionId) ?? []).map(
+        (row) => row.tpPositionId,
+      ),
+      tpSkillIds: index.tpSkillIds,
+      attributedSkillIds: index.attributedSkillIds,
+    };
+  }
+
+  /** What both the feed and the snapshot stages read of him. */
+  private stageInput(gated: Gated): Omit<AdvancementStageInput, 'reports'> {
     const { candidate, sppTotal, index } = gated;
     return {
       candidate,
       sppTotal,
       status: this.status(gated),
-      reports,
       hasStatReduction: index.statReduction.has(candidate.playerId),
       reductions: index.reductions.get(candidate.playerId) ?? [],
       competitions: index.competitions.get(candidate.playerId) ?? [],
@@ -462,6 +502,13 @@ export class IncompletePlayerFillPlannerService {
           .filter((row) => row.skillName === LONER_SKILL_NAME)
           .map((row) => row.skillId),
       ),
+      snapshots:
+        input.snapshots === null
+          ? null
+          : new Map(Object.entries(input.snapshots.players)),
+      tpSkillIds: input.tpSkillIds,
+      tpPositionIds: this.groupBy(input.tpPositionIds, (row) => row.positionId),
+      attributedSkillIds: new Set(input.attributedSkillIds),
     };
   }
 

@@ -344,7 +344,7 @@ because that batch creates the rows.
 skill grant and external ids are described in [Trophies section](trophies.md).
 
 `playerAdvancementOrders` is described in [Player advancement orders](player-advancement-orders.md),
-and `incompletePlayerFills` and `lastingInjuryRepairs` in [Filling in missing players](filling-missing-players.md).
+and `incompletePlayerFills` and `lastingInjuryRepairs` in [Filling in missing players](filling-missing-players.md). What the downloaded TP roster snapshots show is recorded in [Roster snapshot evidence](roster-snapshot-evidence.md).
 
 ## Re-running on a populated database
 
