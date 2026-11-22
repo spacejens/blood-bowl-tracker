@@ -1,9 +1,6 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import type { CoachAverageDirection } from '@blood-bowl-tracker/game-data-queries';
-import {
-  CoachAverageStatisticsService,
-  CoachesQueriesService,
-} from '@blood-bowl-tracker/game-data-queries';
+import { CoachAverageStatisticsService } from '@blood-bowl-tracker/game-data-queries';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -20,9 +17,7 @@ import {
   LeaderboardService,
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
-import { CoachToplistService } from './coach-toplist.service';
-import { ToplistFactoryService } from './toplist-factory.service';
-import { mockToplistFactory } from './toplist-factory-mock.test-helpers';
+import { CoachAverageToplistService } from './coach-average-toplist.service';
 
 interface CoachRow {
   coachId: number;
@@ -33,6 +28,8 @@ interface CoachRow {
 interface AverageCase {
   resolverName: string;
   method:
+    | 'averageTouchdownsScoredByCoach'
+    | 'averageTouchdownsConcededByCoach'
     | 'averageCasualtiesCausedByCoach'
     | 'averageCasualtiesSufferedByCoach'
     | 'averageSeriousInjuriesCausedByCoach'
@@ -42,11 +39,50 @@ interface AverageCase {
     | 'averageDeathsCausedByCoach'
     | 'averageDeathsSufferedByCoach';
   direction: CoachAverageDirection;
-  resolve: (service: CoachToplistService, scope: FactScope) => Promise<unknown>;
+  resolve: (
+    service: CoachAverageToplistService,
+    scope: FactScope,
+  ) => Promise<unknown>;
   expectedTitle: string;
 }
 
 const cases: AverageCase[] = [
+  {
+    resolverName: 'resolveAverageTouchdownsScoredDescending',
+    method: 'averageTouchdownsScoredByCoach',
+    direction: 'desc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsScoredDescending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns scored per match (highest first)',
+  },
+  {
+    resolverName: 'resolveAverageTouchdownsScoredAscending',
+    method: 'averageTouchdownsScoredByCoach',
+    direction: 'asc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsScoredAscending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns scored per match (lowest first)',
+  },
+  {
+    resolverName: 'resolveAverageTouchdownsConcededDescending',
+    method: 'averageTouchdownsConcededByCoach',
+    direction: 'desc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsConcededDescending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns conceded per match (highest first)',
+  },
+  {
+    resolverName: 'resolveAverageTouchdownsConcededAscending',
+    method: 'averageTouchdownsConcededByCoach',
+    direction: 'asc',
+    resolve: (service, scope) =>
+      service.resolveAverageTouchdownsConcededAscending(scope),
+    expectedTitle:
+      'Coaches by average touchdowns conceded per match (lowest first)',
+  },
   {
     resolverName: 'resolveAverageCasualtiesCausedDescending',
     method: 'averageCasualtiesCausedByCoach',
@@ -192,9 +228,9 @@ const cases: AverageCase[] = [
 ];
 
 describe.each(cases)(
-  'CoachToplistService.$resolverName',
+  'CoachAverageToplistService.$resolverName',
   ({ method, direction, resolve, expectedTitle }) => {
-    let service: CoachToplistService;
+    let service: CoachAverageToplistService;
     let averages: MockProxy<CoachAverageStatisticsService>;
     let leaderboard: MockProxy<LeaderboardService>;
 
@@ -203,22 +239,14 @@ describe.each(cases)(
       leaderboard = mock<LeaderboardService>();
       const moduleRef = await Test.createTestingModule({
         providers: [
-          CoachToplistService,
+          CoachAverageToplistService,
           // Pure formatting: real, so the rendered row is asserted.
           NumberFormatterService,
-          {
-            provide: CoachesQueriesService,
-            useValue: mock<CoachesQueriesService>(),
-          },
           { provide: CoachAverageStatisticsService, useValue: averages },
           { provide: LeaderboardService, useValue: leaderboard },
-          {
-            provide: ToplistFactoryService,
-            useValue: mockToplistFactory().factory,
-          },
         ],
       }).compile();
-      service = moduleRef.get(CoachToplistService);
+      service = moduleRef.get(CoachAverageToplistService);
     });
 
     function capturedOptions(): ResolveToplistOptions<CoachRow> {

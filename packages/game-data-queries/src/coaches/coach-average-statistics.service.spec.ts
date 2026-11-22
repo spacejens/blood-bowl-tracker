@@ -59,6 +59,8 @@ describe('CoachAverageStatisticsService', () => {
   }
 
   describe.each([
+    'averageTouchdownsScoredByCoach',
+    'averageTouchdownsConcededByCoach',
     'averageCasualtiesCausedByCoach',
     'averageCasualtiesSufferedByCoach',
     'averageSeriousInjuriesCausedByCoach',
@@ -102,15 +104,13 @@ describe('CoachAverageStatisticsService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
-    it('averages this side’s event count over distinct matches, rounded to two decimals', async () => {
+    it('averages over distinct matches, rounded to two decimals as a double', async () => {
       const { db } = await build([]);
       await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
-      const average = selectedAverage(db);
-      expect(sqlText(average)).toContain(
-        'round(sum(coalesce(side_event_counts.event_count, 0))::numeric / count(distinct ',
-      );
-      expect(sqlText(average)).toContain(', 2)::double precision');
-      expect(extractJoinColumns(average)).toEqual(['matches.id']);
+      const text = sqlText(selectedAverage(db));
+      expect(text).toContain('round(sum(');
+      expect(text).toContain('::numeric / count(distinct ');
+      expect(text).toContain(', 2)::double precision');
     });
 
     it('only ranks coaches with at least the minimum number of matches', async () => {
@@ -185,6 +185,68 @@ describe('CoachAverageStatisticsService', () => {
       await service[method]({ competitionId: 30 }, 'desc', 21);
       expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([]);
     });
+  });
+
+  it.each([
+    'averageCasualtiesCausedByCoach',
+    'averageCasualtiesSufferedByCoach',
+    'averageSeriousInjuriesCausedByCoach',
+    'averageSeriousInjuriesSufferedByCoach',
+    'averageLastingInjuriesCausedByCoach',
+    'averageLastingInjuriesSufferedByCoach',
+    'averageDeathsCausedByCoach',
+    'averageDeathsSufferedByCoach',
+  ] as const)('%s averages this side’s event count', async (method) => {
+    const { db } = await build([]);
+    await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
+    const average = selectedAverage(db);
+    expect(sqlText(average)).toContain(
+      'round(sum(coalesce(side_event_counts.event_count, 0))::numeric / count(distinct ',
+    );
+    expect(extractJoinColumns(average)).toEqual(['matches.id']);
+  });
+
+  it.each([
+    'averageTouchdownsScoredByCoach',
+    'averageTouchdownsConcededByCoach',
+  ] as const)('%s joins no per-side event counts', async (method) => {
+    const { chains } = await build([]);
+    await service[method](FACT_SCOPE_ALL_TIME, 'desc', 21);
+    expect(chains[0].leftJoin).not.toHaveBeenCalled();
+  });
+
+  it('sums each side’s own score for touchdowns scored', async () => {
+    const { db } = await build([]);
+    await service.averageTouchdownsScoredByCoach(
+      FACT_SCOPE_ALL_TIME,
+      'desc',
+      21,
+    );
+    expect(extractJoinColumns(selectedAverage(db))).toEqual([
+      'match_teams.score',
+      'matches.id',
+    ]);
+  });
+
+  it('sums every other side of the same match for touchdowns conceded', async () => {
+    const { db } = await build([]);
+    await service.averageTouchdownsConcededByCoach(
+      FACT_SCOPE_ALL_TIME,
+      'desc',
+      21,
+    );
+    const average = selectedAverage(db);
+    const text = sqlText(average);
+    expect(text).toContain('select coalesce(sum(opponent_sides.score), 0)');
+    expect(text).toContain(
+      ' as opponent_sides where opponent_sides.match_id = ',
+    );
+    expect(text).toContain(' and opponent_sides.id <> ');
+    expect(extractJoinColumns(average)).toEqual([
+      'match_teams.match_id',
+      'match_teams.id',
+      'matches.id',
+    ]);
   });
 
   it.each([

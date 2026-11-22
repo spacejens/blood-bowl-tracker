@@ -41,6 +41,10 @@ const TEAM_AVERAGE_PATHS = [
 
 /** Every coach per-match average leaf: league, era and category, no competition. */
 const COACH_AVERAGE_PATHS = [
+  'coach.toplist.touchdowns.average.scored.descending',
+  'coach.toplist.touchdowns.average.scored.ascending',
+  'coach.toplist.touchdowns.average.conceded.descending',
+  'coach.toplist.touchdowns.average.conceded.ascending',
   'coach.toplist.casualties.average.caused.descending',
   'coach.toplist.casualties.average.caused.ascending',
   'coach.toplist.casualties.average.suffered.descending',
@@ -251,7 +255,7 @@ describe('buildFactTree competition capabilities', () => {
     );
     await (leaf as FactLeaf).resolve({ leagueId: 9, eraId: 20 });
     expect(
-      d.coachToplist.resolveAverageDeathsSufferedAscending,
+      d.coachAverageToplist.resolveAverageDeathsSufferedAscending,
     ).toHaveBeenCalledWith({ leagueId: 9, eraId: 20 });
   });
 
@@ -357,7 +361,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeNavigation
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(100);
+    expect(supported).toHaveLength(104);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {

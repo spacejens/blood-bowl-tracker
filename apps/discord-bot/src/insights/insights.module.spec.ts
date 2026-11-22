@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DiscordBotConfigModule } from '../discord-bot-config.module';
 import { FACT_TREE } from './fact-tree.token';
+import { CoachAverageToplistService } from './facts/coach-average-toplist.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TrophiesListService } from './facts/trophies-list.service';
@@ -44,6 +45,9 @@ describe('InsightsModule', () => {
     );
     expect(moduleRef.get(CoachToplistService)).toBeInstanceOf(
       CoachToplistService,
+    );
+    expect(moduleRef.get(CoachAverageToplistService)).toBeInstanceOf(
+      CoachAverageToplistService,
     );
     expect(moduleRef.get(StatsSummaryFactsService)).toBeInstanceOf(
       StatsSummaryFactsService,
