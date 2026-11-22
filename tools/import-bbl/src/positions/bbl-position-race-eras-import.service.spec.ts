@@ -38,6 +38,7 @@ function makeRulesSet(
     agilityFormat: 'plus' as const,
     passingFormat,
     armourFormat: 'plus' as const,
+    lastingInjuriesNeverHeal: false,
     createdAt: new Date('2026-01-01'),
   };
 }

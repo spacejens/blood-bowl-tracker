@@ -111,7 +111,7 @@ const TEAM_COMPETITION = {
 const ERA_RULES_SET = {
   eraId: 4,
   rulesSetId: 7,
-  rulesSetName: 'BB2020',
+  lastingInjuriesNeverHeal: false,
   cheapestCost: 6,
 };
 const DEATH_TIME = { playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' };
@@ -299,11 +299,14 @@ describe('IncompletePlayerFillQueriesService', () => {
     );
   });
 
-  it("names each rules set of the team players' eras", () => {
-    expect(ERA_RULES_SETS_SQL).toContain('rs.name AS "rulesSetName"');
+  it("reads whether lasting injuries never heal under each rules set of the team players' eras", () => {
     expect(ERA_RULES_SETS_SQL).toContain(
-      'GROUP BY ers.era_id, ers.rules_set_id, rs.name',
+      'rs.lasting_injuries_never_heal AS "lastingInjuriesNeverHeal"',
     );
+    expect(ERA_RULES_SETS_SQL).toContain(
+      'GROUP BY ers.era_id, ers.rules_set_id, rs.lasting_injuries_never_heal',
+    );
+    expect(ERA_RULES_SETS_SQL).not.toContain('rs.name');
   });
 
   it('selects every stat-reduction consequence type', () => {
@@ -351,9 +354,9 @@ describe('IncompletePlayerFillQueriesService', () => {
       { ...DEATH_TIME, diedAt: 'soon' },
     ],
     [
-      'a rules set without a name',
+      'a rules set without a healing flag',
       ERA_RULES_SETS_SQL,
-      { ...ERA_RULES_SET, rulesSetName: null },
+      { ...ERA_RULES_SET, lastingInjuriesNeverHeal: null },
     ],
     [
       'an unknown advancement kind',

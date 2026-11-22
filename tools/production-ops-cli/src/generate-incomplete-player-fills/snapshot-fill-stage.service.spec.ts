@@ -85,7 +85,7 @@ function stageInput(
     hasStatReduction: false,
     reductions: [],
     competitions: [],
-    rulesSetNames: ['BB2020'],
+    rulesSetsNeverHeal: [false],
     diedAt: null,
     freeSkillRisk: false,
     stored: [],

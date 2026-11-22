@@ -174,7 +174,7 @@ export class SnapshotFillStageService {
       this.proof.prove({
         reductions: input.reductions,
         competitions: input.competitions,
-        rulesSetNames: input.rulesSetNames,
+        rulesSetsNeverHeal: input.rulesSetsNeverHeal,
         diedAt: input.diedAt,
       }) === undefined
     ) {

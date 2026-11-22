@@ -16,6 +16,7 @@ describe('rules set schemas', () => {
       agilityFormat: 'plus',
       passingFormat: 'plus',
       armourFormat: 'plus',
+      lastingInjuriesNeverHeal: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.name).toBe('BB2020');
@@ -67,6 +68,7 @@ describe('rules set schemas', () => {
       agilityFormat: 'plus',
       passingFormat: 'plus',
       armourFormat: 'plus',
+      lastingInjuriesNeverHeal: false,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.agilityFormat).toBe('plus');
@@ -74,6 +76,7 @@ describe('rules set schemas', () => {
       RulesSetSchema.parse({
         id: 1,
         name: 'BB2020',
+        lastingInjuriesNeverHeal: false,
         createdAt: '2026-01-01T00:00:00.000Z',
       }),
     ).toThrow();
@@ -86,5 +89,46 @@ describe('rules set schemas', () => {
     });
     expect(parsed.passingFormat).toBe('absent');
     expect(parsed.moveFormat).toBeUndefined();
+  });
+
+  it('RulesSetSchema carries whether lasting injuries never heal and requires it', () => {
+    const row = {
+      id: 1,
+      name: 'CRP',
+      moveFormat: 'bare',
+      strengthFormat: 'bare',
+      agilityFormat: 'bare',
+      passingFormat: 'absent',
+      armourFormat: 'bare',
+      lastingInjuriesNeverHeal: true,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(RulesSetSchema.parse(row).lastingInjuriesNeverHeal).toBe(true);
+    expect(
+      RulesSetSchema.safeParse({ ...row, lastingInjuriesNeverHeal: undefined })
+        .success,
+    ).toBe(false);
+  });
+
+  it('UpsertRulesSetSchema takes lastingInjuriesNeverHeal as an optional overlay', () => {
+    const externalIds = [{ externalSystemId: 1, externalId: 'CRP' }];
+    expect(
+      UpsertRulesSetSchema.parse({
+        lastingInjuriesNeverHeal: true,
+        externalIds,
+      }).lastingInjuriesNeverHeal,
+    ).toBe(true);
+    expect(
+      UpsertRulesSetSchema.parse({ externalIds }).lastingInjuriesNeverHeal,
+    ).toBeUndefined();
+  });
+
+  it('UpsertRulesSetSchema rejects a null lastingInjuriesNeverHeal', () => {
+    expect(
+      UpsertRulesSetSchema.safeParse({
+        lastingInjuriesNeverHeal: null,
+        externalIds: [{ externalSystemId: 1, externalId: 'CRP' }],
+      }).success,
+    ).toBe(false);
   });
 });

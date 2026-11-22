@@ -22,6 +22,7 @@ export class RulesSetsProcessor {
           agilityFormat: entry.agilityFormat,
           passingFormat: entry.passingFormat,
           armourFormat: entry.armourFormat,
+          lastingInjuriesNeverHeal: entry.lastingInjuriesNeverHeal,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,
             ctx.systemIds,

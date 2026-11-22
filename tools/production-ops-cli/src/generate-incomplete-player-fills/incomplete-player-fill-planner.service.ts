@@ -388,15 +388,15 @@ export class IncompletePlayerFillPlannerService {
    * event, so no death time is handed on then.
    */
   private healing(gated: Gated): {
-    rulesSetNames: string[];
+    rulesSetsNeverHeal: boolean[];
     diedAt: string | null;
   } {
     const { candidate, index } = gated;
     const contradicted =
       candidate.status !== null && candidate.status !== 'dead';
     return {
-      rulesSetNames: (index.eraRulesSets.get(candidate.eraId) ?? []).map(
-        (row) => row.rulesSetName,
+      rulesSetsNeverHeal: (index.eraRulesSets.get(candidate.eraId) ?? []).map(
+        (row) => row.lastingInjuriesNeverHeal,
       ),
       diedAt: contradicted
         ? null

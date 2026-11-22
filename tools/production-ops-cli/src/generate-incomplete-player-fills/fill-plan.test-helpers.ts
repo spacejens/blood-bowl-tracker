@@ -108,7 +108,12 @@ export function eligibleInput(
       },
     ],
     eraRulesSets: [
-      { eraId: 4, rulesSetId: 7, rulesSetName: 'BB2020', cheapestCost: 6 },
+      {
+        eraId: 4,
+        rulesSetId: 7,
+        lastingInjuriesNeverHeal: false,
+        cheapestCost: 6,
+      },
     ],
     teamPlayers: [],
     teamRosters: [],

@@ -38,7 +38,7 @@ function stageInput(
     hasStatReduction: false,
     reductions: [],
     competitions: [],
-    rulesSetNames: ['BB2020'],
+    rulesSetsNeverHeal: [false],
     diedAt: null,
     freeSkillRisk: false,
     stored: [],
@@ -435,7 +435,7 @@ describe('AdvancementFillStageService', () => {
     it('fills a player whose reductions span competitions in an era where they never heal', () => {
       const decision = service.decide(
         injuredInput({
-          rulesSetNames: ['CRP'],
+          rulesSetsNeverHeal: [true],
           reductions: [
             REDUCTION,
             {

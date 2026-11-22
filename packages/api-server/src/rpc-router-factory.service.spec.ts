@@ -238,6 +238,7 @@ describe('RpcRouterFactoryService', () => {
         agilityFormat: 'bare',
         passingFormat: 'plus',
         armourFormat: 'bare',
+        lastingInjuriesNeverHeal: false,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -259,6 +260,7 @@ describe('RpcRouterFactoryService', () => {
       agilityFormat: 'bare',
       passingFormat: 'plus',
       armourFormat: 'bare',
+      lastingInjuriesNeverHeal: false,
       createdAt: new Date('2026-01-01'),
       created: true,
     });

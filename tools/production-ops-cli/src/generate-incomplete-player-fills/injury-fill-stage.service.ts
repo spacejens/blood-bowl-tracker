@@ -21,8 +21,8 @@ export interface InjuryStageInput {
   status: PlayerStatus;
   reductions: readonly StatReductionEventRow[];
   competitions: readonly TeamCompetitionRow[];
-  /** The names of his era's rules sets. */
-  rulesSetNames: readonly string[];
+  /** Per rules set of his era, whether lasting injuries never heal under it. */
+  rulesSetsNeverHeal: readonly boolean[];
   /** When he died; null when no death is recorded. */
   diedAt: string | null;
   stored: readonly StoredAdvancementRow[];
@@ -52,7 +52,7 @@ export class InjuryFillStageService {
     const reductions = this.proof.prove({
       reductions: input.reductions,
       competitions: input.competitions,
-      rulesSetNames: input.rulesSetNames,
+      rulesSetsNeverHeal: input.rulesSetsNeverHeal,
       diedAt: input.diedAt,
     });
     if (reductions === undefined) {

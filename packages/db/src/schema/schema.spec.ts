@@ -445,6 +445,20 @@ describe('schema', () => {
     expect(byName.get('armour_format')!.default).toBe('bare');
   });
 
+  it('exports rules_sets.lasting_injuries_never_heal as a not-null boolean defaulting to false', () => {
+    // Whether niggling injuries and characteristic reductions never heal
+    // under the rules set. Defaulted to false, "may heal", so a rules set
+    // nobody has curated is never assumed to keep its injuries.
+    expect(rulesSets.lastingInjuriesNeverHeal).toBeDefined();
+    expect(rulesSets.lastingInjuriesNeverHeal.getSQLType()).toBe('boolean');
+    expect(rulesSets.lastingInjuriesNeverHeal.name).toBe(
+      'lasting_injuries_never_heal',
+    );
+    expect(rulesSets.lastingInjuriesNeverHeal.notNull).toBe(true);
+    expect(rulesSets.lastingInjuriesNeverHeal.hasDefault).toBe(true);
+    expect(rulesSets.lastingInjuriesNeverHeal.default).toBe(false);
+  });
+
   it('exports positionRulesSets table', () => {
     expect(positionRulesSets.id).toBeDefined();
     expect(positionRulesSets.positionId).toBeDefined();

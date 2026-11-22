@@ -54,6 +54,7 @@ function makeRulesSet({
     agilityFormat,
     passingFormat,
     armourFormat,
+    lastingInjuriesNeverHeal: false,
     createdAt: new Date('2026-01-01'),
   };
 }
