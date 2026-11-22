@@ -124,12 +124,24 @@ describe('GenerateIncompletePlayerFillsService', () => {
     expect(result).toEqual({
       report: {
         ...planWith([ENTRY]).report,
+        ongoingCompetitions: [],
         lastingInjuryRepairs: 0,
         lastingInjuryRepairsNothingToRecord: 0,
       },
       section: '// file\n',
     });
     expect(writeFile.run).not.toHaveBeenCalled();
+  });
+
+  it('reports the competitions treated as ongoing', async () => {
+    const ongoingCompetitions = [
+      { competitionId: 2, name: 'Ogretoberfest 14', teamCount: 12 },
+    ];
+    queries.load.mockResolvedValue(eligibleInput({ ongoingCompetitions }));
+
+    const result = await service.run({});
+
+    expect(result.report.ongoingCompetitions).toEqual(ongoingCompetitions);
   });
 
   it('writes the section to the given path instead of printing it', async () => {
@@ -141,6 +153,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
     expect(result).toEqual({
       report: {
         ...planWith([ENTRY]).report,
+        ongoingCompetitions: [],
         lastingInjuryRepairs: 0,
         lastingInjuryRepairsNothingToRecord: 0,
       },

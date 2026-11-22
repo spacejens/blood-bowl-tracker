@@ -62,7 +62,11 @@ records a granted skill, so the queries need a database whose migrations
 include that column.
 
 The output is JSON: `report` counts the players considered and filled, and
-lists the skipped players' TP ids under each reason. The batch file also
+lists the skipped players' TP ids under each reason.
+`report.ongoingCompetitions` lists the competitions treated as ongoing,
+each with its id, name and `teamCount` (distinct teams enrolled in it or
+playing one of its matches), so the set of skipped teams can be checked;
+it is empty when none is ongoing. The batch file also
 gets a `lastingInjuryRepairs` section listing every complete non-star TP
 player with a stat reduction recorded in a match and none stored whose
 stored line shows a reduction the server would record (see
