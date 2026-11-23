@@ -25,40 +25,66 @@ describe('CheckCoderabbitActivityService', () => {
     return { exitCode, stdout, stderr };
   }
 
-  it('reports activity when the jq program prints true', async () => {
-    processRunner.run.mockResolvedValue(ghResult('true\n'));
+  /** The JSON object the jq program prints. */
+  function printed(hasActivity: boolean, noReviewSeat: boolean) {
+    return ghResult(JSON.stringify({ hasActivity, noReviewSeat }) + '\n');
+  }
 
-    await expect(service.run('634')).resolves.toEqual({ hasActivity: true });
+  it('reports activity without a seat problem', async () => {
+    processRunner.run.mockResolvedValue(printed(true, false));
+
+    await expect(service.run('634')).resolves.toEqual({
+      hasActivity: true,
+      noReviewSeat: false,
+    });
   });
 
-  it('reports no activity when the jq program prints false', async () => {
-    processRunner.run.mockResolvedValue(ghResult('false\n'));
+  it('reports no activity when CodeRabbit never engaged', async () => {
+    processRunner.run.mockResolvedValue(printed(false, false));
 
-    await expect(service.run('634')).resolves.toEqual({ hasActivity: false });
+    await expect(service.run('634')).resolves.toEqual({
+      hasActivity: false,
+      noReviewSeat: false,
+    });
+  });
+
+  it('reports the missing review seat notice', async () => {
+    processRunner.run.mockResolvedValue(printed(true, true));
+
+    await expect(service.run('1459')).resolves.toEqual({
+      hasActivity: true,
+      noReviewSeat: true,
+    });
   });
 
   it('tolerates surrounding whitespace in the printed output', async () => {
-    processRunner.run.mockResolvedValue(ghResult('  true  \n'));
+    processRunner.run.mockResolvedValue(
+      ghResult('  {"hasActivity":true,"noReviewSeat":false}  \n'),
+    );
 
-    await expect(service.run('634')).resolves.toEqual({ hasActivity: true });
+    await expect(service.run('634')).resolves.toEqual({
+      hasActivity: true,
+      noReviewSeat: false,
+    });
   });
 
-  it('asks gh for both comments and reviews, matching the login case-insensitively', async () => {
-    processRunner.run.mockResolvedValue(ghResult('false\n'));
+  it('asks gh for comments and reviews, matching the login case-insensitively', async () => {
+    processRunner.run.mockResolvedValue(printed(false, false));
 
     await service.run('634');
 
     expect(processRunner.run).toHaveBeenCalledTimes(1);
-    expect(processRunner.run).toHaveBeenCalledWith('gh', [
+    const args = processRunner.run.mock.calls[0]?.[1];
+    expect(args?.slice(0, 5)).toEqual([
       'pr',
       'view',
       '634',
       '--json',
       'comments,reviews',
-      '--jq',
-      '([(.comments[]?.author.login // ""), (.reviews[]?.author.login // "")] | ' +
-        'any(test("coderabbit"; "i")))',
     ]);
+    const jq = args?.[6];
+    expect(jq).toContain('test("coderabbit"; "i")');
+    expect(jq).toContain('without an assigned coderabbit review seat');
   });
 
   it('throws with gh stderr when the lookup fails', async () => {
@@ -72,9 +98,17 @@ describe('CheckCoderabbitActivityService', () => {
   });
 
   it('throws when the output is neither true nor false', async () => {
-    processRunner.run.mockResolvedValue(ghResult('null\n'));
+    processRunner.run.mockResolvedValue(ghResult('true\n'));
 
-    await expect(service.run('634')).rejects.toThrow('null');
+    await expect(service.run('634')).rejects.toThrow('unexpected output');
+  });
+
+  it('throws when a field is missing or mistyped', async () => {
+    processRunner.run.mockResolvedValue(
+      ghResult('{"hasActivity":true,"noReviewSeat":"yes"}\n'),
+    );
+
+    await expect(service.run('634')).rejects.toThrow('unexpected output');
   });
 
   it('throws when the output is empty', async () => {

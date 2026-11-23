@@ -14,11 +14,21 @@ const CHECK_CODERABBIT_ACTIVITY_USAGE =
  * fallback `test()` throws on that `null` instead of simply not matching it.
  */
 const CODERABBIT_ACTIVITY_JQ =
-  '([(.comments[]?.author.login // ""), (.reviews[]?.author.login // "")] | ' +
-  'any(test("coderabbit"; "i")))';
+  '{hasActivity: ([(.comments[]?.author.login // ""), (.reviews[]?.author.login // "")] | ' +
+  'any(test("coderabbit"; "i"))), ' +
+  'noReviewSeat: ([.comments[]? | select((.author.login // "") | test("coderabbit"; "i")) | ' +
+  '(.body // "")] | any(test("without an assigned coderabbit review seat"; "i")))}';
 
 export interface CheckCoderabbitActivityResult {
   readonly hasActivity: boolean;
+  /**
+   * True when CodeRabbit posted its "authored by a bot without an assigned
+   * CodeRabbit review seat" skip notice. CodeRabbit then refuses to review the
+   * PR, and also refuses a manual `@coderabbitai review` request, until an
+   * organization administrator assigns a seat to the bot — so no review will
+   * ever arrive and waiting for one is pointless.
+   */
+  readonly noReviewSeat: boolean;
 }
 
 /**
@@ -34,6 +44,9 @@ export interface CheckCoderabbitActivityResult {
  * on developer-authored PRs must not nudge unconditionally: that would fire
  * before CodeRabbit's normal automatic review had a chance, spending
  * review-rate-limit budget on PRs that would have been reviewed anyway.
+ *
+ * It also reports `noReviewSeat`, so that caller can tell a PR CodeRabbit
+ * engaged with from one it refused to review for lack of a bot seat.
  */
 @Injectable()
 export class CheckCoderabbitActivityService {
@@ -63,13 +76,29 @@ export class CheckCoderabbitActivityService {
     }
 
     const printed = result.stdout.trim();
-    if (printed !== 'true' && printed !== 'false') {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(printed);
+    } catch {
+      parsed = undefined;
+    }
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      !('hasActivity' in parsed) ||
+      !('noReviewSeat' in parsed) ||
+      typeof parsed.hasActivity !== 'boolean' ||
+      typeof parsed.noReviewSeat !== 'boolean'
+    ) {
       // Fail closed rather than guessing: this gates whether a trigger
       // comment gets posted, and an unreadable answer is not a `false`.
       throw new Error(
         `gh pr view ${prNumber} printed unexpected output: '${printed}'`,
       );
     }
-    return { hasActivity: printed === 'true' };
+    return {
+      hasActivity: parsed.hasActivity,
+      noReviewSeat: parsed.noReviewSeat,
+    };
   }
 }
