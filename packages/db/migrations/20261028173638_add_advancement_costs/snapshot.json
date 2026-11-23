@@ -1,6 +1,6 @@
 {
   "type": "diff",
-  "version": "9",
+  "version": "10",
   "dialect": "postgres",
   "id": "6f833371-97d0-4939-b07a-d69fd0468c73",
   "prevIds": [
