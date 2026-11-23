@@ -56,5 +56,7 @@ enabled, since the bot declares the matching gateway intents (`GuildMessages`
 and `MessageContent`) itself, unconditionally, and the portal toggle is what
 makes Discord allow them.
 
-Discord requires verification for this intent once a bot reaches 100 servers.
-Below that it can simply be switched on.
+Discord requires a review of this intent once an app reaches 10,000 unique
+users across all its servers: the app must apply within 90 days of being
+notified, and approved apps must reapply annually. Below that threshold it can
+simply be switched on in the Developer Portal.
