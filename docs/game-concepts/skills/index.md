@@ -32,7 +32,9 @@ primary or secondary. Two are not learnable:
 - **Unique** holds a star player's one skill exclusive to them under a rules
   set.
 
-Mutation skills are available only to positions whose rules allow mutations.
+Mutation skills are available only to positions whose rules allow mutations,
+except a mutation that a [trophy award](../trophies/index.md#trophy-award)
+grants.
 
 ## Starting skills
 
