@@ -131,8 +131,8 @@ same entry is again `unchanged`.
 
 ## Generated fills
 
-`production-ops-cli generate-incomplete-player-fills` (see
-[production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
+`import-manual-planner-cli generate-incomplete-player-fills` (see
+[import-manual-planner-cli](../import-manual-planner-cli/index.md#generating-incomplete-player-fills))
 writes entries for the incomplete TP players whose data it can prove. Every
 entry has the stored status, else `dead` if a death is recorded, else
 `retired`. There are six kinds of entry:

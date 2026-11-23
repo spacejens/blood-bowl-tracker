@@ -63,7 +63,7 @@ for the specifics. Only participants in that pipeline are listed.
 - **`packages/scrape-tp`** (shared fetching) — the one implementation of HTTP requests TP accepts, shared by `tools/download-tp` and `packages/import-tp-live`. See [scrape-tp](scrape-tp/index.md).
 - **`packages/tp-paths`** (shared TP paths) — every TP path the repo requests, and which kind of TP page a URL points to; shared by `tools/download-tp`, `packages/import-tp-live` and `apps/discord-bot`. See [tp-paths](tp-paths/index.md).
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON for `tools/import-tp` and `packages/import-tp-live`, typed with the contract's TP wire shapes; it has no BBL counterpart. See [parse-tp](parse-tp/index.md).
-- **`packages/parse-tp-feed`** (shared TP feed parsing) — reads the TP feed channel's advancement reports for the bot's live feed and for `tools/production-ops-cli`'s `read-tp-feed-history`, so a live notification and one read back from history are understood alike. See [parse-tp-feed](parse-tp-feed/index.md).
+- **`packages/parse-tp-feed`** (shared TP feed parsing) — reads the TP feed channel's advancement reports for the bot's live feed and for `tools/import-manual-planner-cli`'s `read-tp-feed-history`, so a live notification and one read back from history are understood alike. See [parse-tp-feed](parse-tp-feed/index.md).
 - **`packages/read-bbl-mirror`** (shared mirror access) — mechanical BBL mirror file access, without interpretation, for `tools/import-bbl` and every review tool. See [read-bbl-mirror](read-bbl-mirror/index.md).
 - **`packages/import-tp-live`** (TP import, server-side) — imports one TP roster, match, competition or official team list through `packages/game-data`; it backs both the `tp*.import` procedures and the bot's live imports, so a change reaches bulk and live imports together. See [import-tp-live](import-tp-live/index.md).
 - **`packages/import-shared`** (shared import rules) — the I/O-free rules bulk and live imports must apply identically, including the identity-critical Name ids. See [import-shared](import-shared/index.md).
@@ -73,6 +73,7 @@ for the specifics. Only participants in that pipeline are listed.
 - **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`: behavior added to one importer is usually wanted in the other. See [import-bbl](import-bbl/index.md).
 - **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files and imports through the `tp*.import` procedures; sibling of `tools/import-bbl`. See [import-tp](import-tp/index.md).
 - **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference; a new entity kind often needs matching manual data. See [import-manual](import-manual/index.md).
+- **`tools/import-manual-planner-cli`** (batch generator, TP player fills) — reads production read-only, the TP feed history and `tools/download-tp`'s files, and writes the player-fill batches `tools/import-manual` applies; a change to what a fill or lasting-injury repair entry accepts usually needs a matching change here. See [import-manual-planner-cli](import-manual-planner-cli/index.md).
 - **`apps/discord-bot`** (consumer) — newly imported data is a candidate for a new command, fact or insight; the bot is also a direct live TP importer. See [discord-bot](discord-bot/index.md#how-it-fits-together).
 - **`packages/discord-bot-usage`** (bot telemetry) — records what the bot was asked to do; written and read only by the bot. See [discord-bot-usage](discord-bot-usage/index.md).
 - **`packages/review-harness`** (shared review scaffolding) — the generic report scaffolding every review tool shares; it carries no BBL/TP interpretation. See [review-harness](review-harness/index.md).
@@ -224,9 +225,10 @@ not shipped as part of any app).
 - **`tools/fs-utils-cli`** — worktree-aware filesystem helpers the Claude Code skills call. See [fs-utils-cli](fs-utils-cli/index.md).
 - **`tools/import-bbl`** — imports BBL data. See [import-bbl](import-bbl/index.md).
 - **`tools/import-manual`** — imports hand-authored supplementary data in once-applied batches. See [import-manual](import-manual/index.md).
+- **`tools/import-manual-planner-cli`** — plans `tools/import-manual` batches filling in incomplete TP players from production, the TP feed's history and TP roster snapshots. See [import-manual-planner-cli](import-manual-planner-cli/index.md).
 - **`tools/import-tp`** — imports TP data. See [import-tp](import-tp/index.md).
 - **`tools/markdownlint-rules`** — the repo's custom markdownlint rules. See [markdownlint-rules](markdownlint-rules/index.md).
-- **`tools/production-ops-cli`** — production database and tunnel operations, fetching Discord messages, reading the TP feed's history, and reading TP roster snapshots from the TP downloads. See [production-ops-cli](production-ops-cli/index.md).
+- **`tools/production-ops-cli`** — production database and tunnel operations, and fetching Discord messages. See [production-ops-cli](production-ops-cli/index.md).
 - **`tools/review-match`** — HTML report of raw match data against what was imported. See [review-match](review-match/index.md).
 - **`tools/review-player`** — HTML report of raw player data against what was imported. See [review-player](review-player/index.md).
 - **`tools/review-race`** — HTML report of raw race and position data against what was imported. See [review-race](review-race/index.md).
