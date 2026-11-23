@@ -82,8 +82,9 @@ time on a full production import. It collapses network round trips only: the
 server still performs one database upsert per item, sequentially, in input
 order.
 
-A per-item result is either `{ "success": true, …the record…, "created":
-<bool> }` or `{ "success": false, "error": "<message>" }`. Batch procedures
+Each item gets its own result: either success, with the stored record and
+whether it was created, or failure, with an error message (see
+`batchUpsertProcedure` in `packages/api-contract/src/batch-upsert-procedure.ts`). Batch procedures
 therefore declare no `CONFLICT` or `BAD_REQUEST` contract errors: those
 failure modes are per-item, so one bad item never costs its siblings their
 upserts. An unexpected server error is not downgraded that way — it is thrown
@@ -123,7 +124,8 @@ additionally exposes
 `resolve` takes one pair, `resolveBatch` a non-empty array of pairs and
 answers with an index-aligned array.
 
-An answer is `{ "found": true, "id": <number> }` or `{ "found": false }`.
+An answer says whether the pair names a record and, if it does, that record's
+id (`ResolveResultSchema` in `packages/api-contract/src/resolve-procedure.ts`).
 A miss is never an error. An unresolved reference is an expected outcome —
 a typo in a hand-authored data file, or a reference to a record no import
 step has created yet — and the caller decides what it means (the import
