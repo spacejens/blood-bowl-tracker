@@ -6,7 +6,6 @@ export { DiscordRestModule } from './discord-rest.module';
 export { DiscordRestService } from './discord-rest.service';
 export { GitRootsService } from './git-roots.service';
 export {
-  ENV_PRODUCTION_PATH,
   GITIGNORED_AUTO_CREATE_SYMLINK_DIRS,
   GITIGNORED_DATA_DIRS,
   GITIGNORED_DRIFT_FILES,
