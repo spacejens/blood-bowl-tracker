@@ -176,6 +176,8 @@ router's own comment and result schema in
 `packages/api-contract/src/contract.ts` explain why a given procedure is
 shaped this way instead of as an upsert, and its exact result shape.
 
+### Caller-authored syncs
+
 A sync that writes a caller-authored batch — `sppAwardValues.sync`,
 `advancementCosts.sync`, `positions.syncRaceEras`, `positionRulesSets.sync`,
 `positionRulesSetKeywords.sync`,
@@ -191,6 +193,8 @@ availability links, so a pair repeated within its batch is not an error: it
 lands as one link. `positionRulesSetSkillCategories.sync` replaces each named
 pair's whole category set. A category the entry leaves out is flagged removed,
 so a caller always sends the complete set.
+
+### Player fills and lasting reductions
 
 `players.fillIncomplete` writes one caller-authored player at a time: the
 complete data a manual import batch supplies for an existing TP player whose
@@ -209,6 +213,8 @@ values, writes only the five reduction counts, and answers `recorded`. It
 answers `unchanged`, writing nothing, when a reduction is already stored or
 his stored data shows none. A player that does not exist, is not a non-star
 TP player, or is still incomplete is refused with `BAD_REQUEST`.
+
+### Read-only procedures
 
 A procedure may also be plainly read-only, existing because a caller needs data
 that no `upsert` call's input or output can give it. Such a procedure writes
@@ -235,6 +241,8 @@ upsert: a batch has no external ids, only its directory name and a content
 hash. `record` answers `created: false` for a batch already recorded with the
 same hash, so a retry is safe, and `CONFLICT` for one recorded with a
 different hash — an applied batch was edited.
+
+### Source-specific imports
 
 One procedure is a coarse, source-specific import rather than an entity
 upsert: `tpRosters.import` takes one TP roster exactly as TP's API returns
