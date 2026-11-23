@@ -16,8 +16,10 @@ const variantSchema = z.object({
 /**
  * One era directory's copies of one roster: the copies the TP import sends
  * (`chosen`; several on a tie, none when a copy could not be read), the
- * players all of them list (`listed`) and the players only its other copies
- * list (`listedElsewhere`). Player ids are in numeric order.
+ * players all of them list (`listed`) and every other player any of its
+ * copies lists (`listedElsewhere`): those only unsent copies list, and on a
+ * tie those some but not all of the tied copies list. Player ids are in
+ * numeric order.
  */
 export const rosterCopyGroupSchema = z.object({
   era: z.string().min(1),

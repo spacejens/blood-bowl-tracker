@@ -43,7 +43,10 @@ export interface GenerateIncompletePlayerFillsReport extends FillReport {
    * date), each with its team count; their teams' players are skipped.
    */
   readonly ongoingCompetitions: readonly OngoingCompetitionSummary[];
-  /** The players listed in the file's `lastingInjuryRepairs` section: those a scratch build can apply. */
+  /**
+   * The players listed in the file's `lastingInjuryRepairs` section: those
+   * a database built from scratch can apply.
+   */
   readonly lastingInjuryRepairs: number;
   /**
    * The players selected for a repair but left out of that section because
@@ -77,9 +80,11 @@ export interface GenerateIncompletePlayerFillsResult {
  * fill for every incomplete TP player whose data can be proven (optionally
  * from the saved TP feed reports and roster snapshots), lists the complete
  * TP players whose stored line shows a lasting stat reduction the server
- * would record, and prints or writes the batch file with a report of which
- * competitions were treated as ongoing, who was filled by which proof, who was skipped and why, and how many repairs are
- * listed, left out with nothing to record, or left out because a database built from scratch would still have the player incomplete.
+ * would record, and prints or writes the batch file. Its report tells which
+ * competitions were treated as ongoing, who was filled by which proof, who
+ * was skipped and why, and how many repairs are listed, left out with
+ * nothing to record, or left out because a database built from scratch
+ * would still have the player incomplete.
  */
 @Injectable()
 export class GenerateIncompletePlayerFillsService {
@@ -164,6 +169,7 @@ export class GenerateIncompletePlayerFillsService {
     return this.scratch.split({
       repairs: input.repairs,
       rosterCopies: input.snapshots.rosterCopies,
+      shown: Object.keys(input.snapshots.players),
       runFills: input.entries,
       out: input.out,
     });

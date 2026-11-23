@@ -429,13 +429,17 @@ would change nothing; the report counts him under
 The generator then keeps only the repairs a database built from scratch can
 apply. A player is kept when an earlier batch fills him (a batch directory
 named before the one `--out` writes into, or every batch when `--out` is
-elsewhere or absent), when the same run fills him, or when the roster
-copies the TP import sends list him and no copy it does not send is the
-only one listing him. The others are left out and listed under
-`lastingInjuryRepairsScratchIncomplete`, with their count and TP ids; fill
-them by hand if their repair is needed. Repairs therefore need
-`--snapshots`: a run that finds a repair to list without it stops with an
-error. The full import stays the final check (see
+elsewhere or absent), when the same run fills him, or when every roster
+group listing him lists him in the copy the TP import sends (none lists him
+only in a copy it does not send, or in a group whose sent copy is unknown).
+A player no downloaded match or roster file shows is kept too: a scratch
+build never creates him, and the importer skips an entry whose player does
+not resolve. The others, players the downloads show but leave incomplete,
+are left out and listed under `lastingInjuryRepairsScratchIncomplete`, with
+their count and TP ids. To keep one's repair, add a fill of him to the
+batch from production data, as batch 009 does for four players. Repairs
+therefore need `--snapshots`: a run that finds a repair to list without it
+stops with an error. The full import stays the final check (see
 [Batches](batches.md#operating-procedure)).
 
 ## Order

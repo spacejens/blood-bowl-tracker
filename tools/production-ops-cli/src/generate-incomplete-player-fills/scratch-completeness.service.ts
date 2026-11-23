@@ -8,6 +8,8 @@ export interface ScratchCompletenessInput {
   repairs: readonly LastingInjuryRepairEntry[];
   /** The snapshots' roster copies: who the copies the TP import sends list. */
   rosterCopies: readonly TpRosterCopyGroup[];
+  /** The TP ids any downloaded match or roster file shows (`players`). */
+  shown: readonly string[];
   /** This run's fills, which the batch applies before its repairs. */
   runFills: readonly FillEntry[];
   /** The repo-relative path the batch is written to, when one is given. */
@@ -23,11 +25,13 @@ export interface ScratchCompletenessSplit {
 
 /**
  * Splits the lasting-injury repairs by whether a database built from
- * scratch has the player complete when the batch repairs him: an earlier
- * batch fills him, this run fills him, or the roster copies the TP import
- * sends list him and no copy it does not send is the only one listing him.
- * The server refuses a repair of a player still incomplete, which stops the
- * batch, so the others are left out.
+ * scratch can apply them. It can when an earlier batch fills the player,
+ * when this run fills him, or when every roster group listing him lists him
+ * in the copy the TP import sends, so the import has him complete. It can
+ * also when no downloaded file shows him at all: nothing creates him on a
+ * scratch build, and the importer skips a repair of a player who does not
+ * resolve. Any other player a file shows is still incomplete there, and the
+ * server refuses his repair, which stops the batch, so it is left out.
  */
 @Injectable()
 export class ScratchCompletenessService {
@@ -52,10 +56,13 @@ export class ScratchCompletenessService {
         elsewhere.add(id);
       }
     }
+    const shown = new Set(input.shown);
     const split: ScratchCompletenessSplit = { safe: [], unsafe: [] };
     for (const repair of input.repairs) {
       const id = repair.player.id;
-      if (filled.has(id) || (listed.has(id) && !elsewhere.has(id))) {
+      const sent = listed.has(id) && !elsewhere.has(id);
+      const absent = !shown.has(id) && !listed.has(id) && !elsewhere.has(id);
+      if (filled.has(id) || sent || absent) {
         split.safe.push(repair);
       } else {
         split.unsafe.push(id);

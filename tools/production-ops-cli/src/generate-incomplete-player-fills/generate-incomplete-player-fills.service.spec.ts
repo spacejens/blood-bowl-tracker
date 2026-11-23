@@ -30,7 +30,18 @@ const OTHER: LastingInjuryRepairEntry = {
   player: { system: 'tourplay.net', id: '688945' },
 };
 const SNAPSHOTS: TpRosterSnapshots = {
-  players: {},
+  players: {
+    '929761': [
+      {
+        lineUpMasterId: 952,
+        level: 0,
+        skillMasterIds: [],
+        totalSpp: 0,
+        unspentSpp: 0,
+        sources: ['fourth-era/s30/rosters_164848.json'],
+      },
+    ],
+  },
   conflicts: [],
   unreadable: [],
   rosterCopies: [
@@ -252,6 +263,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
     expect(scratch.split).toHaveBeenCalledWith({
       repairs: [REPAIR, OTHER],
       rosterCopies: SNAPSHOTS.rosterCopies,
+      shown: ['929761'],
       runFills: [ENTRY],
       out,
     });
@@ -261,6 +273,21 @@ describe('GenerateIncompletePlayerFillsService', () => {
       count: 1,
       players: ['688945'],
     });
+  });
+
+  it('prints the scratch-safe repairs without a path to judge earlier batches by', async () => {
+    repairSelector.select.mockReturnValue([REPAIR, OTHER]);
+    snapshotStore.readSnapshots.mockResolvedValue(SNAPSHOTS);
+    scratch.split.mockResolvedValue({ safe: [REPAIR], unsafe: ['688945'] });
+
+    const result = await service.run({ snapshots: true });
+
+    expect(scratch.split).toHaveBeenCalledWith(
+      expect.objectContaining({ repairs: [REPAIR, OTHER], out: undefined }),
+    );
+    expect(renderer.render).toHaveBeenCalledWith([ENTRY], [REPAIR]);
+    expect(result.section).toBe('// file\n');
+    expect(writeFile.run).not.toHaveBeenCalled();
   });
 
   it('refuses repairs without --snapshots, writing nothing', async () => {

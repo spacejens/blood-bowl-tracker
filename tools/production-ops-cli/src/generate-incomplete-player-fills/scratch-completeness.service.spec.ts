@@ -62,6 +62,7 @@ describe('ScratchCompletenessService', () => {
       service.split({
         repairs: [repair('1')],
         rosterCopies: [group('164848', ['1'])],
+        shown: [],
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [repair('1')], unsafe: [] });
@@ -72,16 +73,18 @@ describe('ScratchCompletenessService', () => {
       service.split({
         repairs: [repair('2463398')],
         rosterCopies: [group('164848', ['1'], ['2463398'])],
+        shown: [],
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [], unsafe: ['2463398'] });
   });
 
-  it('leaves out a player no roster copy lists', async () => {
+  it('leaves out a player a match shows whom no roster copy lists', async () => {
     await expect(
       service.split({
         repairs: [repair('9')],
         rosterCopies: [group('164848', ['1'])],
+        shown: ['1', '9'],
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [], unsafe: ['9'] });
@@ -92,6 +95,7 @@ describe('ScratchCompletenessService', () => {
       service.split({
         repairs: [repair('1')],
         rosterCopies: [group('164848', ['1']), group('170000', [], ['1'])],
+        shown: [],
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [], unsafe: ['1'] });
@@ -104,6 +108,7 @@ describe('ScratchCompletenessService', () => {
       service.split({
         repairs: [repair('2463398')],
         rosterCopies: [group('164848', [], ['2463398'])],
+        shown: [],
         runFills: [],
         out: OUT,
       }),
@@ -113,7 +118,12 @@ describe('ScratchCompletenessService', () => {
   });
 
   it('reads every batch when no path is given', async () => {
-    await service.split({ repairs: [], rosterCopies: [], runFills: [] });
+    await service.split({
+      repairs: [],
+      rosterCopies: [],
+      shown: [],
+      runFills: [],
+    });
 
     expect(batches.batchOf).not.toHaveBeenCalled();
     expect(batches.filledTpIds).toHaveBeenCalledWith(undefined);
@@ -124,6 +134,7 @@ describe('ScratchCompletenessService', () => {
       service.split({
         repairs: [repair('9')],
         rosterCopies: [],
+        shown: [],
         runFills: [fill('9')],
       }),
     ).resolves.toEqual({ safe: [repair('9')], unsafe: [] });
@@ -134,11 +145,53 @@ describe('ScratchCompletenessService', () => {
       service.split({
         repairs: [repair('3'), repair('1'), repair('4'), repair('2')],
         rosterCopies: [group('164848', ['1', '2'])],
+        shown: ['1', '2', '3', '4'],
         runFills: [],
       }),
     ).resolves.toEqual({
       safe: [repair('1'), repair('2')],
       unsafe: ['3', '4'],
     });
+  });
+
+  it('keeps a player no downloaded file shows, whom a scratch build never creates', async () => {
+    await expect(
+      service.split({
+        repairs: [repair('9')],
+        rosterCopies: [group('164848', ['1'])],
+        shown: ['1'],
+        runFills: [],
+      }),
+    ).resolves.toEqual({ safe: [repair('9')], unsafe: [] });
+  });
+
+  it('keeps a player the same run fills though only an unsent copy lists him', async () => {
+    await expect(
+      service.split({
+        repairs: [repair('2463398')],
+        rosterCopies: [group('164848', ['1'], ['2463398'])],
+        shown: ['1', '2463398'],
+        runFills: [fill('2463398')],
+      }),
+    ).resolves.toEqual({ safe: [repair('2463398')], unsafe: [] });
+  });
+
+  it('leaves out a player of a group whose sent copy is unknown, unless he is filled', async () => {
+    const undetermined: TpRosterCopyGroup = {
+      era: 'fourth-era',
+      rosterId: '164848',
+      chosen: [],
+      listed: [],
+      listedElsewhere: ['1', '2'],
+    };
+
+    await expect(
+      service.split({
+        repairs: [repair('1'), repair('2')],
+        rosterCopies: [undetermined],
+        shown: ['1', '2'],
+        runFills: [fill('2')],
+      }),
+    ).resolves.toEqual({ safe: [repair('2')], unsafe: ['1'] });
   });
 });

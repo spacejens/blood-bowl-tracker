@@ -80,16 +80,19 @@ and leaves out every candidate with nothing to record.
 `report.lastingInjuryRepairs` counts the listed players and
 `report.lastingInjuryRepairsNothingToRecord` the ones left out.
 `ScratchCompletenessService` then leaves out every repair a database built
-from scratch would refuse because it has the player incomplete, judged from
-the snapshots' `rosterCopies`, the TP ids earlier batches under
-`tools/import-manual/data/batches` fill, and this run's fills;
+from scratch would refuse because it has the player incomplete. It judges
+that from the snapshots' `rosterCopies` and the players they show at all,
+the TP ids earlier batches under `tools/import-manual/data/batches` fill,
+and this run's fills; a player no downloaded file shows is kept, since a
+scratch build never creates him.
 `report.lastingInjuryRepairsScratchIncomplete` gives their count and TP ids
-(see [Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)). `section`
-holds the batch file when no `--out` is given. With `--out`, the file is
-written through cli-shared's `WriteFileService` and `written` reports it. A run with `--out`,
-no eligible player and no repair writes nothing and fails, with the report
-in the error message so the skipped players and their reasons are still
-visible.
+(see
+[Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)).
+`section` holds the batch file when no `--out` is given. With `--out`, the
+file is written through cli-shared's `WriteFileService` and `written`
+reports it. A run with `--out`, no eligible player and no repair writes
+nothing and fails, with the report in the error message so the skipped
+players and their reasons are still visible.
 
 `--feed-channel=<channel-id>` reads
 `tools/production-ops-cli/data/tp-feed-<channel-id>/reports.json`, the
@@ -109,29 +112,31 @@ team who can afford their reports; `null` without the flag; see
 
 `--snapshots` reads
 `tools/production-ops-cli/data/tp-roster-snapshots/snapshots.json`, the
-evidence `read-tp-roster-snapshots` saves (see [Reading the TP roster
-snapshots](#reading-the-tp-roster-snapshots)), before any query runs. A
-missing or malformed file stops the run. Repairs need it: a run that selects a
-repair without the flag stops with an error once the queries have run.
-Without the flag, players at or
-above the cheapest advancement whom the feed does not name stay
-`spp-too-high`; with it and without `--feed-channel`, every such player
-goes to the snapshot stage, which also needs his stored unspent SPP to
-equal the snapshot's. With both flags, a player the feed names whose
-reports do not add up to the SPP he spent also goes to the snapshot stage,
-with his reports fixed in place; `report.eligibleByStage.feedWithSnapshot`
-counts those fills. The evidence file's age is not checked, so run
-`read-tp-roster-snapshots` again after downloading. The queries also read
-every skill's and every candidate position's `tourplay.net` ids, and the
-skills held with a variant anywhere. `report.eligibleByStage.snapshot`
-counts the snapshot fills. See [Generated
-fills](../import-manual/filling-missing-players.md#generated-fills).
+evidence `read-tp-roster-snapshots` saves (see
+[Reading the TP roster snapshots](#reading-the-tp-roster-snapshots)),
+before any query runs. A missing or malformed file stops the run. Repairs
+need it: a run that selects a repair without the flag stops with an error
+once the queries have run. Without the flag, players at or above the
+cheapest advancement whom the feed does not name stay `spp-too-high`; with
+it and without `--feed-channel`, every such player goes to the snapshot
+stage, which also needs his stored unspent SPP to equal the snapshot's.
+With both flags, a player the feed names whose reports do not add up to the
+SPP he spent also goes to the snapshot stage, with his reports fixed in
+place; `report.eligibleByStage.feedWithSnapshot` counts those fills. The
+evidence file's age is not checked, so run `read-tp-roster-snapshots` again
+after downloading. The queries also read every skill's and every candidate
+position's `tourplay.net` ids, and the skills held with a variant anywhere.
+`report.eligibleByStage.snapshot` counts the snapshot fills. See
+[Generated fills](../import-manual/filling-missing-players.md#generated-fills).
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
-characteristic-format, skill, advancement-kind and match-event enums.
-`@blood-bowl-tracker/db`, `@blood-bowl-tracker/game-data` and
-`@blood-bowl-tracker/parse-tp` are dev dependencies, used only by four
-drift-guard specs. One keeps the SQL selection in step with
+characteristic-format, skill, advancement-kind and match-event enums, and
+on `@blood-bowl-tracker/parse-tp`, whose `RosterParserService` reads each
+roster copy the way the TP import does, so a copy the import drops is
+unreadable here too. `@blood-bowl-tracker/db` and
+`@blood-bowl-tracker/game-data` are dev dependencies, used only by
+drift-guard specs. Four drift-guard specs keep the tool in step with the
+code it mirrors. One keeps the SQL selection in step with
 `INCOMPLETE_PLAYER_CRITERIA`. Another runs the generator's advancement
 pricing next to game-data's own order check
 (`AdvancementOrderDeductionService`) and requires the server to accept
@@ -139,7 +144,8 @@ exactly the spend the generator prices. The third runs the repair
 selector's reduction counts next to game-data's
 `PlayerFillReductionsService` and requires both to agree. The fourth reads
 roster copies next to parse-tp's `RosterParserService` and requires the
-same finish instant and players.
+same finish instant and players, or an unreadable copy where parse-tp
+rejects the file.
 
 ## Reading the TP feed history
 
@@ -223,9 +229,10 @@ node tools/production-ops-cli/dist/main.js read-tp-roster-snapshots
   conflicts, roster copy groups (`rosterCopies`) and the groups whose sent
   copy could not be determined (`rosterCopiesUndetermined`).
 
-It reads its own minimal shape of the files rather than using
-`packages/parse-tp`, whose match parser keeps no `level`. It changes no
-player. See [Roster snapshot evidence](../import-manual/roster-snapshot-evidence.md)
+It reads the player states with its own minimal shape of the files rather
+than using `packages/parse-tp`, whose match parser keeps no `level`. It
+reads the roster copies with parse-tp's `RosterParserService`, as the TP
+import does. It changes no player. See [Roster snapshot evidence](../import-manual/roster-snapshot-evidence.md)
 for what the files show.
 
 ## Development

@@ -60,14 +60,19 @@ complete.
 
 `read-tp-roster-snapshots` records this under `rosterCopies`: for each era
 directory and roster id, the copies the import sends (`chosen`), the
-players they list (`listed`), and the players only its other copies list
-(`listedElsewhere`). On a tie the import's choice follows the order the
-directories are read in, so every tied copy is in `chosen` and `listed`
-holds only the players all of them list. When a copy cannot be read, the
-choice is unknown: `chosen` and `listed` are empty and every player the
-readable copies list is in `listedElsewhere`. A drift-guard spec reads
-copies next to `packages/parse-tp`'s `RosterParserService` and requires the
-same finish instant and players.
+players they list (`listed`), and every other player any of its copies
+lists (`listedElsewhere`). On a tie the import's choice follows the order
+the directories are read in, so every tied copy is in `chosen`, `listed`
+holds only the players all of them list, and a player some but not all of
+them list is in `listedElsewhere`.
+
+A copy is read with `packages/parse-tp`'s `RosterParserService`, the parser
+the import reads it with. The import drops a copy that parser rejects, so
+such a copy counts as one that cannot be read. When a copy cannot be read,
+the choice is unknown: `chosen` and `listed` are empty and every player the
+readable copies list is in `listedElsewhere`. A drift-guard spec runs the
+copy reader on files parse-tp accepts and rejects, and requires the same
+finish instant and players, or an unreadable copy.
 
 For example, rosters 164848, 167599 and 168304 have copies under
 `tloegbbl-chaos-cup-8` and `tloegbbl-sasong-30` in `fourth-era`. The import
