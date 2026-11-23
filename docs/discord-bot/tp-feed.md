@@ -175,7 +175,9 @@ While the bot's TP scraping switch is off, the bot still listens, parses
 notifications and echoes its interpretation to the debug channel, but imports
 nothing and sends no request to TP. Those notifications get no ✔️ reaction,
 since they were not imported; once scraping is back on, running `/importtp`
-on the link of each notification without a ✔️ brings them in.
+on the link of each notification without a ✔️ brings them in. The teams of a
+start-of-match notification come in this way only once its match has
+finished, because `/importtp` imports a match only when it is completed.
 
 Setting the feed up (the channel variables, the bot's channel permissions and
 the Discord application's Message Content Intent) is covered in
