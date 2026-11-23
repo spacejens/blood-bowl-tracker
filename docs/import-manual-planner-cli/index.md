@@ -169,6 +169,11 @@ gitignored `tools/import-manual-planner-cli/data/tp-feed-<channel-id>/`:
 main checkout from a worktree, so output written there survives the
 worktree's removal. In a worktree created before this directory existed, run
 `node tools/fs-utils-cli/dist/main.js sync-gitignored` first.
+`sync-gitignored` never replaces something already present, so a real
+`tools/import-manual-planner-cli/data` directory in a worktree is left
+unlinked, and what it holds is removed with the worktree. Move its contents
+into the main checkout's `tools/import-manual-planner-cli/data/` before
+running `sync-gitignored`, or run the collectors again in the main checkout.
 
 ## Reading the TP roster snapshots
 
