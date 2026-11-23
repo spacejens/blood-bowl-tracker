@@ -38,6 +38,8 @@ export const tpRosterSnapshotsSchema = z.object({
   conflicts: z.array(z.string()),
   /** Source files that could not be read as snapshots. */
   unreadable: z.array(z.object({ source: z.string(), reason: z.string() })),
+  /** Per era directory and roster id, the copies the TP import sends. */
+  rosterCopies: z.array(rosterCopyGroupSchema),
 });
 
 /**
@@ -49,3 +51,6 @@ export type TpRosterSnapshotState = z.infer<z.ZodObject<typeof stateShape>>;
 export type TpRosterSnapshotVariant = z.infer<typeof variantSchema>;
 export type TpRosterSnapshots = z.infer<typeof tpRosterSnapshotsSchema>;
 export type TpRosterCopyGroup = z.infer<typeof rosterCopyGroupSchema>;
+
+/** What the player index builds: the file without its roster copies. */
+export type TpRosterPlayerSnapshots = Omit<TpRosterSnapshots, 'rosterCopies'>;

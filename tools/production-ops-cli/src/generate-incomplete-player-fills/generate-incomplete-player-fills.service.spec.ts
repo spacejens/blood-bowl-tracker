@@ -297,7 +297,12 @@ describe('GenerateIncompletePlayerFillsService', () => {
   });
 
   it('reads the saved roster snapshots before any query, and hands them to the planner', async () => {
-    const snapshots = { players: {}, conflicts: [], unreadable: [] };
+    const snapshots = {
+      players: {},
+      conflicts: [],
+      unreadable: [],
+      rosterCopies: [],
+    };
     snapshotStore.readSnapshots.mockResolvedValue(snapshots);
     await service.run({ snapshots: true });
 

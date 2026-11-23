@@ -837,6 +837,7 @@ describe('IncompletePlayerFillPlannerService', () => {
       },
       conflicts: [],
       unreadable: [],
+      rosterCopies: [],
     };
     const rich = (overrides: Partial<FillPlannerInput> = {}) =>
       eligibleInput({

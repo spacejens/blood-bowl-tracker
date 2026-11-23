@@ -46,6 +46,7 @@ const SNAPSHOTS: TpRosterSnapshots = {
   },
   conflicts: [],
   unreadable: [],
+  rosterCopies: [],
 };
 const STAGED: FillEntry = {
   player: { system: 'tourplay.net', id: '500' },
