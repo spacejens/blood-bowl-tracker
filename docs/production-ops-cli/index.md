@@ -78,7 +78,13 @@ his stored line, active characteristic increases and the rules set context
 the query resolves, the way game-data's `PlayerFillReductionsService` does,
 and leaves out every candidate with nothing to record.
 `report.lastingInjuryRepairs` counts the listed players and
-`report.lastingInjuryRepairsNothingToRecord` the ones left out. `section`
+`report.lastingInjuryRepairsNothingToRecord` the ones left out.
+`ScratchCompletenessService` then leaves out every repair a database built
+from scratch would refuse because it has the player incomplete, judged from
+the snapshots' `rosterCopies`, the TP ids earlier batches under
+`tools/import-manual/data/batches` fill, and this run's fills;
+`report.lastingInjuryRepairsScratchIncomplete` gives their count and TP ids
+(see [Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)). `section`
 holds the batch file when no `--out` is given. With `--out`, the file is
 written through cli-shared's `WriteFileService` and `written` reports it. A run with `--out`,
 no eligible player and no repair writes nothing and fails, with the report
@@ -105,7 +111,9 @@ team who can afford their reports; `null` without the flag; see
 `tools/production-ops-cli/data/tp-roster-snapshots/snapshots.json`, the
 evidence `read-tp-roster-snapshots` saves (see [Reading the TP roster
 snapshots](#reading-the-tp-roster-snapshots)), before any query runs. A
-missing or malformed file stops the run. Without the flag, players at or
+missing or malformed file stops the run. Repairs need it: a run that selects a
+repair without the flag stops with an error once the queries have run.
+Without the flag, players at or
 above the cheapest advancement whom the feed does not name stay
 `spp-too-high`; with it and without `--feed-channel`, every such player
 goes to the snapshot stage, which also needs his stored unspent SPP to
@@ -121,14 +129,17 @@ fills](../import-manual/filling-missing-players.md#generated-fills).
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums.
-`@blood-bowl-tracker/db` and `@blood-bowl-tracker/game-data` are dev
-dependencies, used only by three drift-guard specs. One keeps the SQL
-selection in step with `INCOMPLETE_PLAYER_CRITERIA`. Another runs the
-generator's advancement pricing next to game-data's own order check
+`@blood-bowl-tracker/db`, `@blood-bowl-tracker/game-data` and
+`@blood-bowl-tracker/parse-tp` are dev dependencies, used only by four
+drift-guard specs. One keeps the SQL selection in step with
+`INCOMPLETE_PLAYER_CRITERIA`. Another runs the generator's advancement
+pricing next to game-data's own order check
 (`AdvancementOrderDeductionService`) and requires the server to accept
 exactly the spend the generator prices. The third runs the repair
 selector's reduction counts next to game-data's
-`PlayerFillReductionsService` and requires both to agree.
+`PlayerFillReductionsService` and requires both to agree. The fourth reads
+roster copies next to parse-tp's `RosterParserService` and requires the
+same finish instant and players.
 
 ## Reading the TP feed history
 
@@ -203,9 +214,14 @@ node tools/production-ops-cli/dist/main.js read-tp-roster-snapshots
   run. `players` maps a TP player id to each distinct state with its source
   files. `conflicts` lists the players shown in more than one state.
   `unreadable` lists the files of another shape, with the reason. Neither
-  stops the run.
-- **Summary.** Match and roster files read, unreadable files, players and
-  conflicts.
+  stops the run. `rosterCopies` lists, per era directory and roster id, the
+  copies the TP import sends and which players they list (see [Roster
+  copies the import sends](../import-manual/roster-snapshot-evidence.md#roster-copies-the-import-sends)).
+  A file saved before `rosterCopies` existed is refused; run the collector
+  again.
+- **Summary.** Match and roster files read, unreadable files, players,
+  conflicts, roster copy groups (`rosterCopies`) and the groups whose sent
+  copy could not be determined (`rosterCopiesUndetermined`).
 
 It reads its own minimal shape of the files rather than using
 `packages/parse-tp`, whose match parser keeps no `level`. It changes no

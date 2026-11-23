@@ -46,6 +46,34 @@ generator skips such a player as `snapshot-disagrees`.
   anyone relaxing the rule that exactly one order must fit, for players
   with several advancements, must account for it.
 
+## Roster copies the import sends
+
+A roster file is downloaded under every competition its team played in,
+each copy as TP showed it on its own download day. The TP import sends one
+copy per era and roster id: the one whose newest
+`lastMatches[].scores[].finishInstant` is latest, a copy with none counting
+as older than any with one (`tools/import-tp`'s
+`TpRosterFilesImportService`). A player that copy does not list is known
+only from match snapshots, which carry no characteristics, so a database
+built from scratch has him incomplete even when production has him
+complete.
+
+`read-tp-roster-snapshots` records this under `rosterCopies`: for each era
+directory and roster id, the copies the import sends (`chosen`), the
+players they list (`listed`), and the players only its other copies list
+(`listedElsewhere`). On a tie the import's choice follows the order the
+directories are read in, so every tied copy is in `chosen` and `listed`
+holds only the players all of them list. When a copy cannot be read, the
+choice is unknown: `chosen` and `listed` are empty and every player the
+readable copies list is in `listedElsewhere`. A drift-guard spec reads
+copies next to `packages/parse-tp`'s `RosterParserService` and requires the
+same finish instant and players.
+
+For example, rosters 164848, 167599 and 168304 have copies under
+`tloegbbl-chaos-cup-8` and `tloegbbl-sasong-30` in `fourth-era`. The import
+sends the sasong-30 copies, which no longer list TP players 2463398,
+2464149, 2592815 and 2735305.
+
 ## How it is used
 
 `--snapshots` does not check how old the evidence file is, so run

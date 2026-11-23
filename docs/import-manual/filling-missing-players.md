@@ -408,12 +408,12 @@ absorbed by a limit, the position has no start value, or the stored line is
 out of date). Applying the same entry again changes nothing.
 
 A player complete in production may still be incomplete on a database built
-from scratch, when his data came from a source the scratch import lacks (for
-example TP roster data the downloaded files do not hold); his repair then
-stops the batch. So a repair of a player no source supplies goes with a fill
-of him in the same batch, which runs first, as batch 009 does for four
-players. The generator does not detect such players, so the full import is
-the check (see [Batches](batches.md#operating-procedure)).
+from scratch, when his data came from a source the scratch import lacks; his
+repair then stops the batch. The usual cause is the roster copy the TP
+import sends, which may no longer list him (see [Roster copies the import
+sends](roster-snapshot-evidence.md#roster-copies-the-import-sends)). A
+repair of such a player goes with a fill of him in the same batch, which
+runs first, as batch 009 does for four players.
 
 `generate-incomplete-player-fills` lists every non-star TP player who is no
 longer incomplete, has a stat reduction recorded in a match and has no
@@ -425,6 +425,18 @@ reduction healed, was absorbed by a limit, has no start value to compare
 against, or whose stored line is out of date is left out, since his entry
 would change nothing; the report counts him under
 `lastingInjuryRepairsNothingToRecord`.
+
+The generator then keeps only the repairs a database built from scratch can
+apply. A player is kept when an earlier batch fills him (a batch directory
+named before the one `--out` writes into, or every batch when `--out` is
+elsewhere or absent), when the same run fills him, or when the roster
+copies the TP import sends list him and no copy it does not send is the
+only one listing him. The others are left out and listed under
+`lastingInjuryRepairsScratchIncomplete`, with their count and TP ids; fill
+them by hand if their repair is needed. Repairs therefore need
+`--snapshots`: a run that finds a repair to list without it stops with an
+error. The full import stays the final check (see
+[Batches](batches.md#operating-procedure)).
 
 ## Order
 
