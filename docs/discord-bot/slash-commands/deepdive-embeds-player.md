@@ -59,7 +59,7 @@ points at an import bug. A killed player with no stored status is not a
 conflict and is not reported. The deepdive still shows the killed line in
 every case, and the bot logs a conflict as an error. It also posts a bug
 report naming the player's id, name and stored status to the
-[TP feed debug channel](../tp-feed.md#configuration), when one is
+[TP feed debug channel](../tp-feed-setup.md#configuration), when one is
 configured. Each conflict (player and stored status) is reported once per
 bot run. A failed post never affects the deepdive reply.
 

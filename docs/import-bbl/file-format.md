@@ -38,16 +38,19 @@ code** — the code is the source of truth at that point.
 
 ## Page types seen in the reference dataset
 
-Fully handled in code: `tm`, `pt` and `tl` (see the notes on each, which keep
-only what the code cannot express).
+Fully handled in code: `tm`, `pt`, `tl`, `pl`, `ma`, `m`, `se` and `sr` (see
+the notes on each below, which keep only what the code cannot express).
 
 Not yet handled (candidates for future work): `mp` (per-match scores, gate, TD
-scorers, and sendings-off). Per-match **identity** (BBL id, date, competition)
-is imported straight from the `ma` list rows — see the note on `ma` pages
-below. The `m` detail page is read separately, for each match's two teams and
-its display name — see the note on `m` pages below. Also not yet handled: `ro`
+scorers, and sendings-off; per-match identity comes from the `ma` list rows
+and each match's teams and display name from its `m` page instead), `ro`
 (rosters), `te` (league team list), `ch` (per-season player top charts), plus
-others.
+others. The `tt` and `ppr` trophy legend pages are not parsed either: they
+were read by hand to curate the trophy catalogue (see the note on them below).
+
+## Page notes
+
+### pt pages
 
 Note on `pt` pages: the scraped skill list is a single BB2020-era snapshot,
 deliberately NOT written to CRP, CRP+ or BB2016: those three older rules sets
@@ -58,13 +61,7 @@ rather than overwritable, so the BBL snapshot would otherwise merge into a
 union with the curated list instead of being excluded from it. See
 `BblPositionSkillsImportService`.
 
-Note on journeymen on `pl` pages: a player whose `<h1>` is "Journeyman" (any
-case) is a journeyman when his Skills cell lists Loner. BBL shows that Loner in
-the gained colour and numbers it, and the import leaves it out of his gained
-skills and closes its number, because the server stores a journeyman's Loner as
-a starting skill. A "Journeyman" page without Loner is a recruit. A page that is not a journeyman
-keeps a gained Loner as an ordinary advancement and sends `isJourneyman` false. The local
-dump also has two `journeyman?` pages, which the rule does not match.
+### pl pages
 
 Note on `pl` pages: a player page carries the player's `<h1>` name, two links —
 the player's position (`default.asp?p=pt&typID=<id>`) and team
@@ -98,6 +95,18 @@ report), and a retired team is marked by `gfx/retiredteam.gif` beside the team
 link. Every `pl` page in the reference dataset has exactly one such header
 block. Only one page (pid 5263) carries the temporarily-retired icon.
 
+#### Journeymen on pl pages
+
+Note on journeymen on `pl` pages: a player whose `<h1>` is "Journeyman" (any
+case) is a journeyman when his Skills cell lists Loner. BBL shows that Loner in
+the gained colour and numbers it, and the import leaves it out of his gained
+skills and closes its number, because the server stores a journeyman's Loner as
+a starting skill. A "Journeyman" page without Loner is a recruit. A page that is not a journeyman
+keeps a gained Loner as an ordinary advancement and sends `isJourneyman` false. The local
+dump also has two `journeyman?` pages, which the rule does not match.
+
+### se and sr pages
+
 Note on `se`/`sr` pages: `default.asp?p=se&s=<id>` ("played"/archived
 competitions) and `default.asp?p=sr&s=<id>` (current standings) share one
 numeric id space. Every `se`/`sr` page embeds the identical master dropdown
@@ -106,6 +115,8 @@ competition, so one page is enough to get the full id/name list (the same
 "master list on every page" pattern the `tl` race list uses). The `p=cp&cpid=`
 pages look competition-like but are generic static content pages (league
 structure, news, gallery) — not reliably competitions — and are out of scope.
+
+### ma pages
 
 Note on `ma` pages: `default.asp?p=ma&so=s&s=<id>` is a competition's match
 list. It has no explicit type or date field except each match row's
@@ -126,6 +137,8 @@ cup spans at most 2 days, so 3 days has wide margin. The rule lives in
 `packages/import-shared`'s `CompetitionTypeService`, which
 `packages/import-tp-live` classifies TP competitions by too.
 
+### sr page team trophy table
+
 Note on the `sr` page's "Team trophy" table: `default.asp?p=sr&s=<id>` carries a
 `table.tblist` whose header `<th>` reads "Team trophy" (present on 55 of the 73
 mirrored `sr` pages; e.g. "Ogretoberfest 6", `s=46`, has none — a competition
@@ -140,6 +153,8 @@ rows (e.g. `Cabal Vision
 Cup`, `Major Best Stunty`, `Major Wooden Spoon`); those say nothing about a
 specific match and so are ignored for tie-breaking, but they are real
 trophies and every row of this table is imported as a `trophy_awards` row.
+
+### sr page player prize table
 
 Note on the `sr` page's "Player prize" table: the same `default.asp?p=sr&s=<id>`
 page carries a second `table.tblist` whose header `<th>` reads "Player prize".
@@ -161,6 +176,8 @@ and four players (e.g. `Deadliest Player`, `Legendary Player`, `Top Fouler`,
 `Top Intercepter`), so no cutoff on tie size is applied: every listed winner
 gets its own `trophy_awards` row.
 
+### m pages
+
 Note on `m` pages: `default.asp?p=m&m=<id>` is a single match's detail page.
 Its two teams are read from the `<a href="default.asp?p=tm&t=<id>">` links in
 the first `table.tblist tr.trborder` row's two `<td width="180">` cells (home
@@ -171,6 +188,8 @@ header wrapping the competition link, e.g. `<b><a href="...p=ma...">Season
 Ogretoberfest finals, which this project stores as one merged match — see
 `MatchMergeService`). Names are not unique across matches (e.g. "Final"
 recurs every season) and are never used as an external id.
+
+#### Administrative match events
 
 Administrative match events on `m` pages: an `m` page's two label tables (an
 achievement table and a "Sustained Injuries" table) plus a freeform "Match
@@ -184,6 +203,8 @@ matches (most have zero occurrences), which is not a parseable field. Two facts
 BBL _does_ support are imported: the `-1 PA` passing stat-loss injury (a normal
 Sustained-Injuries row, handled like `-1 MA/ST/AG/AV`) and a lower-bound
 journeyman-signing count (below).
+
+#### Journeyman-count lower bound
 
 Journeyman-count lower bound: BBL delinks a journeyman player to the bare text
 `journeyman` with no id, so journeymen cannot be told apart and an exact count
@@ -199,6 +220,8 @@ team's cells (catching achievement-row-only mentions); the emitted
 `journeymenCount` is `max(floor, removalCount)`, and one `journeymen_signings`
 event is emitted per side with a positive count. This is why BBL's
 `journeymenCount` is a proven minimum, not TP's exact per-roster count.
+
+#### Multi-entry cells
 
 Multi-entry cells: an event cell's `<br>`-separated segments are read one by
 one — `<br>` is the only separator BBL uses between entries in a cell, so a
@@ -248,6 +271,8 @@ here at all, since the row walk requires exactly three cells. Recording
 shoot-out results properly therefore needs a separate pass over those
 merged-cell rows, not just this annotation.
 
+#### Prevented casualties
+
 A prevented casualty is stored as `consequence_type = 'casualty_avoided'` with
 the prevented severity in `consequence_avoided_severity`, never as the severity
 itself, so no casualty-suffered statistic counts it as a real casualty. It is
@@ -268,6 +293,8 @@ is committed, and it likewise merges nothing — both actions and the consequenc
 are emitted as separate events rather than the first team in source order
 silently claiming it.
 
+#### Placement validation
+
 Placement is validated against the row's actual resolved type, not just
 achievement-vs-injury: a bare `foul` is only valid in a casualty-severity
 action row (`badly_hurt`, `serious_injury`, `death` — e.g. rejected in `TD
@@ -282,6 +309,8 @@ segment, produces no occurrence for that text and is reported as a non-fatal
 import error naming the match, the row and the text (the linked player's own
 occurrence is still emitted). Guessing would re-introduce exactly the data
 loss this handling exists to prevent if the mirror's wording ever changes.
+
+### Competition dates and type overrides
 
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results
@@ -307,6 +336,8 @@ overrides, each for a different reason:
 
 Any future similar case should be handled the same way.
 
+### tl page
+
 Note on the `tl` page: `default.asp?p=tl` (no further params) is a single
 per-league master race-list page. Each race is introduced by two anchors — a
 name anchor and a numeric-id anchor, e.g.
@@ -318,6 +349,8 @@ strict superset of the races `tm` pages reveal: a race no longer offered by the
 league can be dropped from it while still attached to old/retired team pages
 (id `22` in the reference dataset), so the races import treats `tm` pages as
 authoritative and uses `tl` only to fill in races with no team page.
+
+### tt and ppr pages
 
 Note on `tt`/`ppr` pages: `default.asp?p=tt` (no further params) is the single
 team-trophy legend page; `default.asp?p=ppr` (no further params) is the single
@@ -386,6 +419,8 @@ Minor season award and resolves onto the same curated `Minor` trophy as `Minor 1
 — the curated catalog carries both labels as external ids on that one
 trophy.
 
+#### Competitions missing from the curated catalogue
+
 Group-scoped resolution above requires trusting a competition's curated
 competition group, which is only true for a competition already curated in the
 manual-import batches' `competitions.json5` files.
@@ -404,6 +439,8 @@ a trace. The fix, when this shows up in import output, is to add the curated
 competition row in a new
 [manual-import batch](../import-manual/batches.md), apply it, then re-run the
 import.
+
+#### Ogretoberfest
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
 (`Bierhallenführer`); there is no BBL team trophy for it, so the curated

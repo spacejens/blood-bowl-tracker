@@ -91,6 +91,8 @@ needs this classification (`tloegbbl-major-season-25` onward) starts on or
 after 2023-06-28 — after the mirror's data ends. There is no BBL data to
 cross-reference against for any of these competitions.
 
+## Match events
+
 `matchEvents[]` — TP's per-roll event log for the match — is decoded by
 `packages/parse-tp`'s `MatchEventParserService.parse()` into `TpMatchEvent[]`,
 keyed by the raw numeric `matchEventType` code. **Modeled codes**: `3`
@@ -136,6 +138,8 @@ Weapon player such as "Fungus the Loon", already seen in this dataset's
 hired-star-player fixtures) — so the two are modeled as fully independent,
 standalone events.
 
+### Injury types
+
 An injury's `injuryType` maps to a `consequence_type` via:
 
 | `injuryType`     | `consequence_type`  |
@@ -152,6 +156,8 @@ An injury's `injuryType` maps to a `consequence_type` via:
 
 `None` is a genuine Badly Hurt result, not "no injury happened", so it is
 always imported like any other injury type.
+
+### Star Player Points per event
 
 `matchEvents[].starPoints` — the [Star Player Points](../glossary.md#star-player-points-spp)
 TP itself says this event awarded its acting player — is carried on every
@@ -171,6 +177,8 @@ it structurally cannot own an SPP award and the importer never writes
 `spp_value` for it.
 
 ## Casualty/injury correlation (code 6 ↔ code 8)
+
+### Pairing rule
 
 A code-6 `casualty_caused` event is the ACTION of a specific player breaking
 armor; a code-8 `injury` event is the roll reporting the VICTIM and severity.
@@ -207,6 +215,8 @@ long tail; a candidate whose `instant` can't be parsed (diffs to `NaN`) also
 fails this cutoff and is treated as ineligible, since an unmeasurable delta
 can't be confirmed to be within the window.
 
+### Unpaired casualties and injuries
+
 A casualty erased by an apothecary (or similar effect) never gets a code-8
 counterpart at all — the code-6 action still fired (the player still gets
 credit), but there is genuinely no injury consequence to pair it with; it is
@@ -214,6 +224,8 @@ imported as a standalone `actionType: 'casualty'` row (severity unknown, no
 injury to report it). An unpaired code-8 is likewise normal and expected
 (e.g. a player falling down on their own, or a random event not tied to any
 attacker) — not an error case.
+
+### Paired rows
 
 When a code-8 IS paired to a code-6, the resulting row carries both
 `actionType` and `consequenceType` at once: the consequence side as above,
@@ -238,6 +250,8 @@ the same deliberate choice as before (avoiding a BBL-style two-row
 correlation for most cases); the `match_events` CHECK constraint
 accommodates it (see below).
 
+## Administrative events
+
 Every administrative event sets exactly one typed payload column (e.g.
 `weatherType`, `inducementsCost`, `inducementsFromTreasury`, `winnings`,
 `fanFactor`, `journeymenCount`, `expensiveMistake`, `dedicatedFans`,
@@ -249,50 +263,56 @@ factor, dedicated fans) emit up to two records, one per team, with
 
 Most administrative events map onto `actionType` (renamed from the roll
 mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
-`journeymen_signings`), but two are classified differently:
+`journeymen_signings`), but two are classified differently, described below.
 
-- **Weather** (`10`) has no actor and no consequence recipient — it's a
-  neutral, match-level fact — so it's carried via a separate `eventType`
-  column (`'weather'`, currently its only value) instead of `actionType`.
-  `match_events`'s CHECK constraint requires `eventType` to be set alone
-  (with both `actionType`/`consequenceType` null) XOR at least one of
-  `actionType`/`consequenceType` to be set (with `eventType` null) — never a
-  mix of `eventType` and the other two. `weatherType` is decoded to a named
-  condition (the `game_data.weather_type` enum) before import, with `'unknown'`
-  as a permanent catch-all for codes not yet mapped.
+### Weather
 
-  **Weather decoding is table-aware (observed 2026-07, Major Season 30
-  onwards).** The code-10 event's `extraData` carries a `weatherTable`
-  alongside `weatherType`. It was present but always `0` in every earlier
-  era's data, so the code alone was enough; Major Season 30 introduced
-  `weatherTable: 13`. Table 13's `weatherType` codes are NOT a disjoint new
-  range — two of its five observed codes (`40`, `104`) collide with numbers
-  table 0 already uses for different conditions (`40` is `pouring_rain` on
-  table 0 but `very_sunny` on table 13; `104` is `perfect_conditions` on both,
-  coincidentally). This collision is exactly why the lookup had to become
-  table-aware rather than code-only: a code-only lookup would have actively
-  mis-decoded these two as their table-0 meanings, not merely failed to
-  decode them. Because the same number can name different conditions on
-  different tables, `packages/parse-tp`'s `WeatherTypeService.decode(table,
+Weather (`10`) has no actor and no consequence recipient — it's a
+neutral, match-level fact — so it's carried via a separate `eventType`
+column (`'weather'`, currently its only value) instead of `actionType`.
+`match_events`'s CHECK constraint requires `eventType` to be set alone
+(with both `actionType`/`consequenceType` null) XOR at least one of
+`actionType`/`consequenceType` to be set (with `eventType` null) — never a
+mix of `eventType` and the other two. `weatherType` is decoded to a named
+condition (the `game_data.weather_type` enum) before import, with `'unknown'`
+as a permanent catch-all for codes not yet mapped.
+
+**Weather decoding is table-aware (observed 2026-07, Major Season 30
+onwards).** The code-10 event's `extraData` carries a `weatherTable`
+alongside `weatherType`. It was present but always `0` in every earlier
+era's data, so the code alone was enough; Major Season 30 introduced
+`weatherTable: 13`. Table 13's `weatherType` codes are NOT a disjoint new
+range — two of its five observed codes (`40`, `104`) collide with numbers
+table 0 already uses for different conditions (`40` is `pouring_rain` on
+table 0 but `very_sunny` on table 13; `104` is `perfect_conditions` on both,
+coincidentally). This collision is exactly why the lookup had to become
+table-aware rather than code-only: a code-only lookup would have actively
+mis-decoded `40` as its table-0 meaning, not merely failed to decode it
+(`104` would have decoded correctly by coincidence). Because the same number can name different conditions on
+different tables, `packages/parse-tp`'s `WeatherTypeService.decode(table,
 code)` takes both and looks them up in `weatherTypeByTableAndCode`, which
-  keys table first. An event with no `weatherTable` at all (the oldest data)
-  is treated as table `0`.
+keys table first. An event with no `weatherTable` at all (the oldest data)
+is treated as table `0`.
 
-  All five table-13 codes observed in Major Season 30's downloaded data are
-  now mapped, derived by grouping code-10 events by `weatherType` and cross-
-  referencing the `rollLocal`/`rollVisitor` 2d6 sum against the classic Blood
-  Bowl weather table (each code's observed sums form an exact, non-overlapping
-  partition of the 2-12 range): `40` → `very_sunny` (sum 3), `104` →
-  `perfect_conditions` (sums 4-10), `131` → `sweltering_heat` (sum 2), `132` →
-  `pouring_rain` (sum 11), `133` → `blizzard` (sum 12). A table-13 code never
-  observed stays unmapped and decodes to `'unknown'`, exactly as prior eras'
-  rare codes do.
+All five table-13 codes observed in Major Season 30's downloaded data are
+now mapped, derived by grouping code-10 events by `weatherType` and cross-
+referencing the `rollLocal`/`rollVisitor` 2d6 sum against the classic Blood
+Bowl weather table (each code's observed sums form an exact, non-overlapping
+partition of the 2-12 range): `40` → `very_sunny` (sum 3), `104` →
+`perfect_conditions` (sums 4-10), `131` → `sweltering_heat` (sum 2), `132` →
+`pouring_rain` (sum 11), `133` → `blizzard` (sum 12). A table-13 code never
+observed stays unmapped and decodes to `'unknown'`, exactly as prior eras'
+rare codes do.
 
-- **Dedicated fans** (`26`) is a consequence (the resulting fan-count
-  change), not an action, so it's carried via `consequenceType:
+### Dedicated fans
+
+Dedicated fans (`26`) is a consequence (the resulting fan-count
+change), not an action, so it's carried via `consequenceType:
 'dedicated_fans'` / `consequenceTeamEraId` rather than `actionType`. A
-  side whose modifier is `0` (no change) is skipped entirely, so this event
-  can now emit zero, one, or two records instead of always exactly two.
+side whose modifier is `0` (no change) is skipped entirely, so this event
+can now emit zero, one, or two records instead of always exactly two.
+
+## Facts TP does not record
 
 Two facts the match-event model can record are absent from TP's data, so the
 corresponding columns stay null for TP-sourced events:
@@ -315,11 +335,15 @@ corresponding columns stay null for TP-sourced events:
 Both are things BBL's HTML mirror does state and TP does not — the reverse of
 the usual direction, where TP is the richer source.
 
+## Secret objectives
+
 `secretObjective`'s payload is TP's own opaque identifier code for _which_
 secret-objective card was drawn — not a count of objectives completed. The
 same roster can have multiple `secret_objective` events in one match with
 different, non-sequential values, and the same value can recur across
 different matches for different rosters.
+
+## Remaining fields
 
 Notable remaining fields seen: `matchId`, `state`, `statePostMatch`,
 `createdInstant`, `ruleSet`, `weatherTable`, `round`, `order`,
