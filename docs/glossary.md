@@ -119,9 +119,8 @@ See [game-concepts/eras](game-concepts/eras/index.md).
 ### External System
 
 An upstream application or data source (e.g. [BBL](#bbl)) that [league](#league) data
-can be imported from. [Eras](#era), [coaches](#coach), [leagues](#league) and
-[keywords](#keyword) can be linked to any number of external systems through
-external ids.
+can be imported from. Many kinds of imported record can be linked to any
+number of external systems through [external ids](#external-id).
 
 See [game-concepts/external-systems](game-concepts/external-systems/index.md).
 

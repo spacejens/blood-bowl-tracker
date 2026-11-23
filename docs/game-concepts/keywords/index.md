@@ -48,8 +48,9 @@ its keywords are recorded the same way.
 
 `PositionRulesSetKeywordsService.sync` is insert-only: it adds a keyword
 association missing from a later batch, but never removes one that batch no
-longer lists, so the join is not authoritative-by-replacement. This matches
-how this tracker's other `sync` procedures behave. The database is long-lived,
+longer lists, so the join is not authoritative-by-replacement. Not every sync
+works this way: the position skill categories sync replaces a position's whole
+set, flagging a category it no longer lists `removed`. The database is long-lived,
 so an association that should no longer hold is not corrected by a later
 import, and retiring one is not currently supported: a tracked row cannot be
 deleted (see

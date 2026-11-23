@@ -38,16 +38,15 @@ code** — the code is the source of truth at that point.
 
 ## Page types seen in the reference dataset
 
-Fully handled in code: `tm`, `pt` and `tl` (see the notes on each, which keep
-only what the code cannot express).
+Fully handled in code: `tm`, `pt`, `tl`, `pl`, `ma`, `m`, `se` and `sr` (see
+the notes on each below, which keep only what the code cannot express).
 
 Not yet handled (candidates for future work): `mp` (per-match scores, gate, TD
-scorers, and sendings-off). Per-match **identity** (BBL id, date, competition)
-is imported straight from the `ma` list rows — see the note on `ma` pages
-below. The `m` detail page is read separately, for each match's two teams and
-its display name — see the note on `m` pages below. Also not yet handled: `ro`
+scorers, and sendings-off; per-match identity comes from the `ma` list rows
+and each match's teams and display name from its `m` page instead), `ro`
 (rosters), `te` (league team list), `ch` (per-season player top charts), plus
-others.
+others. The `tt` and `ppr` trophy legend pages are not parsed either: they
+were read by hand to curate the trophy catalogue (see the note on them below).
 
 Note on `pt` pages: the scraped skill list is a single BB2020-era snapshot,
 deliberately NOT written to CRP, CRP+ or BB2016: those three older rules sets

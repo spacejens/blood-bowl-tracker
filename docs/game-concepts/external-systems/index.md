@@ -14,15 +14,7 @@ can be imported from (e.g. [BBL](../../glossary.md#bbl)).
   systems aren't real data, and a merely-referenced system (like a coach's
   NAF number) describes the coach as a person rather than something actually
   tied to the era/competition/league being viewed.
-- An [era](../eras/index.md) may be linked to any number of external systems
-  via external IDs, which import tools use to recognize the same era across
-  separate import runs and across different import sources.
-- A [coach](../coaches/index.md) may be linked to any number of external
-  systems via external IDs, which import tools use to recognize the same
-  coach across separate import runs and across different import sources.
-- A [league](../leagues/index.md) may be linked to any number of external
-  systems via external IDs, letting import tools recognize the same league
-  across separate import runs and across different import sources.
-- A [keyword](../keywords/index.md) may be linked to any number of external
-  systems via external IDs. Its TP code is recorded as an external ID
-  alongside the usual `Name` one.
+- Many kinds of entity may be linked to any number of external systems via
+  external IDs, which import tools use to recognize the same record across
+  separate import runs and across different import sources. See
+  [External IDs](../../api/imports.md#external-ids) for how they are matched.
