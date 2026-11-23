@@ -148,6 +148,8 @@ Every pull request is also reviewed by [CodeRabbit](https://coderabbit.ai), an a
 
 Its behavior is configured by `.coderabbit.yaml` at the repo root: auto-review is enabled for every PR opened or updated against `main`, regardless of author (every PR here is opened by Claude through the developer's own `gh` account, so an author filter would switch reviews off entirely), and its `path_instructions` point it at this repo's conventions in `CLAUDE.md` so it judges against those rather than generic defaults.
 
+CodeRabbit only reviews bot-authored PRs, such as Renovate's, when an organization administrator has assigned a review seat to the bot. Without one it posts a "Review skipped" notice and also refuses manual `@coderabbitai review` requests. `finish-renovate-pr` detects that notice (`check-coderabbit-activity` reports `noReviewSeat`), skips its review loop, tells the developer, and treats Claude's self-review as the review of record.
+
 CodeRabbit's review is **informational** — it is deliberately not wired in as a required status check. `gatekeeper` remains the only check branch protection requires; see "Requiring the gatekeeper check" above.
 
 ### Serializing review activity across parallel sessions

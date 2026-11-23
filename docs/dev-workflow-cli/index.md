@@ -167,7 +167,7 @@ Malformed JSON, or an item missing `title`/`author.login`, is an error (exit 1) 
 node tools/dev-workflow-cli/dist/main.js check-coderabbit-activity <pr-number>
 ```
 
-Prints `{"hasActivity": true}` when CodeRabbit has posted at least one comment or review on the PR at any point in its history, and `{"hasActivity": false}` when it has never posted either.
+Prints `{"hasActivity": <bool>, "noReviewSeat": <bool>}`. `hasActivity` is `true` when CodeRabbit has posted at least one comment or review on the PR at any point in its history, and `false` when it has never posted either. `noReviewSeat` is `true` when a CodeRabbit comment says the PR "was authored by a bot without an assigned CodeRabbit review seat" (matched case-insensitively) in CodeRabbit's skip-review comment, identified by its `skip review by coderabbit.ai` marker so a walkthrough that merely quotes the phrase does not count, and no CodeRabbit review was submitted after that notice (a later review means a seat has since been assigned). While it holds, CodeRabbit skips the PR and refuses manual review requests too, until an administrator assigns a seat to the bot, so no review can arrive and a caller must not wait for one or trigger one.
 
 The login match is a case-insensitive substring test (`test("coderabbit"; "i")`) against every comment author and every review author — the same rule `wait-for-pr-review` already applies, rather than pinning one exact spelling of the bot's account name. A `null` author (a deleted/ghost account) is coalesced to an empty string before matching, so it reads as "no match" rather than erroring.
 
@@ -176,11 +176,12 @@ This is a read-only historical check over the PR's whole lifetime: it is not sco
 Its caller is `finish-renovate-pr`, which runs it once before its review loop.
 
 - CodeRabbit does not reliably auto-review PRs opened by bot accounts such as Renovate.
-- A `false` here tells the skill to pass `--trigger-after` on the loop's first `wait-for-pr-review` call so a `@coderabbitai review` comment is posted immediately instead of waiting out a 20-minute timeout for a review that would never arrive.
+- `noReviewSeat: true` tells the skill to skip the review loop entirely, release the review lock, tell the developer a seat must be assigned to the Renovate bot, and keep the self-review as the review of record.
+- A `hasActivity: false` here tells the skill to pass `--trigger-after` on the loop's first `wait-for-pr-review` call so a `@coderabbitai review` comment is posted immediately instead of waiting out a 20-minute timeout for a review that would never arrive.
 
 Skills operating on developer-authored PRs deliberately do **not** use this — nudging unconditionally there would pre-empt CodeRabbit's normal automatic review and spend rate-limit budget for nothing.
 
-A failing `gh` lookup, or output that is neither `true` nor `false`, is an error (exit 1) rather than a `false` — callers decide how to handle it (see `finish-renovate-pr`'s Phase 4 Integration step 5, which warns and continues with no trigger).
+A failing `gh` lookup, or output that is not the expected JSON object, is an error (exit 1) rather than a `false` — callers decide how to handle it (see `finish-renovate-pr`'s Phase 4 Integration step 5, which warns and continues with no trigger).
 
 ### `capture-coderabbit-comment` usage
 
