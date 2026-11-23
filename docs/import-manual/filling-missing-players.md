@@ -429,9 +429,10 @@ would change nothing; the report counts him under
 The generator then keeps only the repairs a database built from scratch can
 apply. A player is kept when an earlier batch fills him (a batch directory
 named before the one `--out` writes into, or every batch when `--out` is
-elsewhere or absent), when the same run fills him, or when every roster
-group listing him lists him in the copy the TP import sends (none lists him
-only in a copy it does not send, or in a group whose sent copy is unknown).
+elsewhere or absent), when the same run fills him, or when at least one roster
+group lists him and every roster group listing him lists him in the copy the
+TP import sends (none lists him only in a copy it does not send, or in a group
+whose sent copy is unknown).
 A player no downloaded match or roster file shows is kept too: a scratch
 build never creates him, and the importer skips an entry whose player does
 not resolve. That rule holds only when `read-tp-roster-snapshots` could read
