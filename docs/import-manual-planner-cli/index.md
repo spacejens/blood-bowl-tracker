@@ -31,8 +31,8 @@ The evidence the two collectors save lives in the gitignored `tools/import-manua
 
 `generate-incomplete-player-fills` runs read-only queries through
 `tools/cli-shared`'s `RunProductionQueryService`, the same guarded `psql`
-runner as production-ops-cli's `run-production-query`, one per kind of row. The query
-runner has a `tuplesOnly` mode for this: it passes `psql` its tuples-only
+runner as production-ops-cli's `run-production-query`, one per kind of
+row. The query runner has a `tuplesOnly` mode for this: it passes `psql` its tuples-only
 flag so the output holds just the result. Each query is wrapped in
 `json_agg`, so that output is parsed as JSON. The selection repeats
 game-data's `INCOMPLETE_PLAYER_CRITERIA` in SQL, and a spec keeps the two in

@@ -38,8 +38,8 @@ scope: match-scheduled notifications, and the in-match event notifications
 New skill/characteristic notifications, and the player line of hire, fire
 and temporary retirement notifications, are read by the shared
 [parse-tp-feed](../parse-tp-feed/index.md) package, so the
-[import-manual-planner-cli](../import-manual-planner-cli/index.md) reads the channel's past
-notifications the same way. The feed echoes a new skill/characteristic
+[import-manual-planner-cli](../import-manual-planner-cli/index.md) reads
+the channel's past notifications the same way. The feed echoes a new skill/characteristic
 notification whenever its player, team, roster link and value are present,
 even if TP worded the value in a way the package does not understand.
 To read the advancement reports already in the channel, see
