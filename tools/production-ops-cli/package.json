@@ -20,9 +20,6 @@
   },
   "dependencies": {
     "@blood-bowl-tracker/cli-shared": "workspace:*",
-    "@blood-bowl-tracker/domain-enums": "workspace:*",
-    "@blood-bowl-tracker/parse-tp": "workspace:*",
-    "@blood-bowl-tracker/parse-tp-feed": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
     "json5": "^2.2.3",
@@ -30,8 +27,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@blood-bowl-tracker/db": "workspace:*",
-    "@blood-bowl-tracker/game-data": "workspace:*",
     "@nestjs/testing": "^12.0.0",
     "@swc/core": "^1.15.47",
     "@types/node": "^26.6.6",

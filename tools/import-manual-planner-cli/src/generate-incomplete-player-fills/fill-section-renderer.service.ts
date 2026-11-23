@@ -14,8 +14,8 @@ const HEADER = [
   '// reports of them fixing where their skills sit. Then the',
   '// complete TP players with a stat reduction recorded in a match and none',
   '// stored, for the server to record the lasting reductions their stored',
-  '// data shows. Generated from the production database by production-ops-cli',
-  '// generate-incomplete-player-fills; see',
+  '// data shows. Generated from the production database by',
+  '// import-manual-planner-cli generate-incomplete-player-fills; see',
   '// docs/import-manual/filling-missing-players.md#generated-fills.',
 ];
 

@@ -83,6 +83,8 @@ export default tseslint.config(
             'tools/workflow-lint/vitest.config.ts',
             'tools/production-ops-cli/test/*.ts',
             'tools/production-ops-cli/vitest.config.ts',
+            'tools/import-manual-planner-cli/test/*.ts',
+            'tools/import-manual-planner-cli/vitest.config.ts',
             'tools/import-bbl/test/*.ts',
             'tools/import-bbl/vitest.config.ts',
             'tools/import-manual/test/*.ts',

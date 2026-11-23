@@ -1521,6 +1521,70 @@ importers:
         specifier: ^6.0.0
         version: 6.0.1(typescript@6.0.3)(vitest@5.1.1)
 
+  tools/import-manual-planner-cli:
+    dependencies:
+      '@blood-bowl-tracker/cli-shared':
+        specifier: workspace:*
+        version: link:../cli-shared
+      '@blood-bowl-tracker/domain-enums':
+        specifier: workspace:*
+        version: link:../../packages/domain-enums
+      '@blood-bowl-tracker/parse-tp':
+        specifier: workspace:*
+        version: link:../../packages/parse-tp
+      '@blood-bowl-tracker/parse-tp-feed':
+        specifier: workspace:*
+        version: link:../../packages/parse-tp-feed
+      '@nestjs/common':
+        specifier: ^12.0.0
+        version: 12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/core':
+        specifier: ^12.0.0
+        version: 12.6.0(@nestjs/common@12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.6.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      zod:
+        specifier: ^4.4.3
+        version: 4.6.7
+    devDependencies:
+      '@blood-bowl-tracker/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@blood-bowl-tracker/game-data':
+        specifier: workspace:*
+        version: link:../../packages/game-data
+      '@nestjs/testing':
+        specifier: ^12.0.0
+        version: 12.6.0(@nestjs/common@12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.6.0)(@nestjs/platform-express@12.6.0)
+      '@swc/core':
+        specifier: ^1.15.47
+        version: 1.16.22
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      '@vitest/coverage-v8':
+        specifier: ^5.0.0
+        version: 5.1.1(vitest@5.1.1)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      unplugin-swc:
+        specifier: ^2.0.0
+        version: 2.0.0(@swc/core@1.16.22)(rolldown@1.2.18)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+      vite:
+        specifier: ^8.2.1
+        version: 8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.0
+        version: 5.1.1(@types/node@26.6.6)(@vitest/coverage-v8@5.1.1)(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
+      vitest-mock-extended:
+        specifier: ^6.0.0
+        version: 6.0.1(typescript@6.0.3)(vitest@5.1.1)
+
   tools/import-tp:
     dependencies:
       '@blood-bowl-tracker/api-client':
@@ -1602,15 +1666,6 @@ importers:
       '@blood-bowl-tracker/cli-shared':
         specifier: workspace:*
         version: link:../cli-shared
-      '@blood-bowl-tracker/domain-enums':
-        specifier: workspace:*
-        version: link:../../packages/domain-enums
-      '@blood-bowl-tracker/parse-tp':
-        specifier: workspace:*
-        version: link:../../packages/parse-tp
-      '@blood-bowl-tracker/parse-tp-feed':
-        specifier: workspace:*
-        version: link:../../packages/parse-tp-feed
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
@@ -1627,12 +1682,6 @@ importers:
         specifier: ^4.4.3
         version: 4.6.7
     devDependencies:
-      '@blood-bowl-tracker/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@blood-bowl-tracker/game-data':
-        specifier: workspace:*
-        version: link:../../packages/game-data
       '@nestjs/testing':
         specifier: ^12.0.0
         version: 12.6.0(@nestjs/common@12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.6.0)(@nestjs/platform-express@12.6.0)
