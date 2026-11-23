@@ -134,16 +134,16 @@ Samples players per source (BBL and TP) across twenty-four strata, grouped below
   the closest DB-expressible signal.
 - **13. Gained an elite skill** — a player with at least one gained
   (non-`starting`) skill flagged elite under the era's last-listed rules
-  set. BB2025's elite distinction is rare, so this guarantees a run
-  exercises it at all rather than only turning up by chance.
+  set. BB2025's elite distinction is rare, so this makes a run exercise it
+  whenever such a player exists, rather than only turning up by chance.
 - **14. Gained a randomly rolled skill** — a player with at least one gained
   skill whose stored source is `random`.
 - **15. Gained a freely chosen skill** — a player with at least one gained
   skill whose stored source is `chosen`.
 
   None of the last three strata is a finding on its own: a run simply
-  always contains an elite, a randomly rolled and a freely chosen gained
-  skill, each of which exercises a different importer path.
+  contains an elite, a randomly rolled and a freely chosen gained
+  skill whenever such players exist, each of which exercises a different importer path.
 
 #### Keyword stratum
 
@@ -222,7 +222,7 @@ Samples players per source (BBL and TP) across twenty-four strata, grouped below
 
 - **24. Journeyman player** — `playersPerStratum` players the database marks
   as journeymen (`players.is_journeyman`). Journeymen are rare, so this
-  guarantees a run shows one beside its source: the imported panel shows
+  makes a run show one beside its source whenever one exists: the imported panel shows
   the stored marker, and the advancement panels show his starting Loner
   and no gained one, next to what the BBL page or the TP roster or
   line-up records for him. It reads only the database; the raw panels
