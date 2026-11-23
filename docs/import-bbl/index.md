@@ -242,7 +242,8 @@ a player's own `pid`, `<h1>` name, position (`p=pt&typID`) and team
 The positions import uses the position/team links to resolve the races of
 positions that list none; `BblPlayersImportService` streams player pages and
 imports one row per player, resolving its team era (via the team code and
-the era whose configured player-id range contains the pid) and position (via
+the era chosen by `teamCodeOverrides`, `playerIdOverrides` or, failing those,
+the configured player-id range that contains the pid) and position (via
 the composite `<typID>-<raceBblId>` key). Runs after teams, team eras, and
 positions (all referenced).
 

@@ -123,9 +123,9 @@ eras with `autoAssignByPlayerId: true`; an era with `autoAssignByPlayerId:
 false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
 team era and position are resolved to local ids from the teams and
 positions imports. A
-player whose pid matches no configured era range, whose team code was not
-imported, or whose position cannot be resolved is skipped with a recorded
-error.
+player whose era is resolved by neither an override nor a configured era
+range, whose team code was not imported, or whose position cannot be
+resolved is skipped with a recorded error.
 
 Its scraped MA/ST/AG/PA/AV line is sent with the upsert, validated
 server-side against the last rules set listed for the player's era (an era
