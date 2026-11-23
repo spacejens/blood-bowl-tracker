@@ -27,6 +27,7 @@ import { IncompletePlayerFillQueriesService } from './generate-incomplete-player
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
 import { LastingInjuryRepairSelectorService } from './generate-incomplete-player-fills/lasting-injury-repair-selector.service';
+import { ManualBatchFillsStoreService } from './generate-incomplete-player-fills/manual-batch-fills-store.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
@@ -70,6 +71,7 @@ import { RunProductionQueryService } from './run-production-query/run-production
     CharacteristicReplayService,
     LastingInjuryProofService,
     LastingInjuryRepairSelectorService,
+    ManualBatchFillsStoreService,
     FeedPlayerMatcherService,
     FeedSkillResolverService,
     FillSectionRendererService,

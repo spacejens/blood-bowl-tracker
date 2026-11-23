@@ -21,11 +21,11 @@ interface Seen {
 }
 
 /**
- * Builds the players part of `snapshots.json` from every file's observations: each player's
- * distinct states, with the files showing each. A player shown in more than
- * one state is kept with all of them and listed under `conflicts`. Players,
- * states and sources are sorted, so the file does not depend on the order
- * the files were read in.
+ * Builds the players part of `snapshots.json` from every file's
+ * observations: each player's distinct states, with the files showing each.
+ * A player shown in more than one state is kept with all of them and listed
+ * under `conflicts`. Players, states and sources are sorted, so the file does
+ * not depend on the order the files were read in.
  *
  * Pure decision logic, with no I/O and no dependencies.
  */

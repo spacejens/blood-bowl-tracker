@@ -33,6 +33,7 @@ import { IncompletePlayerFillPlannerService } from './generate-incomplete-player
 import { IncompletePlayerFillQueriesService } from './generate-incomplete-player-fills/incomplete-player-fill-queries.service';
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
+import { ManualBatchFillsStoreService } from './generate-incomplete-player-fills/manual-batch-fills-store.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
@@ -62,6 +63,9 @@ describe('AppModule', () => {
       ProcessRunnerService,
     );
     expect(moduleRef.get(GitRootsService)).toBeInstanceOf(GitRootsService);
+    expect(moduleRef.get(ManualBatchFillsStoreService)).toBeInstanceOf(
+      ManualBatchFillsStoreService,
+    );
     expect(moduleRef.get(ChildProcessService)).toBeInstanceOf(
       ChildProcessService,
     );
