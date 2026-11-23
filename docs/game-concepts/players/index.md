@@ -183,7 +183,7 @@ kind, so it does not read as chosen.
 ## Journeymen
 
 A [journeyman](../../glossary.md#journeyman) is marked explicitly on the
-player (`players.is_journeyman`). The rule is shared by the BBL, TP bulk and TP
+player, not inferred from his name when read. The rule is shared by the BBL, TP bulk and TP
 live importers (`JourneymanRuleService`, see
 [import-shared](../../import-shared/index.md)): a player named Journeyman, in
 any case, in a basic position, meaning a position of the team's race that is
