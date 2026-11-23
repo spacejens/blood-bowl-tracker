@@ -69,7 +69,7 @@ but with the dev application's and dev server's values:
   channel ids from the dev server, from step 4 above.
 - `TP_FEED_SOURCE_DISCORD_CHANNEL_ID` and `TP_FEED_DEBUG_DISCORD_CHANNEL_ID`, if set
   at all — same reasoning, channel ids from the dev server rather than
-  production. Both are optional (see [TP notification feed](tp-feed.md)), and
+  production. Both are optional (see [TP notification feed setup](tp-feed-setup.md)), and
   in practice TP itself only posts into the real production server. Testing
   the parser locally therefore means posting representative embeds through a
   test webhook (or any other integration that posts as a webhook) into the

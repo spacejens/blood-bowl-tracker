@@ -41,7 +41,7 @@ Done once, by a developer with accounts on both providers:
    application must also have **Message Content Intent** enabled in the
    Developer Portal (Bot tab > Privileged Gateway Intents) — the bot declares
    this intent unconditionally and fails to connect without it enabled. See
-   [TP notification feed](tp-feed.md) for why.
+   [TP notification feed setup](tp-feed-setup.md#discord-application-prerequisite) for why.
 6. Push secrets and deploy:
 
    ```bash
