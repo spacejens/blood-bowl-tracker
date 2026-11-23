@@ -3,12 +3,23 @@ import { WriteFileService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
 import { TpFeedHistoryStoreService } from '../read-tp-feed-history/tp-feed-history-store.service';
+import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import { TpRosterSnapshotsStoreService } from '../read-tp-roster-snapshots/tp-roster-snapshots-store.service';
-import type { FillReport, OngoingCompetitionSummary } from './fill-plan.types';
+import type {
+  FillEntry,
+  FillReport,
+  LastingInjuryRepairEntry,
+  OngoingCompetitionSummary,
+  SkipTally,
+} from './fill-plan.types';
 import { FillSectionRendererService } from './fill-section-renderer.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
 import { LastingInjuryRepairSelectorService } from './lasting-injury-repair-selector.service';
+import {
+  ScratchCompletenessService,
+  type ScratchCompletenessSplit,
+} from './scratch-completeness.service';
 
 export interface GenerateIncompletePlayerFillsInput {
   /** Repo-relative path to write the batch file to; printed when absent. */
@@ -32,13 +43,25 @@ export interface GenerateIncompletePlayerFillsReport extends FillReport {
    * date), each with its team count; their teams' players are skipped.
    */
   readonly ongoingCompetitions: readonly OngoingCompetitionSummary[];
-  /** The players listed in the file's `lastingInjuryRepairs` section. */
+  /** The players listed in the file's `lastingInjuryRepairs` section: those a scratch build can apply. */
   readonly lastingInjuryRepairs: number;
   /**
    * The players selected for a repair but left out of that section because
    * their stored line shows no reduction for the server to record.
    */
   readonly lastingInjuryRepairsNothingToRecord: number;
+  /**
+   * The repairs left out because a database built from scratch would still
+   * have the player incomplete and refuse them, with their TP ids.
+   */
+  readonly lastingInjuryRepairsScratchIncomplete: SkipTally;
+}
+
+interface ScratchSafeRepairsInput {
+  repairs: LastingInjuryRepairEntry[];
+  snapshots: TpRosterSnapshots | null;
+  entries: readonly FillEntry[];
+  out: string | undefined;
 }
 
 export interface GenerateIncompletePlayerFillsResult {
@@ -56,7 +79,7 @@ export interface GenerateIncompletePlayerFillsResult {
  * TP players whose stored line shows a lasting stat reduction the server
  * would record, and prints or writes the batch file with a report of which
  * competitions were treated as ongoing, who was filled by which proof, who was skipped and why, and how many repairs are
- * listed or left out with nothing to record.
+ * listed, left out with nothing to record, or left out because a database built from scratch would still have the player incomplete.
  */
 @Injectable()
 export class GenerateIncompletePlayerFillsService {
@@ -68,6 +91,7 @@ export class GenerateIncompletePlayerFillsService {
     private readonly feedHistory: TpFeedHistoryStoreService,
     private readonly repairSelector: LastingInjuryRepairSelectorService,
     private readonly snapshotStore: TpRosterSnapshotsStoreService,
+    private readonly scratch: ScratchCompletenessService,
   ) {}
 
   async run(
@@ -85,18 +109,28 @@ export class GenerateIncompletePlayerFillsService {
     const rows = await this.queries.load();
     const plan = this.planner.plan({ ...rows, feed, snapshots });
     const candidates = await this.queries.loadLastingInjuryRepairCandidates();
-    const repairs = this.repairSelector.select(candidates);
+    const selected = this.repairSelector.select(candidates);
+    const { safe, unsafe } = await this.scratchSafeRepairs({
+      repairs: selected,
+      snapshots,
+      entries: plan.entries,
+      out: input.out,
+    });
     const report: GenerateIncompletePlayerFillsReport = {
       ...plan.report,
       ongoingCompetitions: rows.ongoingCompetitions,
-      lastingInjuryRepairs: repairs.length,
-      lastingInjuryRepairsNothingToRecord: candidates.length - repairs.length,
+      lastingInjuryRepairs: safe.length,
+      lastingInjuryRepairsNothingToRecord: candidates.length - selected.length,
+      lastingInjuryRepairsScratchIncomplete: {
+        count: unsafe.length,
+        players: unsafe,
+      },
     };
-    const section = this.renderer.render(plan.entries, repairs);
+    const section = this.renderer.render(plan.entries, safe);
     if (input.out === undefined) {
       return { report, section };
     }
-    if (plan.entries.length === 0 && repairs.length === 0) {
+    if (plan.entries.length === 0 && safe.length === 0) {
       throw new Error(
         'No incomplete player is eligible for a fill and no player needs ' +
           'his lasting reductions recorded; nothing written. ' +
@@ -105,5 +139,33 @@ export class GenerateIncompletePlayerFillsService {
     }
     const written = await this.writeFile.run(input.out, section);
     return { report, written };
+  }
+
+  /**
+   * The selected repairs a database built from scratch can apply. Telling
+   * them apart needs the roster copies `read-tp-roster-snapshots` saves, so
+   * a run that selects a repair without `--snapshots` stops.
+   */
+  private async scratchSafeRepairs(
+    input: ScratchSafeRepairsInput,
+  ): Promise<ScratchCompletenessSplit> {
+    if (input.repairs.length === 0) {
+      return { safe: [], unsafe: [] };
+    }
+    if (input.snapshots === null) {
+      throw new Error(
+        `${input.repairs.length} lasting-injury repair(s) selected, and ` +
+          'listing them needs --snapshots: the roster copies ' +
+          'read-tp-roster-snapshots saves tell which players a database ' +
+          'built from scratch has complete. Run read-tp-roster-snapshots, ' +
+          'then pass --snapshots.',
+      );
+    }
+    return this.scratch.split({
+      repairs: input.repairs,
+      rosterCopies: input.snapshots.rosterCopies,
+      runFills: input.entries,
+      out: input.out,
+    });
   }
 }
