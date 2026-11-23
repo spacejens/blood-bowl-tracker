@@ -11,7 +11,6 @@ export {
   GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES,
   GITIGNORED_SYNC_FILES,
 } from './gitignored-files';
-export type { PgClientRequest, PgClientResult } from './pg-client.service';
 export { PgClientService } from './pg-client.service';
 export type { ProcessResult } from './process-runner.service';
 export {

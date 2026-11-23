@@ -54,7 +54,6 @@ export { PlayerFillService } from './player-fill/player-fill.service';
 export type { ReductionsInput } from './player-fill/player-fill-reductions.service';
 export { PlayerFillReductionsService } from './player-fill/player-fill-reductions.service';
 export { PlayerFillReductionsRecordService } from './player-fill/player-fill-reductions-record.service';
-export { JourneymanLonerService } from './player-skills/journeyman-loner.service';
 export type {
   PlayerCharacteristicAdvancementRow,
   StoredPlayerAdvancement,
@@ -62,10 +61,7 @@ export type {
 export { PlayerAdvancementReadsService } from './player-skills/player-advancement-reads.service';
 export { FREE_EXTRA_SKILL_NAMES } from './player-skills/player-advancement-sync-planner.service';
 export { PlayerSkillsModule } from './player-skills/player-skills.module';
-export type {
-  PlayerSkillRow,
-  PlayerSkillsSyncOptions,
-} from './player-skills/player-skills.service';
+export type { PlayerSkillRow } from './player-skills/player-skills.service';
 export { PlayerSkillsService } from './player-skills/player-skills.service';
 export { INCOMPLETE_PLAYER_CRITERIA } from './players/incomplete-player-criteria';
 export { PlayerLastingInjuryBackfillService } from './players/player-lasting-injury-backfill.service';
