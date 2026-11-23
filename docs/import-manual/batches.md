@@ -50,155 +50,34 @@ hyphenated slug.
   alphabetical order and pooled exactly as described in
   [Data files](index.md#data-files).
 
-The batches:
+## The batches
 
-- **001-initial-seed** and **002-initial-cleanup** — the curated data as it
-  stood when batches were introduced: 001 holds the records the BBL and TP
-  importers should find already registered and match against, 002 the cleanup
-  that needs the rows those importers create. What each file is for is
-  described in [Curated data files](curated-files.md).
-- **003-reset-curated-names** — restates, with only `name` and
-  `externalIds`, the curated name of every coach, team, race, position,
-  competition and skill batches 001 and 002 curate. A long-lived database can
-  carry a source's spelling for a row whose curated name came later (TP's
-  "Gyttjevrålarna FC" for the team curated as "Gyttjevrålarna", BBL's
-  "Bretonnians" for the race curated as "Bretonnian"); this batch puts each
-  row on the name a fresh import ends with. On a fresh import it changes
-  nothing. `curated-data-batch-003.spec.ts` keeps it in step with batches 001
-  and 002.
-- **004-advancement-costs** — the SPP cost of each advancement for every
-  rules set, the primary and secondary skill categories of every CRP, CRP+
-  and BB2016 position, and the free mutation of every Gudarnas Förkämpe
-  award. It applies after the source importers; see [Batch 004](#batch-004).
-- **005-tp-advancement-orders** — hand-curated advancement orders of five TP
-  players, read from the TP notification feed, and the entries that flag the
-  gained Loner of sixteen journeymen (see
-  [Player advancement orders](player-advancement-orders.md)). It references players the TP
-  importer creates, so it applies after the source importers, in a plain
-  `apply`; when the player's SPP figures are stored, the server refuses any
-  order the reported spend does not allow. A scratch import's first TP pass
-  stores none yet, so the order is written after the one-for-one match
-  alone; once the second TP pass stores TP's unspent figure, the SPP
-  adjustments step rechecks the order and reports a contradiction as an
-  import error. An entry lists every stored paid advancement of the player,
-  so if he later gains one and the TP data is downloaded again, a scratch
-  apply of the batch is refused until a follow-up batch supersedes it.
-- **006-bb2016-gutter-runner-skills** — adds the Weeping Dagger trait to
-  the BB2016 starting skills of Skaven: Gutter Runner, which batch 002 gives
-  Dodge alone; the developer's physical BB2016 rulebook lists both. The entry
-  restates the position's whole skill list. It references a position and
-  rules-set pair whose characteristics batch 002 curates, so it applies after
-  the source importers, in a plain `apply`.
-- **007-tp-low-spp-player-fills** — fills in the data of 257 incomplete TP
-  players whose total SPP is below the cheapest advancement of their era, so
-  they provably have none: each gets his position's characteristics and
-  starting skills, his whole SPP unspent, and a status of dead (a death in
-  his match events) or retired. It is generated from the production database
-  by `production-ops-cli generate-incomplete-player-fills` (see
-  [Generated fills](filling-missing-players.md#generated-fills) for who is
-  skipped and why), so it references players the TP importer creates and
-  applies after the source importers, in a plain `apply`.
-- **008-tp-feed-player-fills** — fills in the data of 156 incomplete TP
-  players whose data could be proven: 118 whose advancements the TP feed
-  reports prove, in order and to the SPP they spent, and 38 too low on SPP
-  to have advanced whose stat reductions all fall in their last competition.
-  It is generated from the production database and the saved TP feed history
-  by `production-ops-cli generate-incomplete-player-fills --feed-channel=<id>`
-  (see [Generated fills](filling-missing-players.md#generated-fills) for who
-  is skipped and why). It references players the TP importer creates and
-  batch 004's advancement costs, so it applies after the source importers
-  and after batch 007, in a plain `apply`.
-- **009-tp-feed-injured-player-fills** — fills in the data of 12 incomplete TP
-  players: the 8 whose advancements the TP feed reports prove and who also
-  have stat reductions that certainly still apply, combined in the order they
-  happened, and 4 retired players with no advancements, whom production has
-  complete from TP roster data the downloaded files lack, so a scratch import
-  leaves them incomplete while the batch's repairs name them. Those 4 were
-  added after the batch was applied to production, as an exception, so that a
-  scratch import can apply it; production's data did not change, only its
-  ledger hash, updated once by hand. It also lists 54 complete TP players
-  with a stat reduction recorded in a match and none stored, among them
-  players batches 007 and 008 filled, for the server to record the lasting
-  reductions their stored data shows (see
-  [Recording lasting reductions](filling-missing-players.md#recording-lasting-reductions)).
-  It is generated the same way as batch 008, and applies after the source
-  importers and after batch 008, in a plain `apply`.
-- **010-tp-journeyman-fills** — fills in the data of 40 incomplete TP
-  journeymen whose stored marker is set, in a basic position and below the
-  cheapest advancement of their era, so they provably have none: each gets
-  his position's characteristics and starting skills (his Loner kept by the
-  server), his whole SPP unspent and his status, with `journeyman: true`.
-  It is generated the same way as batch 008, and applies after the source
-  importers and after batch 009, in a plain `apply`.
-- **011-tp-feed-disambiguated-fills** — fills in the data of 22 incomplete
-  TP players whose TP feed reports match more than one stored player: 13
-  whose advancements the feed reports prove, since a report can belong only
-  to a TP player who can afford it and exactly one way of sharing the
-  reports out between players with the same name and position passes the
-  pricing checks, and 9 marked journeymen no report can belong
-  to, filled as having none. It is generated the same way as batch 008, and
-  applies after the source importers and after batch 010, in a plain
-  `apply`.
-- **012-trophy-skill-grants** — restates Gudarnas Förkämpe, the one curated
-  trophy whose award gives its player a skill (a free mutation), with
-  `grantsSkill: true` (see [Trophies section](trophies.md)), so the fill
-  generator treats only its awards as a possible free skill. It also fills
-  in the data of 5 incomplete TP players that change made provable: each
-  holds only awards of trophies that grant no skill (Trogen Tjänst, Top
-  Intercepter). The fills are generated the same way as batch 008, but from
-  a restored production backup with this batch's trophy entry applied,
-  because the generator needs the flag this batch sets, which production
-  gets only when the batch is applied. The trophy entry runs before the fills within the batch. It
-  applies after the source importers and after batch 011, in a plain
-  `apply`.
-- **013-tp-lasting-injury-fills** — fills in the data of 2 incomplete TP
-  players too low on SPP to have advanced whose stat reductions certainly
-  still apply, because they died before any point where lasting injuries
-  could heal had passed (see
-  [Generated fills](filling-missing-players.md#generated-fills)). It is
-  generated the same way as batch 008, and applies after the source
-  importers and after batch 012, in a plain `apply`.
-- **014-tp-roster-snapshot-fills** — fills in the data of 97 incomplete TP
-  players at or above the cheapest advancement whom the TP feed never
-  reported, all from downloaded TP match and roster snapshots that prove
-  their gained skills (43 gained none), with exactly one order and
-  chosen-or-random source fitting the SPP they spent (see
-  [Generated fills](filling-missing-players.md#generated-fills) and
-  [Roster snapshot evidence](roster-snapshot-evidence.md)). It is
-  generated the same way as batch 008, with `--snapshots` after
-  `read-tp-roster-snapshots`, and applies after the source importers and
-  after batch 013, in a plain `apply`.
-- **015-rules-set-lasting-injuries** — restates each of the six rules sets
-  batch 001 curates, with only `name`, `externalIds` and
-  `lastingInjuriesNeverHeal` (see [Rules sets](index.md#rules-sets)):
-  `true` for CRP, CRP+ and BB2016, under which niggling injuries and
-  characteristic reductions never heal, and `false` for BB2020, DB2021 and
-  BB2025. The fill generator reads the flag to prove lasting injuries (see
-  [Generated fills](filling-missing-players.md#generated-fills)). Until this
-  batch is applied every rules set reads `false`, so the generator proves
-  fewer fills, never a wrong one. It applies after the source importers and
-  after batch 014, in a plain `apply`.
-- **016-tp-feed-snapshot-fills** — fills in the data of 11 incomplete TP
-  players, of two kinds. For 4 of them the TP feed has reports that did not
-  add up to the SPP they spent, because none of the reports matched to them
-  is their first advancement. Their roster snapshots name both gained
-  skills, and with each
-  reported skill fixed at the advancement its shown cost gives, exactly one
-  order and chosen-or-random source fits the SPP spent. The other 7 are
-  proven from roster snapshots alone, their gained skill carrying a
-  spelling-variant Name id that resolves by its canonical name (see
-  [Generated fills](filling-missing-players.md#generated-fills)). It is
-  generated the same way as batch 014, with both `--feed-channel` and
-  `--snapshots`, and applies after the source importers and after batch
-  015, in a plain `apply`.
+### 001-initial-seed and 002-initial-cleanup
 
-A batch can also fill in the data of a TP player the TP import left
-incomplete, through the `incompletePlayerFills` section; see
-[Filling in missing players](filling-missing-players.md).
+The curated data as it
+stood when batches were introduced: 001 holds the records the BBL and TP
+importers should find already registered and match against, 002 the cleanup
+that needs the rows those importers create. What each file is for is
+described in [Curated data files](curated-files.md).
 
-### Batch 004
+### 003-reset-curated-names
 
-Detail for the 004-advancement-costs entry above.
+Restates, with only `name` and
+`externalIds`, the curated name of every coach, team, race, position,
+competition and skill batches 001 and 002 curate. A long-lived database can
+carry a source's spelling for a row whose curated name came later (TP's
+"Gyttjevrålarna FC" for the team curated as "Gyttjevrålarna", BBL's
+"Bretonnians" for the race curated as "Bretonnian"); this batch puts each
+row on the name a fresh import ends with. On a fresh import it changes
+nothing. `curated-data-batch-003.spec.ts` keeps it in step with batches 001
+and 002.
+
+### 004-advancement-costs
+
+The SPP cost of each advancement for every
+rules set, the primary and secondary skill categories of every CRP, CRP+
+and BB2016 position, and the free mutation of every Gudarnas Förkämpe
+award. It applies after the source importers; the detail follows.
 
 - **Advancement costs:** fixed thresholds for CRP, CRP+ and BB2016, and a
   cost per advancement kind for BB2020, DB2021 and BB2025, plus tLoEG's
@@ -223,6 +102,167 @@ Detail for the 004-advancement-costs entry above.
 - **Scratch re-run:** on a scratch import the BBL and TP importers then run
   again, so the skill sources and unspent SPP that read these costs are
   filled in.
+
+### 005-tp-advancement-orders
+
+Hand-curated advancement orders of five TP
+players, read from the TP notification feed, and the entries that flag the
+gained Loner of sixteen journeymen (see
+[Player advancement orders](player-advancement-orders.md)). It references players the TP
+importer creates, so it applies after the source importers, in a plain
+`apply`; when the player's SPP figures are stored, the server refuses any
+order the reported spend does not allow. A scratch import's first TP pass
+stores none yet, so the order is written after the one-for-one match
+alone; once the second TP pass stores TP's unspent figure, the SPP
+adjustments step rechecks the order and reports a contradiction as an
+import error. An entry lists every stored paid advancement of the player,
+so if he later gains one and the TP data is downloaded again, a scratch
+apply of the batch is refused until a follow-up batch supersedes it.
+
+### 006-bb2016-gutter-runner-skills
+
+Adds the Weeping Dagger trait to
+the BB2016 starting skills of Skaven: Gutter Runner, which batch 002 gives
+Dodge alone; the developer's physical BB2016 rulebook lists both. The entry
+restates the position's whole skill list. It references a position and
+rules-set pair whose characteristics batch 002 curates, so it applies after
+the source importers, in a plain `apply`.
+
+### 007-tp-low-spp-player-fills
+
+Fills in the data of 257 incomplete TP
+players whose total SPP is below the cheapest advancement of their era, so
+they provably have none: each gets his position's characteristics and
+starting skills, his whole SPP unspent, and a status of dead (a death in
+his match events) or retired. It is generated from the production database
+by `production-ops-cli generate-incomplete-player-fills` (see
+[Generated fills](filling-missing-players.md#generated-fills) for who is
+skipped and why), so it references players the TP importer creates and
+applies after the source importers, in a plain `apply`.
+
+### 008-tp-feed-player-fills
+
+Fills in the data of 156 incomplete TP
+players whose data could be proven: 118 whose advancements the TP feed
+reports prove, in order and to the SPP they spent, and 38 too low on SPP
+to have advanced whose stat reductions all fall in their last competition.
+It is generated from the production database and the saved TP feed history
+by `production-ops-cli generate-incomplete-player-fills --feed-channel=<id>`
+(see [Generated fills](filling-missing-players.md#generated-fills) for who
+is skipped and why). It references players the TP importer creates and
+batch 004's advancement costs, so it applies after the source importers
+and after batch 007, in a plain `apply`.
+
+### 009-tp-feed-injured-player-fills
+
+Fills in the data of 12 incomplete TP
+players: the 8 whose advancements the TP feed reports prove and who also
+have stat reductions that certainly still apply, combined in the order they
+happened, and 4 retired players with no advancements, whom production has
+complete from TP roster data the downloaded files lack, so a scratch import
+leaves them incomplete while the batch's repairs name them. Those 4 were
+added after the batch was applied to production, as an exception, so that a
+scratch import can apply it; production's data did not change, only its
+ledger hash, updated once by hand. It also lists 54 complete TP players
+with a stat reduction recorded in a match and none stored, among them
+players batches 007 and 008 filled, for the server to record the lasting
+reductions their stored data shows (see
+[Recording lasting reductions](filling-missing-players.md#recording-lasting-reductions)).
+It is generated the same way as batch 008, and applies after the source
+importers and after batch 008, in a plain `apply`.
+
+### 010-tp-journeyman-fills
+
+Fills in the data of 40 incomplete TP
+journeymen whose stored marker is set, in a basic position and below the
+cheapest advancement of their era, so they provably have none: each gets
+his position's characteristics and starting skills (his Loner kept by the
+server), his whole SPP unspent and his status, with `journeyman: true`.
+It is generated the same way as batch 008, and applies after the source
+importers and after batch 009, in a plain `apply`.
+
+### 011-tp-feed-disambiguated-fills
+
+Fills in the data of 22 incomplete
+TP players whose TP feed reports match more than one stored player: 13
+whose advancements the feed reports prove, since a report can belong only
+to a TP player who can afford it and exactly one way of sharing the
+reports out between players with the same name and position passes the
+pricing checks, and 9 marked journeymen no report can belong
+to, filled as having none. It is generated the same way as batch 008, and
+applies after the source importers and after batch 010, in a plain
+`apply`.
+
+### 012-trophy-skill-grants
+
+Restates Gudarnas Förkämpe, the one curated
+trophy whose award gives its player a skill (a free mutation), with
+`grantsSkill: true` (see [Trophies section](trophies.md)), so the fill
+generator treats only its awards as a possible free skill. It also fills
+in the data of 5 incomplete TP players that change made provable: each
+holds only awards of trophies that grant no skill (Trogen Tjänst, Top
+Intercepter). The fills are generated the same way as batch 008, but from
+a restored production backup with this batch's trophy entry applied,
+because the generator needs the flag this batch sets, which production
+gets only when the batch is applied. The trophy entry runs before the fills within the batch. It
+applies after the source importers and after batch 011, in a plain
+`apply`.
+
+### 013-tp-lasting-injury-fills
+
+Fills in the data of 2 incomplete TP
+players too low on SPP to have advanced whose stat reductions certainly
+still apply, because they died before any point where lasting injuries
+could heal had passed (see
+[Generated fills](filling-missing-players.md#generated-fills)). It is
+generated the same way as batch 008, and applies after the source
+importers and after batch 012, in a plain `apply`.
+
+### 014-tp-roster-snapshot-fills
+
+Fills in the data of 97 incomplete TP
+players at or above the cheapest advancement whom the TP feed never
+reported, all from downloaded TP match and roster snapshots that prove
+their gained skills (43 gained none), with exactly one order and
+chosen-or-random source fitting the SPP they spent (see
+[Generated fills](filling-missing-players.md#generated-fills) and
+[Roster snapshot evidence](roster-snapshot-evidence.md)). It is
+generated the same way as batch 008, with `--snapshots` after
+`read-tp-roster-snapshots`, and applies after the source importers and
+after batch 013, in a plain `apply`.
+
+### 015-rules-set-lasting-injuries
+
+Restates each of the six rules sets
+batch 001 curates, with only `name`, `externalIds` and
+`lastingInjuriesNeverHeal` (see [Rules sets](index.md#rules-sets)):
+`true` for CRP, CRP+ and BB2016, under which niggling injuries and
+characteristic reductions never heal, and `false` for BB2020, DB2021 and
+BB2025. The fill generator reads the flag to prove lasting injuries (see
+[Generated fills](filling-missing-players.md#generated-fills)). Until this
+batch is applied every rules set reads `false`, so the generator proves
+fewer fills, never a wrong one. It applies after the source importers and
+after batch 014, in a plain `apply`.
+
+### 016-tp-feed-snapshot-fills
+
+Fills in the data of 11 incomplete TP
+players, of two kinds. For 4 of them the TP feed has reports that did not
+add up to the SPP they spent, because none of the reports matched to them
+is their first advancement. Their roster snapshots name both gained
+skills, and with each
+reported skill fixed at the advancement its shown cost gives, exactly one
+order and chosen-or-random source fits the SPP spent. The other 7 are
+proven from roster snapshots alone, their gained skill carrying a
+spelling-variant Name id that resolves by its canonical name (see
+[Generated fills](filling-missing-players.md#generated-fills)). It is
+generated the same way as batch 014, with both `--feed-channel` and
+`--snapshots`, and applies after the source importers and after batch
+015, in a plain `apply`.
+
+A batch can also fill in the data of a TP player the TP import left
+incomplete, through the `incompletePlayerFills` section; see
+[Filling in missing players](filling-missing-players.md).
 
 ## Changing curated data
 
