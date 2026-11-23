@@ -156,7 +156,7 @@ node tools/production-ops-cli/dist/main.js read-tp-feed-history <channel-id> [--
 ```
 
 This reads the TP feed channel (the bot's `TP_FEED_SOURCE_DISCORD_CHANNEL_ID`,
-see [TP notification feed](../discord-bot/tp-feed.md)) and keeps its
+see [TP notification feed](../discord-bot/tp-feed-setup.md#configuration)) and keeps its
 advancement reports as evidence. An advancement report is a webhook message
 whose first embed's author is `New skill/characteristic`. The subcommand only
 collects evidence; it does not change any player.

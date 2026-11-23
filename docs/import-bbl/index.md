@@ -134,7 +134,7 @@ entry is grouped into six parts:
   computed result. A match whose outcome cannot be determined, and which
   has no override here, is reported as an import error until it gets one.
 
-#### Overrides
+#### Uniqueness across eras
 
 A competition bblId may appear in only one `competitions.overrides` entry,
 in only one era, across all eras; a team code in only one era's

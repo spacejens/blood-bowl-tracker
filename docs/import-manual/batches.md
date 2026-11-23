@@ -52,6 +52,10 @@ hyphenated slug.
 
 ## The batches
 
+A batch can also fill in the data of a TP player the TP import left
+incomplete, through the `incompletePlayerFills` section; see
+[Filling in missing players](filling-missing-players.md).
+
 ### 001-initial-seed and 002-initial-cleanup
 
 The curated data as it
@@ -259,10 +263,6 @@ spelling-variant Name id that resolves by its canonical name (see
 generated the same way as batch 014, with both `--feed-channel` and
 `--snapshots`, and applies after the source importers and after batch
 015, in a plain `apply`.
-
-A batch can also fill in the data of a TP player the TP import left
-incomplete, through the `incompletePlayerFills` section; see
-[Filling in missing players](filling-missing-players.md).
 
 ## Changing curated data
 

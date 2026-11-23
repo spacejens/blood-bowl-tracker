@@ -263,7 +263,7 @@ factor, dedicated fans) emit up to two records, one per team, with
 
 Most administrative events map onto `actionType` (renamed from the roll
 mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
-`journeymen_signings`), but two are classified differently:
+`journeymen_signings`), but two are classified differently, described below.
 
 ### Weather
 

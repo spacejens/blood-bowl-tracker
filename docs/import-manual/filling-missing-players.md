@@ -135,7 +135,7 @@ same entry is again `unchanged`.
 [production-ops-cli](../production-ops-cli/index.md#generating-incomplete-player-fills))
 writes entries for the incomplete TP players whose data it can prove. Every
 entry has the stored status, else `dead` if a death is recorded, else
-`retired`. There are six kinds of entry:
+`retired`. There are six kinds of entry, each described below.
 
 ### No advancements
 
@@ -199,10 +199,10 @@ fill only by a Loner he no longer has.
 
 ### Advancements from the TP feed
 
-#### Matching reports to players
-
 With `--feed-channel`, the advancement
 reports `read-tp-feed-history` saved are matched to him.
+
+#### Matching reports to players
 
 A report can
 belong only to a stored TP player (a player with no `tourplay.net` id is

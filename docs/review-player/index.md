@@ -44,6 +44,9 @@ in two panel pairs (an overview and a career history).
 
 ## What it does
 
+Strata that match nothing, and override ids that are not in the database, are reported as
+gaps in the report (and as console warnings) — never as failures.
+
 ### Sampling
 
 Samples players per source (BBL and TP) across twenty-four strata, grouped below.
@@ -268,9 +271,6 @@ own raw view on the left and what was stored on the right:
 
 Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
 the filename, and prints where it landed.
-
-Strata that match nothing, and override ids that are not in the database, are reported as
-gaps in the report (and as console warnings) — never as failures.
 
 ## Configuration
 

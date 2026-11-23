@@ -50,14 +50,13 @@ its keywords are recorded the same way.
 association missing from a later batch, but never removes one that batch no
 longer lists, so the join is not authoritative-by-replacement. Not every sync
 works this way: the position skill categories sync replaces a position's whole
-set, flagging a category it no longer lists `removed`. The database is long-lived,
-so an association that should no longer hold is not corrected by a later
-import, and retiring one is not currently supported: a tracked row cannot be
-deleted (see
-[History tracking](../../database.md#history-tracking)), and the join has no
-removal flag. Supporting it would first take a schema change adding one, with
-readers filtering on it, as the trophy award rule tables do (see
-[Curated sets that shrink](../../database.md#curated-sets-that-shrink)).
+set, flagging a category it no longer lists `removed`. The database is
+long-lived, so an association that should no longer hold is not corrected by a
+later import, and retiring one is not currently supported: a tracked row cannot
+be deleted (see [History tracking](../../database.md#history-tracking)), and
+the join has no removal flag. Supporting it would first take a schema change
+adding one, with readers filtering on it, as the trophy award rule tables do
+(see [Curated sets that shrink](../../database.md#curated-sets-that-shrink)).
 
 ## Where the catalogue comes from
 

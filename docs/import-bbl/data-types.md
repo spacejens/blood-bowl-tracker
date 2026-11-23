@@ -181,9 +181,9 @@ each row's `onclick` link) under the BBL external system (`tloeg.bbleague.se`) o
 there is no `Name` external id, since matches have no natural name. The
 played date is the row's "result added" date. Imported after competitions
 (referenced by `competitionId`). Per-team results and per-player events are
-both imported by later steps: see the MatchesModule bullet in
-[Architecture](index.md#architecture) for per-team results and outcomes, and
-the MatchEventsModule bullet for per-player events.
+both imported by later steps: see
+[MatchesModule](index.md#matchesmodule) for per-team results and outcomes, and
+[MatchEventsModule](index.md#matcheventsmodule) for per-player events.
 A pair configured under an era's `matches.merges` (per-era; see
 [Configuration](index.md#configuration)) is imported as a single match
 rather than two: BBL cannot record a match with more than two teams, so each

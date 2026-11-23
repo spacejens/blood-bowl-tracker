@@ -61,16 +61,6 @@ rather than overwritable, so the BBL snapshot would otherwise merge into a
 union with the curated list instead of being excluded from it. See
 `BblPositionSkillsImportService`.
 
-### Journeymen on pl pages
-
-Note on journeymen on `pl` pages: a player whose `<h1>` is "Journeyman" (any
-case) is a journeyman when his Skills cell lists Loner. BBL shows that Loner in
-the gained colour and numbers it, and the import leaves it out of his gained
-skills and closes its number, because the server stores a journeyman's Loner as
-a starting skill. A "Journeyman" page without Loner is a recruit. A page that is not a journeyman
-keeps a gained Loner as an ordinary advancement and sends `isJourneyman` false. The local
-dump also has two `journeyman?` pages, which the rule does not match.
-
 ### pl pages
 
 Note on `pl` pages: a player page carries the player's `<h1>` name, two links —
@@ -104,6 +94,16 @@ to other players elsewhere on the page (for example a killer named in a match
 report), and a retired team is marked by `gfx/retiredteam.gif` beside the team
 link. Every `pl` page in the reference dataset has exactly one such header
 block. Only one page (pid 5263) carries the temporarily-retired icon.
+
+#### Journeymen on pl pages
+
+Note on journeymen on `pl` pages: a player whose `<h1>` is "Journeyman" (any
+case) is a journeyman when his Skills cell lists Loner. BBL shows that Loner in
+the gained colour and numbers it, and the import leaves it out of his gained
+skills and closes its number, because the server stores a journeyman's Loner as
+a starting skill. A "Journeyman" page without Loner is a recruit. A page that is not a journeyman
+keeps a gained Loner as an ordinary advancement and sends `isJourneyman` false. The local
+dump also has two `journeyman?` pages, which the rule does not match.
 
 ### se and sr pages
 
