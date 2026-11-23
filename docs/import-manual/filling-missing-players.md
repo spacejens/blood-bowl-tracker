@@ -434,7 +434,9 @@ group listing him lists him in the copy the TP import sends (none lists him
 only in a copy it does not send, or in a group whose sent copy is unknown).
 A player no downloaded match or roster file shows is kept too: a scratch
 build never creates him, and the importer skips an entry whose player does
-not resolve. The others, players the downloads show but leave incomplete,
+not resolve. That rule holds only when `read-tp-roster-snapshots` could read
+every file: a file listed under its `unreadable` may show players the
+evidence lacks, so while any is listed such a player is left out. The others, players the downloads show but leave incomplete,
 are left out and listed under `lastingInjuryRepairsScratchIncomplete`, with
 their count and TP ids. To keep one's repair, add a fill of him to the
 batch from production data, as batch 009 does for four players. Repairs

@@ -264,6 +264,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
       repairs: [REPAIR, OTHER],
       rosterCopies: SNAPSHOTS.rosterCopies,
       shown: ['929761'],
+      evidenceComplete: true,
       runFills: [ENTRY],
       out,
     });
@@ -273,6 +274,21 @@ describe('GenerateIncompletePlayerFillsService', () => {
       count: 1,
       players: ['688945'],
     });
+  });
+
+  it('tells the split the evidence is incomplete when a file could not be read', async () => {
+    repairSelector.select.mockReturnValue([REPAIR]);
+    snapshotStore.readSnapshots.mockResolvedValue({
+      ...SNAPSHOTS,
+      unreadable: [{ source: 'fourth-era/c/match_1.json', reason: 'bad' }],
+    });
+    scratch.split.mockResolvedValue({ safe: [], unsafe: ['929761'] });
+
+    await service.run({ snapshots: true });
+
+    expect(scratch.split).toHaveBeenCalledWith(
+      expect.objectContaining({ evidenceComplete: false }),
+    );
   });
 
   it('prints the scratch-safe repairs without a path to judge earlier batches by', async () => {

@@ -63,6 +63,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('1')],
         rosterCopies: [group('164848', ['1'])],
         shown: [],
+        evidenceComplete: true,
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [repair('1')], unsafe: [] });
@@ -74,6 +75,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('2463398')],
         rosterCopies: [group('164848', ['1'], ['2463398'])],
         shown: [],
+        evidenceComplete: true,
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [], unsafe: ['2463398'] });
@@ -85,6 +87,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('9')],
         rosterCopies: [group('164848', ['1'])],
         shown: ['1', '9'],
+        evidenceComplete: true,
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [], unsafe: ['9'] });
@@ -96,6 +99,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('1')],
         rosterCopies: [group('164848', ['1']), group('170000', [], ['1'])],
         shown: [],
+        evidenceComplete: true,
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [], unsafe: ['1'] });
@@ -109,6 +113,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('2463398')],
         rosterCopies: [group('164848', [], ['2463398'])],
         shown: [],
+        evidenceComplete: true,
         runFills: [],
         out: OUT,
       }),
@@ -122,6 +127,7 @@ describe('ScratchCompletenessService', () => {
       repairs: [],
       rosterCopies: [],
       shown: [],
+      evidenceComplete: true,
       runFills: [],
     });
 
@@ -135,6 +141,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('9')],
         rosterCopies: [],
         shown: [],
+        evidenceComplete: true,
         runFills: [fill('9')],
       }),
     ).resolves.toEqual({ safe: [repair('9')], unsafe: [] });
@@ -146,6 +153,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('3'), repair('1'), repair('4'), repair('2')],
         rosterCopies: [group('164848', ['1', '2'])],
         shown: ['1', '2', '3', '4'],
+        evidenceComplete: true,
         runFills: [],
       }),
     ).resolves.toEqual({
@@ -160,6 +168,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('9')],
         rosterCopies: [group('164848', ['1'])],
         shown: ['1'],
+        evidenceComplete: true,
         runFills: [],
       }),
     ).resolves.toEqual({ safe: [repair('9')], unsafe: [] });
@@ -171,6 +180,7 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('2463398')],
         rosterCopies: [group('164848', ['1'], ['2463398'])],
         shown: ['1', '2463398'],
+        evidenceComplete: true,
         runFills: [fill('2463398')],
       }),
     ).resolves.toEqual({ safe: [repair('2463398')], unsafe: [] });
@@ -190,8 +200,21 @@ describe('ScratchCompletenessService', () => {
         repairs: [repair('1'), repair('2')],
         rosterCopies: [undetermined],
         shown: ['1', '2'],
+        evidenceComplete: true,
         runFills: [fill('2')],
       }),
     ).resolves.toEqual({ safe: [repair('2')], unsafe: ['1'] });
+  });
+
+  it('leaves out a player no file shows when some file could not be read', async () => {
+    await expect(
+      service.split({
+        repairs: [repair('9')],
+        rosterCopies: [group('164848', ['1'])],
+        shown: ['1'],
+        evidenceComplete: false,
+        runFills: [],
+      }),
+    ).resolves.toEqual({ safe: [], unsafe: ['9'] });
   });
 });

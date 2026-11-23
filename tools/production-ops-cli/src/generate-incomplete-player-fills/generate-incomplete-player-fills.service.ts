@@ -170,6 +170,7 @@ export class GenerateIncompletePlayerFillsService {
       repairs: input.repairs,
       rosterCopies: input.snapshots.rosterCopies,
       shown: Object.keys(input.snapshots.players),
+      evidenceComplete: input.snapshots.unreadable.length === 0,
       runFills: input.entries,
       out: input.out,
     });

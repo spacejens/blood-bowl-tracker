@@ -10,6 +10,12 @@ export interface ScratchCompletenessInput {
   rosterCopies: readonly TpRosterCopyGroup[];
   /** The TP ids any downloaded match or roster file shows (`players`). */
   shown: readonly string[];
+  /**
+   * Whether every downloaded file could be read as evidence. A file that
+   * could not may show players `shown` lacks, so without it no player
+   * counts as shown by no file.
+   */
+  evidenceComplete: boolean;
   /** This run's fills, which the batch applies before its repairs. */
   runFills: readonly FillEntry[];
   /** The repo-relative path the batch is written to, when one is given. */
@@ -30,7 +36,8 @@ export interface ScratchCompletenessSplit {
  * in the copy the TP import sends, so the import has him complete. It can
  * also when no downloaded file shows him at all: nothing creates him on a
  * scratch build, and the importer skips a repair of a player who does not
- * resolve. Any other player a file shows is still incomplete there, and the
+ * resolve. That holds only when every downloaded file could be read as
+ * evidence. Any other player a file shows is still incomplete there, and the
  * server refuses his repair, which stops the batch, so it is left out.
  */
 @Injectable()
@@ -61,7 +68,11 @@ export class ScratchCompletenessService {
     for (const repair of input.repairs) {
       const id = repair.player.id;
       const sent = listed.has(id) && !elsewhere.has(id);
-      const absent = !shown.has(id) && !listed.has(id) && !elsewhere.has(id);
+      const absent =
+        input.evidenceComplete &&
+        !shown.has(id) &&
+        !listed.has(id) &&
+        !elsewhere.has(id);
       if (filled.has(id) || sent || absent) {
         split.safe.push(repair);
       } else {

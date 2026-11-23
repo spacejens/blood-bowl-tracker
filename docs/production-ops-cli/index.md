@@ -83,8 +83,10 @@ and leaves out every candidate with nothing to record.
 from scratch would refuse because it has the player incomplete. It judges
 that from the snapshots' `rosterCopies` and the players they show at all,
 the TP ids earlier batches under `tools/import-manual/data/batches` fill,
-and this run's fills; a player no downloaded file shows is kept, since a
-scratch build never creates him.
+and this run's fills. A player no downloaded file shows is kept, since a
+scratch build never creates him, but only when the snapshots' `unreadable`
+is empty: a file that could not be read may show him, so while any is
+listed he is left out.
 `report.lastingInjuryRepairsScratchIncomplete` gives their count and TP ids
 (see
 [Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)).
