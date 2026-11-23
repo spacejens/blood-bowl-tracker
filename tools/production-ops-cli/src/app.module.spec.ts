@@ -37,6 +37,7 @@ import { ManualBatchFillsStoreService } from './generate-incomplete-player-fills
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
 import { ProductionJsonQueryService } from './generate-incomplete-player-fills/production-json-query.service';
+import { ScratchCompletenessService } from './generate-incomplete-player-fills/scratch-completeness.service';
 import { SnapshotFillStageService } from './generate-incomplete-player-fills/snapshot-fill-stage.service';
 import { SnapshotOrderSearchService } from './generate-incomplete-player-fills/snapshot-order-search.service';
 import { SnapshotSkillResolverService } from './generate-incomplete-player-fills/snapshot-skill-resolver.service';
@@ -65,6 +66,9 @@ describe('AppModule', () => {
     expect(moduleRef.get(GitRootsService)).toBeInstanceOf(GitRootsService);
     expect(moduleRef.get(ManualBatchFillsStoreService)).toBeInstanceOf(
       ManualBatchFillsStoreService,
+    );
+    expect(moduleRef.get(ScratchCompletenessService)).toBeInstanceOf(
+      ScratchCompletenessService,
     );
     expect(moduleRef.get(ChildProcessService)).toBeInstanceOf(
       ChildProcessService,
