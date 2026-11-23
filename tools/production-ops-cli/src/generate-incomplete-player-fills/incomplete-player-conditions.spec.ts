@@ -20,9 +20,7 @@ function bare(criterion: SQL): string {
 describe('INCOMPLETE_PLAYER_CONDITIONS', () => {
   it('says in SQL exactly what INCOMPLETE_PLAYER_CRITERIA says, in the same order', () => {
     expect(
-      INCOMPLETE_PLAYER_CRITERIA.map((criterion) =>
-        bare(criterion as unknown as SQL),
-      ),
+      INCOMPLETE_PLAYER_CRITERIA.map((criterion) => bare(criterion)),
     ).toEqual([...INCOMPLETE_PLAYER_CONDITIONS]);
   });
 });

@@ -1,22 +1,7 @@
-import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
 import type { Db } from '../db.js';
 import { createDb } from '../db.js';
-
-/**
- * `sql` template literals built in this file are typed against the ESM
- * conditional-export instantiation of drizzle-orm (this directory's sibling
- * `package.json` sets `"type": "module"`, per `drizzle.test-helpers.ts`),
- * while `Db['execute']` (from `../db.js`, which resolves under the package's
- * default CommonJS condition) expects the CJS instantiation. The two are the
- * same runtime module loaded via different conditional-export entry points,
- * so this cast is safe — it exists only to bridge TypeScript's structural
- * mismatch between the two instantiations, not a real type difference.
- */
-function asExecuteArg(query: SQL): Parameters<Db['execute']>[0] {
-  return query as unknown as Parameters<Db['execute']>[0];
-}
 
 /**
  * Real-Postgres integration test helpers: an ephemeral, migrated database for
@@ -106,9 +91,7 @@ export async function closeTestDb(db: Db): Promise<void> {
  */
 export async function resetGameDataTables(db: Db): Promise<void> {
   const rows = (await db.execute(
-    asExecuteArg(
-      sql`SELECT tablename FROM pg_tables WHERE schemaname = 'game_data'`,
-    ),
+    sql`SELECT tablename FROM pg_tables WHERE schemaname = 'game_data'`,
   )) as unknown as { tablename: string }[];
 
   const tables = [...rows].map(
@@ -119,8 +102,6 @@ export async function resetGameDataTables(db: Db): Promise<void> {
   }
 
   await db.execute(
-    asExecuteArg(
-      sql.raw(`TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY CASCADE`),
-    ),
+    sql.raw(`TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY CASCADE`),
   );
 }

@@ -1,6 +1,6 @@
 {
   "type": "diff",
-  "version": "9",
+  "version": "10",
   "dialect": "postgres",
   "id": "6a1c2b1b-dd33-4f26-b30d-54409dc9d24e",
   "prevIds": [
@@ -482,7 +482,6 @@
         "where": "\"skill_id\" IS NOT NULL AND \"attribute_value\" IS NOT NULL",
         "with": "",
         "method": "btree",
-        "concurrently": false,
         "entityType": "indexes"
       }
     },
@@ -513,7 +512,6 @@
         "where": "\"skill_id\" IS NOT NULL AND \"attribute_value\" IS NULL",
         "with": "",
         "method": "btree",
-        "concurrently": false,
         "entityType": "indexes"
       }
     },
