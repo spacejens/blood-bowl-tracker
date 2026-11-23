@@ -11,6 +11,9 @@
   "ignoreIssues": {
     "tools/markdownlint-rules/src/index.ts": ["exports"]
   },
+  // openssl and jq are system tools that specs shell out to; they are not
+  // npm packages, so no package.json entry can declare them.
+  "ignoreBinaries": ["openssl", "jq"],
   "workspaces": {
     "apps/*": {},
     "packages/*": {},

@@ -27,16 +27,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.7",
     "eslint-plugin-simple-import-sort": "^14.0.0",
     "globals": "^17.14.0",
     "knip": "6.48.0",
     "madge": "8.0.0",
-    "markdownlint-cli2": "^0.24.0",
-    "prettier": "^3.9.10",
+    "markdownlint-cli2": "^0.24.2",
+    "prettier": "^3.10.1",
     "syncpack": "15.3.3",
-    "typescript-eslint": "^8.72.1"
+    "typescript-eslint": "^8.73.0"
   }
 }
