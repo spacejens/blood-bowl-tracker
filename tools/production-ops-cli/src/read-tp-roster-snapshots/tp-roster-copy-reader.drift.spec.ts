@@ -8,9 +8,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { TpRosterCopyReaderService } from './tp-roster-copy-reader.service';
 
 /**
- * A roster both readers accept: packages/parse-tp's spec roster with two
+ * A roster parse-tp accepts: packages/parse-tp's spec roster with two
  * players. parse-tp's RosterParserService is what the TP import reads a
- * copy's finish instant and players with, so it runs real here on purpose.
+ * copy's finish instant and players with, and drops a copy it rejects, so
+ * it runs real here on purpose.
  */
 function rosterBody(
   overrides: Record<string, unknown> = {},
@@ -80,6 +81,12 @@ const CASES: { name: string; lastMatches?: unknown }[] = [
   },
 ];
 
+const REJECTED: { name: string; lineUp: Record<string, unknown> }[] = [
+  { name: 'a line-up entry without a number', lineUp: { number: undefined } },
+  { name: 'a negative career counter', lineUp: { totalTouchdowns: -1 } },
+  { name: 'a negative niggling count', lineUp: { nigglingInjuries: -2 } },
+];
+
 describe('TpRosterCopyReaderService against packages/parse-tp', () => {
   let reader: TpRosterCopyReaderService;
   let parser: RosterParserService;
@@ -113,6 +120,27 @@ describe('TpRosterCopyReaderService against packages/parse-tp', () => {
         playerIds: parsed.players
           .map((player) => String(player.id))
           .sort((a, b) => Number(a) - Number(b)),
+      });
+    },
+  );
+
+  it.each(REJECTED)(
+    'reports a copy parse-tp rejects as unreadable, with $name',
+    ({ lineUp }) => {
+      const [first, ...rest] = rosterBody().lineUps as Record<
+        string,
+        unknown
+      >[];
+      const content = rosterBody({
+        lineUps: [{ ...first, ...lineUp }, ...rest],
+      });
+
+      expect(() => parser.parse(content)).toThrow();
+      expect(
+        reader.read({ source: 'fourth-era/c/rosters_123.json', content }),
+      ).toMatchObject({
+        kind: 'unreadable',
+        location: { era: 'fourth-era', rosterId: '123' },
       });
     },
   );

@@ -2,6 +2,7 @@ import {
   ChildProcessModule,
   CliSharedModule,
 } from '@blood-bowl-tracker/cli-shared';
+import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
 import { Module } from '@nestjs/common';
 
@@ -49,7 +50,12 @@ import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-ros
 import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 @Module({
-  imports: [CliSharedModule, ChildProcessModule, ParseTpFeedModule],
+  imports: [
+    CliSharedModule,
+    ChildProcessModule,
+    ParseTpModule,
+    ParseTpFeedModule,
+  ],
   providers: [
     DiscordBotTokenService,
     DiscordRestService,

@@ -36,25 +36,3 @@ export const rosterSnapshotFileSchema = z.object({
     }),
   ),
 });
-
-/**
- * The fields of a `rosters_<id>.json` that tell which copy the TP import
- * sends: the roster id, the players listed and when its newest match
- * finished. `lastMatches` is read as leniently as packages/parse-tp's
- * RosterSchema reads it, so a malformed one never makes a copy unreadable;
- * tp-roster-copy-reader.drift.spec.ts requires the two to agree.
- */
-export const rosterCopyFileSchema = z.object({
-  id: z.number().int(),
-  lineUps: z.array(z.object({ id: z.number().int() })),
-  lastMatches: z
-    .array(
-      z.object({
-        scores: z
-          .array(z.object({ finishInstant: z.string().nullish().catch(null) }))
-          .catch([]),
-      }),
-    )
-    .catch([])
-    .optional(),
-});

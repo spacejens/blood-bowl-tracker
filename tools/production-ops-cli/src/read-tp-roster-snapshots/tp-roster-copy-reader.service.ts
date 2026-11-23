@@ -1,7 +1,8 @@
+import {
+  RosterParserService,
+  type TpRoster,
+} from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
-import type { z } from 'zod';
-
-import { rosterCopyFileSchema } from './tp-roster-snapshot-source.schema';
 
 /** One (era directory, roster id) group of roster copies. */
 export interface TpRosterCopyLocation {
@@ -29,33 +30,36 @@ const ROSTER_ID = /rosters_(\d+)\.json$/u;
 /**
  * Reads what tells one downloaded roster copy apart from the others of its
  * roster: its era directory, roster id, players and the instant its newest
- * match finished, the way packages/parse-tp's RosterParserService reads
- * `lastMatchFinishedAt`. A file of another shape is unreadable, located by
- * its path so its group can still be marked.
- *
- * Pure decision logic, with no I/O and no dependencies.
+ * match finished. It parses the copy with packages/parse-tp's
+ * RosterParserService, as tools/import-tp's RosterCollectionService does,
+ * so a copy the TP import drops as unparseable is unreadable here too,
+ * located by its path so its group can still be marked.
  */
 @Injectable()
 export class TpRosterCopyReaderService {
+  constructor(private readonly parser: RosterParserService) {}
+
   read(input: { source: string; content: unknown }): ReadRosterCopyResult {
     const location = this.locate(input.source);
-    const parsed = rosterCopyFileSchema.safeParse(input.content);
-    if (!parsed.success) {
+    let roster: TpRoster;
+    try {
+      roster = this.parser.parse(input.content);
+    } catch (error) {
       return {
         kind: 'unreadable',
         location,
-        reason: this.reason(parsed.error),
+        reason: error instanceof Error ? error.message : String(error),
       };
     }
     return {
       kind: 'copy',
       copy: {
         era: location.era,
-        rosterId: String(parsed.data.id),
+        rosterId: String(roster.id),
         source: input.source,
-        finishedAt: this.finishedAt(parsed.data.lastMatches),
-        playerIds: parsed.data.lineUps
-          .map((entry) => String(entry.id))
+        finishedAt: roster.lastMatchFinishedAt ?? null,
+        playerIds: roster.players
+          .map((player) => String(player.id))
           .sort((a, b) => Number(a) - Number(b)),
       },
     };
@@ -67,21 +71,5 @@ export class TpRosterCopyReaderService {
       era: source.split('/')[0],
       rosterId: ROSTER_ID.exec(source)?.[1] ?? source,
     };
-  }
-
-  private finishedAt(
-    lastMatches: { scores: { finishInstant?: string | null }[] }[] | undefined,
-  ): number | null {
-    const instants = (lastMatches ?? [])
-      .flatMap((match) => match.scores)
-      .map((score) => Date.parse(score.finishInstant ?? ''))
-      .filter((instant) => !Number.isNaN(instant));
-    return instants.length === 0 ? null : Math.max(...instants);
-  }
-
-  private reason(error: z.ZodError): string {
-    return error.issues
-      .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
-      .join('; ');
   }
 }
