@@ -69,9 +69,10 @@ the entity and the missing fields, returned to the caller through the API
 itself (not just logged server-side), rather than surfacing a database
 constraint violation.
 
-Link-list fields (`rulesSetIds`, `teamEraIds`, `eras`, `raceEras`) work the
+Fields that list links to other records (such as an era's rules sets) work the
 same way by being additive: they only ever insert missing links, so an omitted
-or empty list leaves existing links intact.
+or empty list leaves existing links intact. Which fields are link lists is in
+the upsert schemas in `packages/api-contract/src/schemas/`.
 
 A competition may enroll only team eras from its own era, and a coach may have
 only one team in it (the
@@ -82,9 +83,10 @@ reported as an import error; unchanged pre-existing inconsistencies are not
 revalidated.
 
 Coach, competition, skill, position, team and race names are curated in
-`tools/import-manual`, so for those six `name` is written when the upsert
+`tools/import-manual`, so for those six the name is written when the upsert
 creates the row and ignored when it updates one, unless the payload also
-carries `renameExisting: true`. The manual importer sends it on every such
+asks to rename an existing row (`RenameExistingSchema`,
+`packages/api-contract/src/schemas/shared/rename-existing.ts`). The manual importer asks for it on every such
 entry; the BBL, [TP](../glossary.md#tp) and live TP importers never do. A re-run of a source
 importer therefore cannot replace a curated name with the source's raw one,
 not even briefly, while a fresh database still gets the source's name on

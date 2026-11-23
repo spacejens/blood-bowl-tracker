@@ -82,7 +82,9 @@ one encodes just an entity id, but a date is not an entity: the same February
 29 means something different under one league than under another, so a button
 that dropped the toplist's scope would answer a different question from the one
 the reader was looking at. Each button preserves the one selected scope, if
-any — the drill-down applies the same filter as the toplist it came from.
+any: a league, an era or a match category, the scopes those toplists support
+(they take no competition scope). The drill-down applies the same filter as
+the toplist it came from.
 
 Resolving the scope happens when the button is clicked, not when the toplist is
 posted, so a league or era deleted in between replies with the same not-found

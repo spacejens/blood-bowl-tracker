@@ -198,10 +198,10 @@ The importers run repeatedly against a database that is never dropped, so
 every write path is safe to repeat:
 
 - A record re-sent with the same external IDs updates its row in place; one
-  that matches nothing creates a row. No import ever deletes a row.
-  The one exception is a position's skill categories, a set that can shrink
-  on re-import: both TP's official team list import and the manual import
-  flag a category `removed` when their source stops listing it.
+  that matches nothing creates a row. No import ever deletes a row. Where a
+  re-import can shrink a set, such as a position's skill categories or a
+  player's advancements, the importer flags the member `removed` instead (see
+  [Curated sets that shrink](#curated-sets-that-shrink)).
 - An unchanged re-run writes nothing: no `updated_at` bump and no history row
   (see [History tracking](#history-tracking)). This is pinned against real
   Postgres by `packages/game-data/test/importer-rerun.e2e-spec.ts` and

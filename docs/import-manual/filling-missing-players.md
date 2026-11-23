@@ -135,153 +135,183 @@ same entry is again `unchanged`.
 [import-manual-planner-cli](../import-manual-planner-cli/index.md#generating-incomplete-player-fills))
 writes entries for the incomplete TP players whose data it can prove. Every
 entry has the stored status, else `dead` if a death is recorded, else
-`retired`. There are six kinds of entry:
+`retired`. There are six kinds of entry, each described below.
 
-- **No advancements.** His total SPP is below the cheapest advancement any
-  rules set of his era prices, house rules included, and no stat reduction
-  is recorded for him. The entry is the position's start values (`pa` only
-  when the rules set has Passing), its starting skills, no advancements, and
-  the whole total unspent.
-- **Lasting injuries.** His total SPP is below the cheapest advancement, and
-  every stat reduction recorded for him certainly still applies. Under
-  BB2020, DB2021 and BB2025, niggling injuries and characteristic
-  reductions can heal between competitions, and healing is optional, so a
-  reduction is certain only when no such point can have passed while he
-  was on the team. Under CRP, CRP+ and BB2016 they never heal. The
-  reductions are certain when one of these holds:
-  - every rules set of his era is stored as one under which they never
-    heal (`lastingInjuriesNeverHeal`, which batch 015 sets for CRP, CRP+
-    and BB2016); an era with no rules set, or with any rules set not
-    flagged, counts as one where they may heal;
-  - every reduction was suffered in one competition, after which his team
-    era played no other competition;
-  - he died, every reduction was suffered no later than his death (the
-    earliest match recording it), and no competition of his team era
-    other than the one of his first reduction both started by his death
-    and had a match after that reduction. The death proof applies only
-    when his stored status is unknown or dead and no match event names
-    him in a match played after his death match.
+### No advancements
 
-  The generator reads which rules sets never heal from the database
-  (`rules_sets.lasting_injuries_never_heal`, see
-  [Rules sets](index.md#rules-sets)); it holds no list of rules set names.
-  A rules set nobody has curated reads as possibly healing, so the generator
-  proves fewer fills, never a wrong one. Its query needs the column, so run
-  it only against a database whose migrations include it.
+His total SPP is below the cheapest advancement any
+rules set of his era prices, house rules included, and no stat reduction
+is recorded for him. The entry is the position's start values (`pa` only
+when the rules set has Passing), its starting skills, no advancements, and
+the whole total unspent.
 
-  Each reduction worsens the position's start value by one: MA, ST and AV go down; AG and PA go down
-  when bare and up in a target-number format. A characteristic is never
-  worsened by more than two in all, and never past MA 1, ST 1, AV 1 (3+ in
-  a target-number format), and AG and PA 1 (6+ in a target-number format).
-  A PA of 0 (cannot pass) stays 0. These limits are the rulebooks'; the
-  database does not hold them. The rest is as for no advancements.
+### Lasting injuries
 
-- **Journeymen.** A player whose stored journeyman marker is set (a
-  line-up or roster that listed Loner set it, and no roster has since shown
-  him recruited), in a basic position, and otherwise filled as for no
-  advancements, with no stat reduction recorded. The entry has
-  `journeyman: true` and leaves his Loner out of the starting skills; his
-  stored starting Loner is not compared and is not a free-skill risk. A
-  player merely named Journeyman with no marker stays incomplete. One
-  uncertainty remains: a recruit who kept the name and left the team, seen
-  since only in line-ups without Loner, still carries the marker. The
-  database stores no line-up snapshots to rule that out. It matters only
-  below the cheapest advancement, where such a player differs from his
-  fill only by a Loner he no longer has.
-- **Advancements from the TP feed** (with `--feed-channel`). The advancement
-  reports `read-tp-feed-history` saved are matched to him. A report can
-  belong only to a stored TP player (a player with no `tourplay.net` id is
-  never one, since the feed reports only TP players) of the team its roster
-  link names, with its name and position, whose stored total is at least
-  the cost the report shows. The shirt number is not stored and can change
-  in TP, so it is not compared. A feed player none of whose reports anyone
-  stored can own names nobody stored. One feed player with one possible
-  owner gives him its reports. Feed players that share a possible owner are
-  decided together: every way of giving each report to one of its possible
-  owners is tried. A way is valid when each player's reports, in the order
-  they were posted, pass the pricing checks below and, for a player with
-  paid advancements stored, are exactly those advancements. A shown cost
-  below its price rules a player out: a report the feed lacks before his
-  reports would only move them to later advancement numbers, and the cost
-  of an advancement kind never falls as the number rises (true of every
-  cost stored today). Shown costs adding up to more than the SPP he spent
-  rule him out too, since they are what he paid. Otherwise, a shown cost
-  above its price may mean the feed lacks an earlier report, and prices
-  adding up to less than the SPP he spent that it lacks a later one. Either
-  way the check cannot be decided and the feed players sharing him stay
-  ambiguous (unless a report is not among his stored paid advancements,
-  which rules him out). Only a complete player's stored paid advancements
-  are taken as his full list. An incomplete player's are being
-  reconstructed and may be partial, so reports that differ from them, or
-  are not among them, leave the check undecided instead. A player given
-  no reports is always valid, since the feed only goes back to the end
-  of 2022. When exactly one way is valid, each player gets his reports.
-  His reports, in the order they were posted, are his advancements, at
-  most six. Each is priced at its advancement number by the kind the
-  report gives: a chosen or random primary or secondary skill, or a random
-  characteristic increase (a table roll under fixed thresholds). Every rules
-  set of his era must give the same price. The prices must add up to exactly
-  his stored total minus his stored unspent SPP, and each must be the cost
-  its report shows. The entry is the position's start values with each
-  increase applied (MA, ST and AV up by one; AG and PA one better, which is
-  one lower in a target-number format), the starting skills, the reported
-  skills with their chosen or random source and any variant ("Mighty Blow
-  (+1)"), and his stored total and unspent SPP.
-  When stat reductions are recorded for him, they must certainly last, as
-  for lasting injuries above, and they are applied together with the
-  increases in the order they happened: an increase when its report was
-  posted, a reduction when its match was played. Each change applies the
-  limits above as it happens, so an increase can lift a value a reduction
-  left at its floor, and the cap of two counts only reductions that worsened
-  the value. A characteristic with an increase and more than two reductions
-  is skipped, because there the cap is ambiguous. Changes to one
-  characteristic on the same UTC day have no known order, and every order of
-  them must give the same value.
-  This ordering rests on two assumptions. A reduction is placed at its
-  match's recorded play time, which can be an estimate when the source gave
-  no play date. An increase is placed at its report's post time.
-- **Advancements from TP roster snapshots** (with `--snapshots`). For a
-  player the feed does not name (without `--feed-channel`, every such
-  player) whose total is at or above the cheapest advancement, the
-  downloaded TP match and roster files
-  (`read-tp-roster-snapshots`) give his level, his skills by TP id, and
-  his total and unspent SPP. They must show him in one state, with his
-  stored total, his stored position (by its TP ids) and his stored unspent
-  SPP, which must be present: a file shows him as of its download run, and
-  the stored unspent SPP is the check that it is not out of date. Each skill id must name one stored
-  skill (by its `tourplay.net` id). His gained skills are those less his
-  position's starting skills, and must number exactly his level, which
-  counts his paid advancements: a higher level means a characteristic
-  increase the files cannot name, a lower one a free skill. Each gained
-  skill must have one `Name` id (or, with several, use the one
-  equal to its stored name) and be held with a variant by no player
-  or position, since the files name no variant. Each is primary or
-  secondary by his position's access to its category. Every order of
-  them, with every chosen-or-random source, is priced as for the feed,
-  and exactly one must cost exactly his total minus his unspent SPP
-  (nothing, for level 0). Two skills of the same kind, or any skill
-  under fixed thresholds, always fit more than one way, so such players
-  are not filled. Stat reductions are handled as for lasting injuries.
-  The entry is the position's start values (with any reductions), its
-  starting skills, the skills in that order with their source, and his
-  total and unspent SPP. See
-  [Roster snapshot evidence](roster-snapshot-evidence.md) for what the
-  files show and what they cannot.
-- **Advancements from the TP feed completed by snapshots** (with both
-  `--feed-channel` and `--snapshots`). For a player the feed names whose
-  reports do not add up to his stored total minus his stored unspent SPP,
-  the feed may lack some of his advancements, for example a report missing
-  before the ones it has. His snapshot is then checked as for advancements
-  from TP roster snapshots, with his reports fixed in place, trusted as his
-  as in the feed stage: every report must be a skill among his gained
-  skills, at most one report per skill, and each order and source tried
-  must put that skill at an advancement whose price is the report's shown
-  cost, with the report's selection and category. The reports must also
-  keep the feed's posting order (oldest first). A report that carries a
-  variant, such as "Mighty Blow (+1)", leaves the player unfilled.
-  Exactly one order and source must cost exactly what he spent. When the
-  snapshot proves nothing, or a report is a characteristic increase, he
-  stays skipped as `spp-does-not-add-up`.
+His total SPP is below the cheapest advancement, and
+every stat reduction recorded for him certainly still applies. Under
+BB2020, DB2021 and BB2025, niggling injuries and characteristic
+reductions can heal between competitions, and healing is optional, so a
+reduction is certain only when no such point can have passed while he
+was on the team. Under CRP, CRP+ and BB2016 they never heal. The
+reductions are certain when one of these holds:
+
+- every rules set of his era is stored as one under which they never
+  heal (`lastingInjuriesNeverHeal`, which batch 015 sets for CRP, CRP+
+  and BB2016); an era with no rules set, or with any rules set not
+  flagged, counts as one where they may heal;
+- every reduction was suffered in one competition, after which his team
+  era played no other competition;
+- he died, every reduction was suffered no later than his death (the
+  earliest match recording it), and no competition of his team era
+  other than the one of his first reduction both started by his death
+  and had a match after that reduction. The death proof applies only
+  when his stored status is unknown or dead and no match event names
+  him in a match played after his death match.
+
+The generator reads which rules sets never heal from the database
+(`rules_sets.lasting_injuries_never_heal`, see
+[Rules sets](index.md#rules-sets)); it holds no list of rules set names.
+A rules set nobody has curated reads as possibly healing, so the generator
+proves fewer fills, never a wrong one. Its query needs the column, so run
+it only against a database whose migrations include it.
+
+Each reduction worsens the position's start value by one: MA, ST and AV go down; AG and PA go down
+when bare and up in a target-number format. A characteristic is never
+worsened by more than two in all, and never past MA 1, ST 1, AV 1 (3+ in
+a target-number format), and AG and PA 1 (6+ in a target-number format).
+A PA of 0 (cannot pass) stays 0. These limits are the rulebooks'; the
+database does not hold them. The rest is as for no advancements.
+
+### Journeyman fills
+
+A player whose stored journeyman marker is set (a
+line-up or roster that listed Loner set it, and no roster has since shown
+him recruited), in a basic position, and otherwise filled as for no
+advancements, with no stat reduction recorded. The entry has
+`journeyman: true` and leaves his Loner out of the starting skills; his
+stored starting Loner is not compared and is not a free-skill risk. A
+player merely named Journeyman with no marker stays incomplete. One
+uncertainty remains: a recruit who kept the name and left the team, seen
+since only in line-ups without Loner, still carries the marker. The
+database stores no line-up snapshots to rule that out. It matters only
+below the cheapest advancement, where such a player differs from his
+fill only by a Loner he no longer has.
+
+### Advancements from the TP feed
+
+With `--feed-channel`, the advancement
+reports `read-tp-feed-history` saved are matched to him.
+
+#### Matching reports to players
+
+A report can
+belong only to a stored TP player (a player with no `tourplay.net` id is
+never one, since the feed reports only TP players) of the team its roster
+link names, with its name and position, whose stored total is at least
+the cost the report shows. The shirt number is not stored and can change
+in TP, so it is not compared. A feed player none of whose reports anyone
+stored can own names nobody stored. One feed player with one possible
+owner gives him its reports. Feed players that share a possible owner are
+decided together: every way of giving each report to one of its possible
+owners is tried. A way is valid when each player's reports, in the order
+they were posted, pass the pricing checks below and, for a player with
+paid advancements stored, are exactly those advancements. A shown cost
+below its price rules a player out: a report the feed lacks before his
+reports would only move them to later advancement numbers, and the cost
+of an advancement kind never falls as the number rises (true of every
+cost stored today). Shown costs adding up to more than the SPP he spent
+rule him out too, since they are what he paid. Otherwise, a shown cost
+above its price may mean the feed lacks an earlier report, and prices
+adding up to less than the SPP he spent that it lacks a later one. Either
+way the check cannot be decided and the feed players sharing him stay
+ambiguous (unless a report is not among his stored paid advancements,
+which rules him out). Only a complete player's stored paid advancements
+are taken as his full list. An incomplete player's are being
+reconstructed and may be partial, so reports that differ from them, or
+are not among them, leave the check undecided instead. A player given
+no reports is always valid, since the feed only goes back to the end
+of 2022. When exactly one way is valid, each player gets his reports.
+
+#### Pricing the advancements
+
+His reports, in the order they were posted, are his advancements, at
+most six. Each is priced at its advancement number by the kind the
+report gives: a chosen or random primary or secondary skill, or a random
+characteristic increase (a table roll under fixed thresholds). Every rules
+set of his era must give the same price. The prices must add up to exactly
+his stored total minus his stored unspent SPP, and each must be the cost
+its report shows. The entry is the position's start values with each
+increase applied (MA, ST and AV up by one; AG and PA one better, which is
+one lower in a target-number format), the starting skills, the reported
+skills with their chosen or random source and any variant ("Mighty Blow
+(+1)"), and his stored total and unspent SPP.
+
+#### Stat reductions alongside increases
+
+When stat reductions are recorded for him, they must certainly last, as
+for lasting injuries above, and they are applied together with the
+increases in the order they happened: an increase when its report was
+posted, a reduction when its match was played. Each change applies the
+limits above as it happens, so an increase can lift a value a reduction
+left at its floor, and the cap of two counts only reductions that worsened
+the value. A characteristic with an increase and more than two reductions
+is skipped, because there the cap is ambiguous. Changes to one
+characteristic on the same UTC day have no known order, and every order of
+them must give the same value.
+
+This ordering rests on two assumptions. A reduction is placed at its
+match's recorded play time, which can be an estimate when the source gave
+no play date. An increase is placed at its report's post time.
+
+### Advancements from TP roster snapshots
+
+With `--snapshots`, for a
+player the feed does not name (without `--feed-channel`, every such
+player) whose total is at or above the cheapest advancement, the
+downloaded TP match and roster files
+(`read-tp-roster-snapshots`) give his level, his skills by TP id, and
+his total and unspent SPP. They must show him in one state, with his
+stored total, his stored position (by its TP ids) and his stored unspent
+SPP, which must be present: a file shows him as of its download run, and
+the stored unspent SPP is the check that it is not out of date. Each skill id must name one stored
+skill (by its `tourplay.net` id). His gained skills are those less his
+position's starting skills, and must number exactly his level, which
+counts his paid advancements: a higher level means a characteristic
+increase the files cannot name, a lower one a free skill. Each gained
+skill must have one `Name` id (or, with several, use the one
+equal to its stored name) and be held with a variant by no player
+or position, since the files name no variant. Each is primary or
+secondary by his position's access to its category. Every order of
+them, with every chosen-or-random source, is priced as for the feed,
+and exactly one must cost exactly his total minus his unspent SPP
+(nothing, for level 0). Two skills of the same kind, or any skill
+under fixed thresholds, always fit more than one way, so such players
+are not filled. Stat reductions are handled as for lasting injuries.
+The entry is the position's start values (with any reductions), its
+starting skills, the skills in that order with their source, and his
+total and unspent SPP. See
+[Roster snapshot evidence](roster-snapshot-evidence.md) for what the
+files show and what they cannot.
+
+### Advancements from the TP feed completed by snapshots
+
+With both
+`--feed-channel` and `--snapshots`, for a player the feed names whose
+reports do not add up to his stored total minus his stored unspent SPP,
+the feed may lack some of his advancements, for example a report missing
+before the ones it has. His snapshot is then checked as for advancements
+from TP roster snapshots, with his reports fixed in place, trusted as his
+as in the feed stage: every report must be a skill among his gained
+skills, at most one report per skill, and each order and source tried
+must put that skill at an advancement whose price is the report's shown
+cost, with the report's selection and category. The reports must also
+keep the feed's posting order (oldest first). A report that carries a
+variant, such as "Mighty Blow (+1)", leaves the player unfilled.
+Exactly one order and source must cost exactly what he spent. When the
+snapshot proves nothing, or a report is a characteristic increase, he
+stays skipped as `spp-does-not-add-up`.
+
+### When a player is skipped
 
 A player is skipped, with the reason reported, when any of these holds. The
 list is not in precedence order: he is reported by the first reason that
@@ -359,6 +389,8 @@ checks `feed-match-ambiguous`, `spp-too-high` and `free-skill-risk` before it.
 - the resulting line is not a valid one (`invalid-characteristics`);
 - anything already stored would make the fill refuse the entry
   (`stored-data-contradicts`).
+
+### Applying generated fills
 
 The server's checks above still apply when the batch is applied.
 

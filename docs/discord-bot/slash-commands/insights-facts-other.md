@@ -165,7 +165,8 @@ Each date listed by the `date.toplist.*` facts also gets a button, in the
 same order as the list, that opens that date's
 [`/onthisdate`](on-this-date.md) view. Unlike every other drill-down button,
 these carry the toplist's own scope: clicking a row on a toplist scoped to one
-league, era, competition or match category opens an `/onthisdate` scoped the
-same way, rather than an all-time one. If the scoped league, era or competition
-has been deleted since the toplist was posted, the button replies with the same
-not-found message the corresponding `/insights` option would.
+league, era or match category opens an `/onthisdate` scoped the same way,
+rather than an all-time one. These facts take no competition scope, so no date
+button carries one. If the scoped league or era has been deleted since the
+toplist was posted, the button replies with the same not-found message the
+corresponding `/insights` option would.

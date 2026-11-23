@@ -44,200 +44,233 @@ in two panel pairs (an overview and a career history).
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across twenty-four strata:
-   1. **SPP totals disagree** — every player, star or not, whose SPP computed from
-      the events where they are the acting participant, plus any stored adjustment,
-      differs from their stored total (a nonzero adjustment on its own is not a
-      disagreement — it is the normal case for an experienced player) — except a
-      star player with no stored total at all. This stratum ignores
-      `playersPerStratum` on purpose: a real discrepancy must never be sampled
-      away, so a badly-imported database produces a long report rather than a
-      reassuring one.
-   2. **Non-standard SPP per event** (TP only) — `playersPerStratum` players who have
-      at least one match event whose recorded per-event SPP disagrees with the
-      standardised award table for their rules set and race. TP reports its own
-      per-event figure verbatim, and it can legitimately differ (race-specific
-      modifiers, random events, special league rules); a BBL event's figure is
-      computed from that table and so can never differ from it, which is why this
-      stratum is TP-only. An action type with no row in the award table at all (a
-      `foul`, for instance) counts as an expected award of zero. The stratum does
-      not decide whether a difference is a bug — that is the reviewer's call from
-      the rendered comparison — and it is bounded, because the match is broad
-      enough that an uncapped version could flood the report. Unlike the other
-      strata, this one carries no star-player or stored-total exclusion: a
-      star player with no stored total can still appear here if one of their
-      events disagrees with the award table.
-   3. **Zero SPP total** — `playersPerStratum` players whose stored total is exactly 0.
-   4. **Small SPP total (1-20)** — `playersPerStratum` players whose stored total is
-      in that range.
-   5. **Large SPP total (100+)** — `playersPerStratum` players whose stored total is
-      at least 100.
-   6. **Random sample** — `playersPerStratum` (default 3) non-star players per source.
-   7. **Star players** — `playersPerStratum` star players per source, sampled
-      randomly like the regular stratum but kept separate and bounded by the same
-      limit.
-   8. **Characteristic increased** — `playersPerStratum` players with at least one
-      of MA/ST/AG/PA/AV numerically higher on their stored `players` row than on the
-      baseline their position carries under their era's rules set. Both this stratum
-      and the next exclude a player whose era maps to no rules set, or whose position
-      has no baseline row for it: there is nothing to compare against.
-   9. **Characteristic decreased** — the mirror image: at least one characteristic
-      numerically lower than that baseline. An advancement raises a characteristic and
-      an injury lowers one, so neither stratum is a finding on its own; they exist so a
-      run always contains players whose values are not simply their position's, which is
-      where a mis-parsed stat line shows up. The comparison is numeric, not
-      "better/worse" — under BB2020 a lower Agility is a better Agility, and which is
-      which is the reviewer's call. A player whose characteristics were never imported
-      still carries the column defaults of 0 and so appears as decreased, which is
-      itself worth seeing. The imported-panel view marks a Passing change whenever
-      either side has a value and the other doesn't, so a Passing-only change can show
-      a marker there without selecting the player into either stratum here, since both
-      strata require Passing present on both sides to compare it at all.
-   10. **Currently injured** — `playersPerStratum` players carrying any active
-       lasting injury: a miss-next-game, a niggling injury, or any
-       characteristic reduction. Bounded like the other sampling strata,
-       because an injured player is not a finding on its own — the stratum
-       exists so a run always contains players whose lasting-injury columns
-       are non-default, which is where a mis-read source would show up. A run
-       over a healthy league would otherwise show nothing but zeroes.
-   11. **Healed** — `playersPerStratum` players whose current row carries no
-       lasting injury but some earlier version of it did. This is the only
-       stratum that reads a history table: `players` is history-tracked, and a
-       healed injury survives nowhere else. Both importers manufacture the two
-       history versions a freshly-imported player needs when their injury
-       predates the import, so this stratum is what makes that step
-       observable.
-   12. **Starting skills differ from position** — a player whose stored
-       `player_advancements` rows tagged `starting` do not match, as a skill-id set,
-       the skills their position carries under the era's last-listed rules
-       set. A starting skill set is copied from the position, so a difference
-       is either a mis-parsed player page or a position whose own skills are
-       wrong — either is worth a human's eyes. This stratum reads only the
-       database, so it cannot itself be "differs from the raw source"; it is
-       the closest DB-expressible signal.
-   13. **Gained an elite skill** — a player with at least one gained
-       (non-`starting`) skill flagged elite under the era's last-listed rules
-       set. BB2025's elite distinction is rare, so this guarantees a run
-       exercises it at all rather than only turning up by chance.
-   14. **Gained a randomly rolled skill** — a player with at least one gained
-       skill whose stored source is `random`.
-   15. **Gained a freely chosen skill** — a player with at least one gained
-       skill whose stored source is `chosen`.
-
-       None of the last three strata is a finding on its own: a run simply
-       always contains an elite, a randomly rolled and a freely chosen gained
-       skill, each of which exercises a different importer path.
-
-   16. **BB2025 position without keywords** — a player whose position has a
-       BB2025 `position_rules_sets` row with no matching
-       `position_rules_set_keywords` row. This stratum reads only the
-       database, so "differs from TP" cannot itself be a stratum here; this
-       is the closest DB-visible signal that a keyword was dropped.
-       "BB2025" is resolved by the rules set's own name, never a hard-coded
-       id.
-   17. **Active, running era** — `playersPerStratum` players whose stored
-       status is `active` and whose era has no end date or one not yet
-       passed.
-   18. **Dead** — `playersPerStratum` players whose stored status is `dead`.
-   19. **Retired** — `playersPerStratum` players whose stored status is
-       `retired`.
-   20. **Temporarily retired** — `playersPerStratum` players whose stored
-       status is `temporarily_retired`.
-   21. **Unknown status** — `playersPerStratum` players with no stored status
-       (NULL: no source reported one).
-   22. **Active, ended era** — `playersPerStratum` players whose stored status
-       is `active` and whose era's end date is set and earlier than today's
-       date in UTC, matching the bot's player status line.
-
-       None of these six is a finding on its own: they exist so a run always
-       shows each status, including the rare ones (TP and especially BBL have
-       few temporarily retired players, so that stratum is often a gap). The
-       two active strata do not overlap; an era has ended when
-       `eras.end_date` is set and before today's date in UTC. All six
-       exclude star players, like the random-sample stratum: a star hired
-       through an `inducements_roll` event has no TP status, so they would
-       crowd the unknown sample, and the star player review covers them
-       separately.
-
-   23. **Unspent SPP disagreeing with the modelled range or the source** —
-       every player whose spend as the source reports it lies outside the
-       spend range modelled from their stored advancements and
-       `advancement_costs`. The source's spend is its own total minus its own
-       unspent figure, both from the same page or snapshot: for BBL the
-       bracketed career total minus the "Unspent SPP" figure, for TP
-       `totalStarPlayerPoints` minus `starPlayerPoints`. It also lists every
-       player whose stored unspent SPP lies outside the modelled unspent range
-       or differs from the source's own unspent figure; a player with no
-       source figure is listed on the stored figure's range placement alone.
-       The outside-range verdict only points to a possible gap: a gap in the
-       recorded history, free skills, an unrecorded order of advancements and
-       chosen-or-random uncertainty may all cause it. A BBL figure on a
-       kind-priced rules set (BB2020, DB2021, BB2025) can still be too low
-       when BBL priced a rolled skill as a chosen advancement. Spend
-       is compared rather than unspent SPP because the stored total need not
-       be the total the source's unspent figure was taken from: the stored TP
-       total is the highest over the roster file and every match snapshot,
-       while both TP figures come from one roster snapshot. Like the
-       discrepancy stratum it ignores `playersPerStratum`, so a real
-       disagreement is never sampled away. The amount of unspent SPP held,
-       on its own, never selects anyone. Star players (they never advance), players with
-       no stored total and players whose rules set has no costs, or has none
-       for one of their advancement numbers, are never listed. BBL
-       recalculates older totals at BB2020 rates and prices every player's
-       spend at BB2020 costs, so under fixed thresholds (CRP, CRP+, BB2016)
-       its figures are never compared and the importer ignores them as well.
-       Such a player is listed only when the stored unspent SPP, worked out
-       from the history, lies outside the modelled range; TP players are
-       compared under every rules set. The skip is permanent, because BBL's
-       figure is BB2020-priced there. It is the one stratum that reads the raw
-       sources rather than only the database, through the same readers the
-       panels use; only the BBL unspent-SPP reader caches each page it reads,
-       so the panels of a listed BBL player do not read that page again.
-
-   24. **Journeyman player** — `playersPerStratum` players the database marks
-       as journeymen (`players.is_journeyman`). Journeymen are rare, so this
-       guarantees a run shows one beside its source: the imported panel shows
-       the stored marker, and the advancement panels show his starting Loner
-       and no gained one, next to what the BBL page or the TP roster or
-       line-up records for him. It reads only the database; the raw panels
-       interpret the sources on their own.
-
-   The random-sample stratum excludes star players outright: today's data model
-   gives a popular star their own `players` row per team that induces them, so
-   an unbounded stratum would be dominated by the same few stars appearing many
-   times over. The discrepancy stratum excludes only the narrower case of a
-   star player with no stored total at all — an induced star player often has
-   none, which would always be a "disagreement" by definition, not a real one
-   worth flagging — but still includes a star player who does carry a real
-   stored total, since excluding every star player outright would hide a
-   genuine, fixable mismatch behind whatever the bounded star-players stratum
-   happens to sample. Of the automatic
-   strata, only the star-players stratum and the non-standard-per-event stratum
-   can select a star player with no stored total at all; `overrides` (below) can
-   still name one explicitly regardless of stratum.
-
-   The three magnitude strata (zero/small/large) exist because a player's total can
-   range from nothing to several hundred and different magnitudes stress different
-   parts of the SPP pipeline; a single undifferentiated random sample under-covers
-   the extremes. A player with no stored total at all — commonly an induced star
-   player — is excluded from all three, needing no exclusion of its own to arrange.
-
-2. Adds every player id listed in `overrides`, whatever the strata picked.
-3. For each sampled player, renders two panel pairs, each with the source's
-   own raw view on the left and what was stored on the right:
-   - **overview** — identity, status and keywords;
-   - **career-history** — SPP total, starting skills and advancements (one
-     table on the imported side, with each advancement's modelled cost and
-     whether the raw source has it), characteristics against the position
-     baseline, lasting injuries and unspent SPP.
-
-   [Report layout](report-layout.md) describes every part of both panels.
-
-4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
-   the filename, and prints where it landed.
-
 Strata that match nothing, and override ids that are not in the database, are reported as
 gaps in the report (and as console warnings) — never as failures.
+
+### Sampling
+
+Samples players per source (BBL and TP) across twenty-four strata, grouped below.
+
+#### SPP strata
+
+- **1. SPP totals disagree** — every player, star or not, whose SPP computed from
+  the events where they are the acting participant, plus any stored adjustment,
+  differs from their stored total (a nonzero adjustment on its own is not a
+  disagreement — it is the normal case for an experienced player) — except a
+  star player with no stored total at all. This stratum ignores
+  `playersPerStratum` on purpose: a real discrepancy must never be sampled
+  away, so a badly-imported database produces a long report rather than a
+  reassuring one.
+- **2. Non-standard SPP per event** (TP only) — `playersPerStratum` players who have
+  at least one match event whose recorded per-event SPP disagrees with the
+  standardised award table for their rules set and race. TP reports its own
+  per-event figure verbatim, and it can legitimately differ (race-specific
+  modifiers, random events, special league rules); a BBL event's figure is
+  computed from that table and so can never differ from it, which is why this
+  stratum is TP-only. An action type with no row in the award table at all (a
+  `foul`, for instance) counts as an expected award of zero. The stratum does
+  not decide whether a difference is a bug — that is the reviewer's call from
+  the rendered comparison — and it is bounded, because the match is broad
+  enough that an uncapped version could flood the report. Unlike the other
+  strata, this one carries no star-player or stored-total exclusion: a
+  star player with no stored total can still appear here if one of their
+  events disagrees with the award table.
+- **3. Zero SPP total** — `playersPerStratum` players whose stored total is exactly 0.
+- **4. Small SPP total (1-20)** — `playersPerStratum` players whose stored total is
+  in that range.
+- **5. Large SPP total (100+)** — `playersPerStratum` players whose stored total is
+  at least 100.
+
+#### Sample strata
+
+- **6. Random sample** — `playersPerStratum` (default 3) non-star players per source.
+- **7. Star players** — `playersPerStratum` star players per source, sampled
+  randomly like the regular stratum but kept separate and bounded by the same
+  limit.
+
+#### Characteristic strata
+
+- **8. Characteristic increased** — `playersPerStratum` players with at least one
+  of MA/ST/AG/PA/AV numerically higher on their stored `players` row than on the
+  baseline their position carries under their era's rules set. Both this stratum
+  and the next exclude a player whose era maps to no rules set, or whose position
+  has no baseline row for it: there is nothing to compare against.
+- **9. Characteristic decreased** — the mirror image: at least one characteristic
+  numerically lower than that baseline. An advancement raises a characteristic and
+  an injury lowers one, so neither stratum is a finding on its own; they exist so a
+  run always contains players whose values are not simply their position's, which is
+  where a mis-parsed stat line shows up. The comparison is numeric, not
+  "better/worse" — under BB2020 a lower Agility is a better Agility, and which is
+  which is the reviewer's call. A player whose characteristics were never imported
+  still carries the column defaults of 0 and so appears as decreased, which is
+  itself worth seeing. The imported-panel view marks a Passing change whenever
+  either side has a value and the other doesn't, so a Passing-only change can show
+  a marker there without selecting the player into either stratum here, since both
+  strata require Passing present on both sides to compare it at all.
+- **10. Currently injured** — `playersPerStratum` players carrying any active
+  lasting injury: a miss-next-game, a niggling injury, or any
+  characteristic reduction. Bounded like the other sampling strata,
+  because an injured player is not a finding on its own — the stratum
+  exists so a run always contains players whose lasting-injury columns
+  are non-default, which is where a mis-read source would show up. A run
+  over a healthy league would otherwise show nothing but zeroes.
+- **11. Healed** — `playersPerStratum` players whose current row carries no
+  lasting injury but some earlier version of it did. This is the only
+  stratum that reads a history table: `players` is history-tracked, and a
+  healed injury survives nowhere else. Both importers manufacture the two
+  history versions a freshly-imported player needs when their injury
+  predates the import, so this stratum is what makes that step
+  observable.
+
+#### Skill strata
+
+- **12. Starting skills differ from position** — a player whose stored
+  `player_advancements` rows tagged `starting` do not match, as a skill-id set,
+  the skills their position carries under the era's last-listed rules
+  set. A starting skill set is copied from the position, so a difference
+  is either a mis-parsed player page or a position whose own skills are
+  wrong — either is worth a human's eyes. This stratum reads only the
+  database, so it cannot itself be "differs from the raw source"; it is
+  the closest DB-expressible signal.
+- **13. Gained an elite skill** — a player with at least one gained
+  (non-`starting`) skill flagged elite under the era's last-listed rules
+  set. BB2025's elite distinction is rare, so this makes a run exercise it
+  whenever such a player exists, rather than only turning up by chance.
+- **14. Gained a randomly rolled skill** — a player with at least one gained
+  skill whose stored source is `random`.
+- **15. Gained a freely chosen skill** — a player with at least one gained
+  skill whose stored source is `chosen`.
+
+  None of the last three strata is a finding on its own: a run simply
+  contains an elite, a randomly rolled and a freely chosen gained
+  skill whenever such players exist, each of which exercises a different importer path.
+
+#### Keyword stratum
+
+- **16. BB2025 position without keywords** — a player whose position has a
+  BB2025 `position_rules_sets` row with no matching
+  `position_rules_set_keywords` row. This stratum reads only the
+  database, so "differs from TP" cannot itself be a stratum here; this
+  is the closest DB-visible signal that a keyword was dropped.
+  "BB2025" is resolved by the rules set's own name, never a hard-coded
+  id.
+
+#### Status and era strata
+
+- **17. Active, running era** — `playersPerStratum` players whose stored
+  status is `active` and whose era has no end date or one not yet
+  passed.
+- **18. Dead** — `playersPerStratum` players whose stored status is `dead`.
+- **19. Retired** — `playersPerStratum` players whose stored status is
+  `retired`.
+- **20. Temporarily retired** — `playersPerStratum` players whose stored
+  status is `temporarily_retired`.
+- **21. Unknown status** — `playersPerStratum` players with no stored status
+  (NULL: no source reported one).
+- **22. Active, ended era** — `playersPerStratum` players whose stored status
+  is `active` and whose era's end date is set and earlier than today's
+  date in UTC, matching the bot's player status line.
+
+  None of these six is a finding on its own: they exist so a run always
+  shows each status, including the rare ones (TP and especially BBL have
+  few temporarily retired players, so that stratum is often a gap). The
+  two active strata do not overlap; an era has ended when
+  `eras.end_date` is set and before today's date in UTC. All six
+  exclude star players, like the random-sample stratum: a star hired
+  through an `inducements_roll` event has no TP status, so they would
+  crowd the unknown sample, and the star player review covers them
+  separately.
+
+#### Unspent SPP stratum
+
+- **23. Unspent SPP disagreeing with the modelled range or the source** —
+  every player whose spend as the source reports it lies outside the
+  spend range modelled from their stored advancements and
+  `advancement_costs`. The source's spend is its own total minus its own
+  unspent figure, both from the same page or snapshot: for BBL the
+  bracketed career total minus the "Unspent SPP" figure, for TP
+  `totalStarPlayerPoints` minus `starPlayerPoints`. It also lists every
+  player whose stored unspent SPP lies outside the modelled unspent range
+  or differs from the source's own unspent figure; a player with no
+  source figure is listed on the stored figure's range placement alone.
+  The outside-range verdict only points to a possible gap: a gap in the
+  recorded history, free skills, an unrecorded order of advancements and
+  chosen-or-random uncertainty may all cause it. A BBL figure on a
+  kind-priced rules set (BB2020, DB2021, BB2025) can still be too low
+  when BBL priced a rolled skill as a chosen advancement. Spend
+  is compared rather than unspent SPP because the stored total need not
+  be the total the source's unspent figure was taken from: the stored TP
+  total is the highest over the roster file and every match snapshot,
+  while both TP figures come from one roster snapshot. Like the
+  discrepancy stratum it ignores `playersPerStratum`, so a real
+  disagreement is never sampled away. The amount of unspent SPP held,
+  on its own, never selects anyone. Star players (they never advance), players with
+  no stored total and players whose rules set has no costs, or has none
+  for one of their advancement numbers, are never listed. BBL
+  recalculates older totals at BB2020 rates and prices every player's
+  spend at BB2020 costs, so under fixed thresholds (CRP, CRP+, BB2016)
+  its figures are never compared and the importer ignores them as well.
+  Such a player is listed only when the stored unspent SPP, worked out
+  from the history, lies outside the modelled range; TP players are
+  compared under every rules set. The skip is permanent, because BBL's
+  figure is BB2020-priced there. It is the one stratum that reads the raw
+  sources rather than only the database, through the same readers the
+  panels use; only the BBL unspent-SPP reader caches each page it reads,
+  so the panels of a listed BBL player do not read that page again.
+
+#### Journeyman stratum
+
+- **24. Journeyman player** — `playersPerStratum` players the database marks
+  as journeymen (`players.is_journeyman`). Journeymen are rare, so this
+  makes a run show one beside its source whenever one exists: the imported panel shows
+  the stored marker, and the advancement panels show his starting Loner
+  and no gained one, next to what the BBL page or the TP roster or
+  line-up records for him. It reads only the database; the raw panels
+  interpret the sources on their own.
+
+#### Why the strata are shaped this way
+
+The random-sample stratum excludes star players outright: today's data model
+gives a popular star their own `players` row per team that induces them, so
+an unbounded stratum would be dominated by the same few stars appearing many
+times over. The discrepancy stratum excludes only the narrower case of a
+star player with no stored total at all — an induced star player often has
+none, which would always be a "disagreement" by definition, not a real one
+worth flagging — but still includes a star player who does carry a real
+stored total, since excluding every star player outright would hide a
+genuine, fixable mismatch behind whatever the bounded star-players stratum
+happens to sample. Of the automatic
+strata, only the star-players stratum and the non-standard-per-event stratum
+can select a star player with no stored total at all; `overrides` (below) can
+still name one explicitly regardless of stratum.
+
+The three magnitude strata (zero/small/large) exist because a player's total can
+range from nothing to several hundred and different magnitudes stress different
+parts of the SPP pipeline; a single undifferentiated random sample under-covers
+the extremes. A player with no stored total at all — commonly an induced star
+player — is excluded from all three, needing no exclusion of its own to arrange.
+
+### Overrides
+
+Adds every player id listed in `overrides`, whatever the strata picked.
+
+### Report panels
+
+For each sampled player, renders two panel pairs, each with the source's
+own raw view on the left and what was stored on the right:
+
+- **overview** — identity, status and keywords;
+- **career-history** — SPP total, starting skills and advancements (one
+  table on the imported side, with each advancement's modelled cost and
+  whether the raw source has it), characteristics against the position
+  baseline, lasting injuries and unspent SPP.
+
+[Report layout](report-layout.md) describes every part of both panels.
+
+### Output
+
+Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
+the filename, and prints where it landed.
 
 ## Configuration
 

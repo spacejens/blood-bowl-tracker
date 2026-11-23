@@ -115,7 +115,9 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
     `rosterMaster.lineUpMasters[]` by id, since a mercenary hire has no
     catalog entry at all but still carries one here.
 
-**Races and positions** are not imported from this file at all — see
+## Races and positions
+
+Races and positions are not imported from this file at all — see
 [file-format-official-teams.md](./file-format-official-teams.md) and
 `packages/import-tp-live`'s `TpOfficialRacesUpsertService`/
 `TpOfficialPositionsUpsertService`. The team and player import (server-side,
@@ -125,14 +127,18 @@ still resolves a race or position id from a roster file's `teamRaceCode` /
 whatever those two services upserted from the official team list earlier in
 the same run.
 
-**Teams** are keyed by roster `id` and `teamName`
+## Teams
+
+Teams are keyed by roster `id` and `teamName`
 (one TP and one Name external id). Their race resolves server-side, by
 `teamRaceCode`; a team whose race cannot be resolved is recorded as an error
 and skipped. Their coach is upserted server-side, from `coachTpId` and
 `coachName` (created if unknown; an existing coach keeps its stored name); only a
 genuine coach-upsert failure records an error and skips the team.
 
-**Players** import every roster's `players`
+## Players
+
+Players import every roster's `players`
 entry: each resolves a team era (roster id + era) and a position
 server-side, by `lineUpMasterId`, against whatever `TpOfficialPositionsUpsertService` upserted from the
 official team list. If that lookup fails but the player is flagged
@@ -146,6 +152,8 @@ recorded as an error and skipped. Players carry only a TP external id (the
 `lineUps[].id`) — no Name external id, since player names aren't guaranteed
 unique. Returns `playerIdsByLineUpId`, consumed by match-event import to
 resolve a `matchEvents[].lineUpId` to a player.
+
+### Player identity
 
 Player identity is sourced from BOTH `rosters_<id>.json`'s top-level
 `lineUps[]` (a roster's CURRENT composition, as of when the local TP data
@@ -173,7 +181,9 @@ Each hired star player gets one reused `isStarPlayer: true` Position (a
 bare-name TP external id) and a Player scoped to the hiring roster's team-era
 for the era the hiring match's competition belongs to.
 
-**Embedded roster star players** (permanently on a roster's line-up, as
+### Embedded roster star players
+
+Embedded roster star players (permanently on a roster's line-up, as
 opposed to the ones hired for a single match via `inducements_roll`): the
 official team list's `lineUpMasters`/`starplayerMasters` share one id space
 (see [file-format-official-teams.md](./file-format-official-teams.md)), and
@@ -184,7 +194,9 @@ entry here whose
 one server-side lookup — no special-casing needed in
 `TpRosterPlayersImportService` (server-side) or match-event resolution.
 
-**Mercenary Big Guys** (e.g. "Giant"): a small class of `lineUps[]` entries
+### Mercenary Big Guys
+
+Mercenary Big Guys (e.g. "Giant"): a small class of `lineUps[]` entries
 whose `lineUpMasterId` isn't present in EITHER `lineUpMasters` or
 `starPlayersMasters` for that roster at all — no catalog entry exists,
 whether because the player has since left the roster or because mercenaries
@@ -201,7 +213,9 @@ roster file or the match-embedded snapshot, so a mercenary's characteristics
 cannot come from TP at all — the importer takes them from a curated table
 instead (see [index.md](./index.md)'s `TpRosterPlayersImportService` (server-side) entry).
 
-**SPP fields on a `lineUps[]` entry.** `totalStarPlayerPoints` is the
+### SPP fields
+
+`totalStarPlayerPoints` is the
 player's career SPP. `starPlayerPoints` is the part of it not yet spent on
 advancements: across the 1336 entries in the 108 downloaded roster files,
 `totalStarPlayerPoints - starPlayerPoints` is zero in 626 entries and
@@ -233,7 +247,9 @@ already present in its first match snapshot, whose only events there are a
 foul (31), a sent-off (32) and injuries suffered (8), none of which award
 SPP to the player.
 
-**Extra skills on a `lineUps[]` entry.** A gained skill can carry
+### Extra skills
+
+A gained skill can carry
 `isExtra: true`: TP granted it on top of the player's advancements, without
 SPP being spent. Across the downloaded roster files 13 gained skills carry
 it: Hatred eleven times and Tentacles twice (one roster, 167599, downloaded
@@ -241,7 +257,9 @@ under two competitions). The importer records every flagged skill as a free
 extra (see [skills](../game-concepts/skills/index.md#player-skills)); a
 missing flag means not extra.
 
-**Skill row ids on a `lineUps[]` entry.** Each gained skill also carries its
+### Skill row ids
+
+Each gained skill also carries its
 own row `id` (for example 815435 or 1358380), which the parser reads as the
 skill's `rowId`. The ids are a counter shared by every player, not a
 per-player one, and TP's list order does not follow them. Their order does
@@ -254,6 +272,8 @@ proof of it. A characteristic increase has no id, so its place among the
 skills still has to be worked out from the spend. No row id is read from a
 match-embedded snapshot: its skills carry no `isRandom`, so the whole skill
 group is absent there.
+
+### Characteristic increases and unspent SPP
 
 A characteristic increase is not in the file at all. The importers derive
 increases from the gap between a player's characteristics and the position
@@ -279,7 +299,9 @@ lists always uses the roster entry, even when it has no figure.
 is 0 on every downloaded entry and looks like a count of bought advancements whose random
 result is not chosen yet.
 
-**Still not handled** (future work): the other top-level fields on a roster
+## Not yet handled
+
+Still not handled (future work): the other top-level fields on a roster
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,

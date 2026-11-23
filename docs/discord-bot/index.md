@@ -52,7 +52,7 @@ application.
 3. Under **Bot Permissions**, select at least **Send Messages**, **Embed
    Links** (the startup message and most `/insights` facts are embeds), and
    **View Channel** for the target channels. If you use the
-   [TP notification feed](tp-feed.md), also select **Read Message History**
+   [TP notification feed](tp-feed.md) (see [its setup](tp-feed-setup.md#configuration)), also select **Read Message History**
    and **Add Reactions** for the source channel.
 4. Copy the generated URL, open it in a browser, choose your server, and
    authorize. You need **Manage Server** permission on that server to add the
@@ -143,7 +143,7 @@ Configuration is supplied through an environment file in the app directory.
    - `TP_FEED_SOURCE_DISCORD_CHANNEL_ID` — optional, and unset by default. The
      channel TP's own Discord integration posts its league notifications into.
      Set it and the bot parses those notifications; left unset, the feature is
-     entirely off. See [TP notification feed](tp-feed.md).
+     entirely off. See [TP notification feed setup](tp-feed-setup.md).
    - `TP_FEED_DEBUG_DISCORD_CHANNEL_ID` — optional, and unset by default. The
      channel the bot echoes its one-line interpretation of each parsed TP
      notification to, and posts bug reports to when a player deepdive finds
@@ -196,6 +196,10 @@ For local development alongside the always-on production bot — why a local
 instance needs its own Discord application and its own dev-only server, and
 how to set them up — see
 [Local development bot identity](local-development.md).
+
+To turn on the [TP notification feed](tp-feed.md), with its channels, the
+bot's channel permissions and the Message Content Intent, see
+[TP notification feed setup](tp-feed-setup.md).
 
 ## Slash commands
 

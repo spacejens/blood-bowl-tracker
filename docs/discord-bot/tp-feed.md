@@ -13,7 +13,7 @@ deliberately ignored. A message without the checkmark was never fully
 handled: the bot was down when it arrived, posting its interpretation to the
 debug channel failed, its import had a real failure (see
 [What is imported](#what-is-imported)), TP scraping was disabled so it was
-not imported (see [Configuration](#configuration)), or the notification was not
+not imported (see [When parts of the feed are off](#when-parts-of-the-feed-are-off)), or the notification was not
 understood at all (reported as unrecognised — see below). Unrecognised
 notifications never get the checkmark, even when their debug-channel notice
 posts successfully.
@@ -163,57 +163,22 @@ waiting drops them, with no failure line and no ✔️ reaction, so after a
 restart an admin re-runs `/importtp` on the link of every notification
 without a ✔️.
 
-## Configuration
+## When parts of the feed are off
 
-Both channel variables are optional and are documented in
-`apps/discord-bot/.env.example`.
+With no source channel configured, the bot does not listen for TP
+notifications at all and the feature is entirely off. With no debug channel
+configured, notifications are still parsed and (while TP scraping is enabled)
+imported, and unrecognised shapes, failed imports and status conflicts are
+still logged, but nothing is posted.
 
-- `TP_FEED_SOURCE_DISCORD_CHANNEL_ID` — the channel TP's integration posts into.
-  Left unset, the bot does not listen for TP notifications at all and the
-  feature is entirely off.
-- `TP_FEED_DEBUG_DISCORD_CHANNEL_ID` — the channel the interpretations, the
-  notices about notifications that did not parse, and failed imports are
-  posted to. The player deepdive also posts a bug report here when a player
-  killed in match events has a stored status that contradicts it, once per
-  conflict per bot run (see
-  [deepdive embeds](slash-commands/deepdive-embeds-player.md#status)). Left unset,
-  notifications are still parsed and (while `TP_SCRAPING_ENABLED` is `true`)
-  imported, and unrecognised shapes, failed imports and status conflicts are
-  still logged, but nothing is posted. Because this is diagnostic output,
-  point it at a maintainer channel rather than one real members read.
+While the bot's TP scraping switch is off, the bot still listens, parses
+notifications and echoes its interpretation to the debug channel, but imports
+nothing and sends no request to TP. Those notifications get no ✔️ reaction,
+since they were not imported; once scraping is back on, running `/importtp`
+on the link of each notification without a ✔️ brings them in. The teams of a
+start-of-match notification come in this way only once its match has
+finished, because `/importtp` imports a match only when it is completed.
 
-The feed's imports also obey the bot's mandatory `TP_SCRAPING_ENABLED` switch
-(see [Configure the application](index.md#4-configure-the-application)).
-Set to `false`, the bot still listens, parses notifications and echoes its
-interpretation to the debug channel, but imports nothing and sends no request
-to TP. Those notifications get no ✔️ reaction, since they were not imported;
-after switching it back to `true`, running `/importtp` on the link of each
-notification without a ✔️ brings them in.
-
-Copy both ids with Developer Mode enabled (User Settings > Advanced >
-Developer Mode), by right-clicking the channel and choosing **Copy Channel
-ID**. The bot needs **View Channel**, **Read Message History** and **Add
-Reactions** on the source channel (the latter two for the ✔️ reaction), and
-**View Channel** plus **Send Messages** on the debug channel. The bot must also
-be a member of the guild where TP posts its notifications, which may not be the
-same guild as the one its other features (startup/insights messages) operate
-in.
-
-## Discord application prerequisite
-
-Reading another integration's message embeds needs the privileged **Message
-Content Intent**, which cannot be enabled from this repository:
-
-1. Open the [Discord Developer Portal](https://discord.com/developers/applications)
-   and select the bot's application.
-2. Open the **Bot** tab and scroll to **Privileged Gateway Intents**.
-3. Enable **Message Content Intent** and save.
-
-Without it, the bot fails to connect to Discord entirely — Discord rejects
-the gateway connection with a disallowed-intent error — until this is
-enabled, since the bot declares the matching gateway intents (`GuildMessages`
-and `MessageContent`) itself, unconditionally, and the portal toggle is what
-makes Discord allow them.
-
-Discord requires verification for this intent once a bot reaches 100 servers.
-Below that it can simply be switched on.
+Setting the feed up (the channel variables, the bot's channel permissions and
+the Discord application's Message Content Intent) is covered in
+[TP notification feed setup](tp-feed-setup.md).

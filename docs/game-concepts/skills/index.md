@@ -21,16 +21,20 @@ advancements.
 
 ## Skill categories
 
-| Category | Meaning |
-| --- | --- |
-| General | The common skills nearly every position can learn. |
-| Agility | Skills about moving, dodging, jumping and catching. |
-| Passing | Skills about throwing the ball (and, in some rules sets, team-mates). |
-| Strength | Skills about blocking, wrestling and raw physical force. |
-| Mutation | Skills only available to positions whose rules allow mutations — Chaos, Nurgle and similar teams. |
-| Devious | BB2025's category for underhanded, cheating and dirty-trick skills. |
-| Trait | Skills that are intrinsic to a position rather than learnable — the rulebooks' Extraordinary skills, traits and special rules. Recorded so a position's starting skill set is complete. |
-| Unique | The category for a star player's one skill exclusive to them under a rules set. |
+The categories are listed in `SKILL_CATEGORIES`
+(`packages/domain-enums/src/skills.ts`). Most are the rulebooks' learnable
+categories, the ones an advancement can grant and a position can have as
+primary or secondary. Two are not learnable:
+
+- **Trait** holds skills intrinsic to a position rather than learnable — the
+  rulebooks' Extraordinary skills, traits and special rules — recorded so a
+  position's starting skill set is complete.
+- **Unique** holds a star player's one skill exclusive to them under a rules
+  set.
+
+Mutation skills are available only to positions whose rules allow mutations,
+except a mutation that a [trophy award](../trophies/index.md#trophy-award)
+grants.
 
 ## Starting skills
 
@@ -71,14 +75,13 @@ marked removed (never deleted) and no longer counts.
 Every skill an individual [player](../players/index.md) has is recorded
 against that player — the skills that came with their position included,
 rather than only the ones they gained afterwards. They all live in one place
-with a **source** marking how the player came by each:
-
-| Source | Meaning |
-| --- | --- |
-| Starting | Came from the player's position (or [star player](../star-players/index.md) template). |
-| Advancement | Gained through an advancement, but the source does not say whether it was chosen or rolled. |
-| Chosen | Gained through an advancement, freely picked. |
-| Random | Gained through an advancement, randomly rolled. |
+with a **source** marking how the player came by each: from the position (or
+[star player](../star-players/index.md) template), or through an advancement,
+either freely chosen or randomly rolled. When the data source does not say
+which, the skill is recorded as gained by advancement of unknown kind. A
+characteristic increase is recorded in the same place, under its own source,
+naming a characteristic instead of a skill. The sources are listed in
+`PLAYER_SKILL_SOURCES` (`packages/domain-enums/src/skills.ts`).
 
 Starting skills are recorded per player rather than derived from the
 position's list on demand, so that "every skill this player has", "only the
