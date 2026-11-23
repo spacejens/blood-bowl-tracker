@@ -2,7 +2,10 @@
 
 import { readFileSync } from 'node:fs';
 
-import { runCli } from '@blood-bowl-tracker/cli-shared';
+import {
+  runCli,
+  RunProductionQueryService,
+} from '@blood-bowl-tracker/cli-shared';
 import { INestApplicationContext } from '@nestjs/common';
 
 import { AppModule } from './app.module';
@@ -20,7 +23,6 @@ import {
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history/read-tp-feed-history.service';
 import { ReadTpRosterSnapshotsService } from './read-tp-roster-snapshots/read-tp-roster-snapshots.service';
-import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 const SUBCOMMANDS = [
   'check-production-config-port',

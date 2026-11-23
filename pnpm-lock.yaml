@@ -1190,6 +1190,9 @@ importers:
       '@nestjs/core':
         specifier: ^12.0.0
         version: 12.6.0(@nestjs/common@12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.6.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      discord.js:
+        specifier: ^14.27.0
+        version: 14.28.1
       dotenv:
         specifier: ^18.0.3
         version: 18.0.10
@@ -1614,9 +1617,6 @@ importers:
       '@nestjs/core':
         specifier: ^12.0.0
         version: 12.6.0(@nestjs/common@12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.6.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      discord.js:
-        specifier: ^14.27.0
-        version: 14.28.1
       json5:
         specifier: ^2.2.3
         version: 2.2.3

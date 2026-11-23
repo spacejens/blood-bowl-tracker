@@ -1,8 +1,8 @@
+import { DiscordRestService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { DiscordRestService } from '../discord-rest/discord-rest.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history.service';
 import { SnowflakeOrderService } from './snowflake-order.service';
 import {

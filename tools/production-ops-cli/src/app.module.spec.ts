@@ -1,10 +1,12 @@
 import {
   ChildProcessService,
   DatabaseUrlRedactorService,
+  DiscordRestService,
   GitRootsService,
   PgClientService,
   ProcessRunnerService,
   ProductionEnvFileService,
+  RunProductionQueryService,
   WriteFileService,
 } from '@blood-bowl-tracker/cli-shared';
 import { TpFeedAdvancementParserService } from '@blood-bowl-tracker/parse-tp-feed';
@@ -13,8 +15,6 @@ import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
-import { DiscordBotTokenService } from './discord-bot-token/discord-bot-token.service';
-import { DiscordRestService } from './discord-rest/discord-rest.service';
 import { FetchDiscordMessageService } from './fetch-discord-message/fetch-discord-message.service';
 import { FetchRecentDiscordMessagesService } from './fetch-recent-discord-messages/fetch-recent-discord-messages.service';
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
@@ -52,7 +52,6 @@ import { TpRosterCopySelectionService } from './read-tp-roster-snapshots/tp-rost
 import { TpRosterSnapshotExtractorService } from './read-tp-roster-snapshots/tp-roster-snapshot-extractor.service';
 import { TpRosterSnapshotIndexService } from './read-tp-roster-snapshots/tp-roster-snapshot-index.service';
 import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-roster-snapshots-store.service';
-import { RunProductionQueryService } from './run-production-query/run-production-query.service';
 
 describe('AppModule', () => {
   it('wires every production-ops subcommand service with its dependencies resolved', async () => {
@@ -80,9 +79,6 @@ describe('AppModule', () => {
       DatabaseUrlRedactorService,
     );
     expect(moduleRef.get(PgClientService)).toBeInstanceOf(PgClientService);
-    expect(moduleRef.get(DiscordBotTokenService)).toBeInstanceOf(
-      DiscordBotTokenService,
-    );
     expect(moduleRef.get(DiscordRestService)).toBeInstanceOf(
       DiscordRestService,
     );

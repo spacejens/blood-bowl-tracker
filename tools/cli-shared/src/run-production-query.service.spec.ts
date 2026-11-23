@@ -1,12 +1,10 @@
-import {
-  PgClientService,
-  ProductionEnvFileService,
-  TIMED_OUT_EXIT_CODE,
-} from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import { PgClientService } from './pg-client.service';
+import { TIMED_OUT_EXIT_CODE } from './process-runner.service';
+import { ProductionEnvFileService } from './production-env-file.service';
 import { RunProductionQueryService } from './run-production-query.service';
 
 const DATABASE_URL = 'postgres://user:pass@host/db';

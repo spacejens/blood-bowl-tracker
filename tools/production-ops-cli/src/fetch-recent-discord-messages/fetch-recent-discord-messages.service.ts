@@ -1,6 +1,5 @@
+import { DiscordRestService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { DiscordRestService } from '../discord-rest/discord-rest.service';
 
 /** Discord's own bounds on the `limit` query parameter for this endpoint. */
 export const MIN_COUNT = 1;
