@@ -16,7 +16,7 @@ import {
 import type { TpFeedMessage } from './tp-feed-message.schema';
 
 const CHANNEL = '222';
-const DATA_DIR = '/repo/tools/production-ops-cli/data/tp-feed-222';
+const DATA_DIR = '/repo/tools/import-manual-planner-cli/data/tp-feed-222';
 const EMPTY_INDEX: TpFeedHistoryIndex = { reports: {}, unparsed: [] };
 
 /** `count` messages, newest first as Discord returns them. */

@@ -17,9 +17,9 @@ import {
 /** download-tp's files, gitignored; symlinked back to the main checkout from a worktree. */
 export const TP_DATA_DIR = 'tools/import-tp/data';
 
-/** Gitignored; `tools/production-ops-cli/data` is symlinked back to the main checkout. */
+/** Gitignored; `tools/import-manual-planner-cli/data` is symlinked back to the main checkout. */
 export const TP_ROSTER_SNAPSHOTS_FILE =
-  'tools/production-ops-cli/data/tp-roster-snapshots/snapshots.json';
+  'tools/import-manual-planner-cli/data/tp-roster-snapshots/snapshots.json';
 
 const SOURCE_FILE = /^(match|rosters)_\d+\.json$/u;
 

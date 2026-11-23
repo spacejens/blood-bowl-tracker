@@ -77,7 +77,8 @@ const BROKEN_ROSTER: TpRosterSnapshotSourceFile = {
   path: '/d/e/rosters_4.json',
 };
 const WRITTEN = {
-  written: 'tools/production-ops-cli/data/tp-roster-snapshots/snapshots.json',
+  written:
+    'tools/import-manual-planner-cli/data/tp-roster-snapshots/snapshots.json',
   bytes: 10,
 };
 

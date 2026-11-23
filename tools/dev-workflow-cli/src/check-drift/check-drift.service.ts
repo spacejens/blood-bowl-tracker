@@ -34,7 +34,7 @@ export interface CheckDriftResult {
  * has no main-checkout counterpart at all. A listed file that is absent from
  * the worktree is not a finding — there is nothing there to lose. Also flags
  * a directory that should be a `sync-gitignored`-managed symlink (such as
- * `docs/plans` or `tools/production-ops-cli/data`) but is instead a real,
+ * `docs/plans` or `tools/import-manual-planner-cli/data`) but is instead a real,
  * worktree-local directory — `sync-gitignored` never overwrites one that
  * already existed. Supplies
  * classification and diff text only; resolving each finding stays in the
@@ -97,7 +97,7 @@ export class CheckDriftService {
     // GITIGNORED_DRIFT_FILES can't cover this: it's a directory, and its
     // "no main-checkout counterpart" test above doesn't apply either, since
     // sync-gitignored's own auto-create step guarantees a main-checkout copy
-    // of each such directory (docs/plans, tools/production-ops-cli/data)
+    // of each such directory (docs/plans, tools/import-manual-planner-cli/data)
     // always exists.
     for (const path of GITIGNORED_AUTO_CREATE_SYMLINK_DIRS) {
       const worktreeCopy = join(roots.worktreeRoot, path);
