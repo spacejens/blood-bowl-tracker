@@ -1332,7 +1332,7 @@ importers:
         specifier: ^5.0.0
         version: 5.1.1(vitest@5.1.1)
       eslint:
-        specifier: ^10.14.0
+        specifier: ^10.15.0
         version: 10.15.0(jiti@2.7.0)(supports-color@7.2.0)
       typescript:
         specifier: ^6.0.3
@@ -1582,7 +1582,7 @@ importers:
         specifier: ^5.0.0
         version: 5.1.1(vitest@5.1.1)
       eslint:
-        specifier: ^10.14.0
+        specifier: ^10.15.0
         version: 10.15.0(jiti@2.7.0)(supports-color@7.2.0)
       typescript:
         specifier: ^6.0.3
