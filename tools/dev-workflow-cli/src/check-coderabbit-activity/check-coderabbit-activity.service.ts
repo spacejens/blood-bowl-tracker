@@ -16,8 +16,11 @@ const CHECK_CODERABBIT_ACTIVITY_USAGE =
 const CODERABBIT_ACTIVITY_JQ =
   '{hasActivity: ([(.comments[]?.author.login // ""), (.reviews[]?.author.login // "")] | ' +
   'any(test("coderabbit"; "i"))), ' +
-  'noReviewSeat: ([.comments[]? | select((.author.login // "") | test("coderabbit"; "i")) | ' +
-  '(.body // "")] | any(test("without an assigned coderabbit review seat"; "i")))}';
+  'noReviewSeat: (([.comments[]? | select((.author.login // "") | test("coderabbit"; "i")) | ' +
+  'select((.body // "") | (contains("<!-- This is an auto-generated comment: skip review by coderabbit.ai -->") and ' +
+  'test("without an assigned coderabbit review seat"; "i"))) | .createdAt] | max) as $notice | ' +
+  'if $notice == null then false else ' +
+  '([.reviews[]? | select((.author.login // "") | test("coderabbit"; "i")) | .submittedAt] | all(. < $notice)) end)}';
 
 export interface CheckCoderabbitActivityResult {
   readonly hasActivity: boolean;
@@ -27,6 +30,11 @@ export interface CheckCoderabbitActivityResult {
    * PR, and also refuses a manual `@coderabbitai review` request, until an
    * organization administrator assigns a seat to the bot — so no review will
    * ever arrive and waiting for one is pointless.
+   *
+   * Only CodeRabbit's real skip-review comment counts — the one carrying its
+   * "skip review" marker — so a walkthrough that merely quotes the phrase
+   * does not. A CodeRabbit review submitted after that notice means a seat has
+   * since been assigned, which clears the flag.
    */
   readonly noReviewSeat: boolean;
 }

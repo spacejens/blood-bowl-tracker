@@ -85,6 +85,8 @@ describe('CheckCoderabbitActivityService', () => {
     const jq = args?.[6];
     expect(jq).toContain('test("coderabbit"; "i")');
     expect(jq).toContain('without an assigned coderabbit review seat');
+    expect(jq).toContain('skip review by coderabbit.ai');
+    expect(jq).toContain('.submittedAt');
   });
 
   it('throws with gh stderr when the lookup fails', async () => {
@@ -103,10 +105,15 @@ describe('CheckCoderabbitActivityService', () => {
     await expect(service.run('634')).rejects.toThrow('unexpected output');
   });
 
-  it('throws when a field is missing or mistyped', async () => {
-    processRunner.run.mockResolvedValue(
-      ghResult('{"hasActivity":true,"noReviewSeat":"yes"}\n'),
-    );
+  it.each([
+    ['null', 'null'],
+    ['an empty object', '{}'],
+    ['a missing noReviewSeat', '{"hasActivity":true}'],
+    ['a missing hasActivity', '{"noReviewSeat":false}'],
+    ['a non-boolean hasActivity', '{"hasActivity":"yes","noReviewSeat":false}'],
+    ['a non-boolean noReviewSeat', '{"hasActivity":true,"noReviewSeat":"yes"}'],
+  ])('throws on %s', async (_label, output) => {
+    processRunner.run.mockResolvedValue(ghResult(output + '\n'));
 
     await expect(service.run('634')).rejects.toThrow('unexpected output');
   });
