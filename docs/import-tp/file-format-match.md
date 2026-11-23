@@ -287,8 +287,8 @@ table 0 already uses for different conditions (`40` is `pouring_rain` on
 table 0 but `very_sunny` on table 13; `104` is `perfect_conditions` on both,
 coincidentally). This collision is exactly why the lookup had to become
 table-aware rather than code-only: a code-only lookup would have actively
-mis-decoded these two as their table-0 meanings, not merely failed to
-decode them. Because the same number can name different conditions on
+mis-decoded `40` as its table-0 meaning, not merely failed to decode it
+(`104` would have decoded correctly by coincidence). Because the same number can name different conditions on
 different tables, `packages/parse-tp`'s `WeatherTypeService.decode(table,
 code)` takes both and looks them up in `weatherTypeByTableAndCode`, which
 keys table first. An event with no `weatherTable` at all (the oldest data)
