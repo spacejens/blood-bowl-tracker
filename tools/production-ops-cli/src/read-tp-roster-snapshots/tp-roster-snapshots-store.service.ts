@@ -111,7 +111,8 @@ export class TpRosterSnapshotsStoreService {
     );
     if (!parsed.success) {
       throw new Error(
-        `${path} is not a valid TP roster snapshots file: ${parsed.error.message}`,
+        `${path} is not a valid TP roster snapshots file: ${parsed.error.message}; ` +
+          'run read-tp-roster-snapshots again.',
       );
     }
     return parsed.data;

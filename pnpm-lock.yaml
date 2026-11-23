@@ -1592,6 +1592,9 @@ importers:
       '@blood-bowl-tracker/domain-enums':
         specifier: workspace:*
         version: link:../../packages/domain-enums
+      '@blood-bowl-tracker/parse-tp':
+        specifier: workspace:*
+        version: link:../../packages/parse-tp
       '@blood-bowl-tracker/parse-tp-feed':
         specifier: workspace:*
         version: link:../../packages/parse-tp-feed

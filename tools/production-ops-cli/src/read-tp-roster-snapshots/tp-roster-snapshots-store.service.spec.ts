@@ -37,6 +37,15 @@ const SNAPSHOTS: TpRosterSnapshots = {
   },
   conflicts: [],
   unreadable: [],
+  rosterCopies: [
+    {
+      era: 'fourth-era',
+      rosterId: '164848',
+      chosen: ['fourth-era/s30/rosters_164848.json'],
+      listed: ['5'],
+      listedElsewhere: [],
+    },
+  ],
 };
 
 describe('TpRosterSnapshotsStoreService', () => {
@@ -173,6 +182,16 @@ describe('TpRosterSnapshotsStoreService', () => {
     it('asks for the collector to be run when there is none', async () => {
       await expect(service.readSnapshots()).rejects.toThrow(
         /run read-tp-roster-snapshots first/,
+      );
+    });
+
+    it('asks for a rerun when the file was saved without roster copies', async () => {
+      const older: Record<string, unknown> = { ...SNAPSHOTS };
+      delete older.rosterCopies;
+      save(JSON.stringify(older));
+
+      await expect(service.readSnapshots()).rejects.toThrow(
+        /rosterCopies[\s\S]*run read-tp-roster-snapshots again/,
       );
     });
 

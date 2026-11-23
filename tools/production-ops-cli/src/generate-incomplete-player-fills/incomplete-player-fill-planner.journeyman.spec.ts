@@ -214,6 +214,7 @@ describe('IncompletePlayerFillPlannerService journeymen', () => {
       },
       conflicts: [],
       unreadable: [],
+      rosterCopies: [],
     };
 
     expect(

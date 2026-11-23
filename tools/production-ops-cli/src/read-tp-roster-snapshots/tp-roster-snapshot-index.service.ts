@@ -5,7 +5,7 @@ import type {
   TpRosterSnapshotUnreadable,
 } from './tp-roster-snapshot-extractor.service';
 import type {
-  TpRosterSnapshots,
+  TpRosterPlayerSnapshots,
   TpRosterSnapshotState,
   TpRosterSnapshotVariant,
 } from './tp-roster-snapshots.schema';
@@ -21,17 +21,17 @@ interface Seen {
 }
 
 /**
- * Builds `snapshots.json` from every file's observations: each player's
- * distinct states, with the files showing each. A player shown in more than
- * one state is kept with all of them and listed under `conflicts`. Players,
- * states and sources are sorted, so the file does not depend on the order
- * the files were read in.
+ * Builds the players part of `snapshots.json` from every file's
+ * observations: each player's distinct states, with the files showing each.
+ * A player shown in more than one state is kept with all of them and listed
+ * under `conflicts`. Players, states and sources are sorted, so the file does
+ * not depend on the order the files were read in.
  *
  * Pure decision logic, with no I/O and no dependencies.
  */
 @Injectable()
 export class TpRosterSnapshotIndexService {
-  build(input: BuildSnapshotsInput): TpRosterSnapshots {
+  build(input: BuildSnapshotsInput): TpRosterPlayerSnapshots {
     const byPlayer = new Map<string, Map<string, Seen>>();
     for (const row of input.observations) {
       const states = byPlayer.get(row.playerId) ?? new Map<string, Seen>();

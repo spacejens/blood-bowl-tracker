@@ -183,7 +183,9 @@ export class TpRosterFilesImportService {
    * One copy per (era, roster). The copies differ in when they were
    * downloaded, so the one whose newest match finished last wins; a copy
    * with no finish instant counts as older than any with one, and a tie
-   * keeps the first seen.
+   * keeps the first seen. tools/production-ops-cli's
+   * TpRosterCopySelectionService repeats this rule to tell which players a
+   * database built from scratch has complete; keep the two in step.
    */
   private distinctByEraAndRoster(rosters: RosterEntry[]): RosterEntry[] {
     const byKey = new Map<string, RosterEntry>();

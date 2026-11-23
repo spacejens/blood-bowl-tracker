@@ -324,6 +324,11 @@ Passing a directory instead imports that directory ad hoc and records nothing
   gitignored BBL and TP downloads, so CI cannot run it. Run it after adding a
   batch that fills or repairs players, since a batch generated from production
   can depend on data production got from a source the scratch import lacks.
+  The generator leaves out repairs of players the roster copies the TP import
+  sends do not list, unless an earlier batch or the same run fills the player,
+  or no downloaded file shows the player and every file was readable (see
+  [Recording lasting reductions](filling-missing-players.md#recording-lasting-reductions)).
+  This check covers what the generator cannot see.
 - **Long-lived database (production):** a plain `apply`. It
   applies just the batches not yet recorded.
 
