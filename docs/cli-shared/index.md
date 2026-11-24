@@ -13,7 +13,10 @@ tools share. It has no CLI entry point of its own.
   [backup-cli](../backup-cli/index.md) and
   [workflow-lint](../workflow-lint/index.md). It runs before any Nest context
   exists, the bootstrap case of `CLAUDE.md`'s "Service vs. loose function"
-  (case 3).
+  (case 3). It takes the tool's root module as a class or a dynamic module,
+  and creates the context with abortOnError off, so a provider that fails
+  while the context starts (a refused or unreachable database, say) is
+  reported as the JSON error like any other failure.
 - **`runApp`** — the single-run driver for the CLIs that take no
   subcommand. It boots a Nest application context with logging off, runs the
   tool's work against it, and closes the context even when that work throws.

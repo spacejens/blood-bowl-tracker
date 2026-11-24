@@ -154,7 +154,25 @@ describe('runCli', () => {
     );
     expect(createApplicationContext).toHaveBeenCalledWith(TestModule, {
       logger: false,
+      abortOnError: false,
     });
+  });
+
+  it('boots a dynamic module', async () => {
+    const dynamic = { module: TestModule, providers: [] };
+
+    await runCli({
+      argv: argvFor('alpha'),
+      subcommands: SUBCOMMANDS,
+      module: dynamic,
+      readArgs: vi.fn().mockReturnValue({ value: 'x' }),
+      dispatch: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(createApplicationContext).toHaveBeenCalledWith(
+      dynamic,
+      expect.anything(),
+    );
   });
 
   it('closes the app and prints the pretty-printed dispatch result', async () => {
