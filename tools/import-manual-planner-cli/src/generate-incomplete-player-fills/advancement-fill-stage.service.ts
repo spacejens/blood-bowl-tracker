@@ -1,12 +1,10 @@
-import type {
-  PlayerCharacteristic,
-  PlayerStatus,
-} from '@blood-bowl-tracker/domain-enums';
+import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
 import { AdvancementPricingService } from './advancement-pricing.service';
+import { CHARACTERISTIC_NAME_BY_KEY } from './characteristic-keys';
 import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
 import { FeedSkillResolverService } from './feed-skill-resolver.service';
@@ -15,7 +13,6 @@ import type {
   AdvancementCostRow,
   CandidateRow,
   CharacteristicEvent,
-  CharacteristicKey,
   FillAdvancement,
   PositionAccessRow,
   PositionProfile,
@@ -34,14 +31,6 @@ import { PricingRulesSetsService } from './pricing-rules-sets.service';
 
 /** The server's order check prices at most this many paid advancements. */
 export const MAX_PAID_ADVANCEMENTS = 6;
-
-const CHARACTERISTIC_NAMES: Record<CharacteristicKey, PlayerCharacteristic> = {
-  ma: 'MA',
-  st: 'ST',
-  ag: 'AG',
-  pa: 'PA',
-  av: 'AV',
-};
 
 export interface AdvancementStageInput {
   candidate: CandidateRow;
@@ -289,7 +278,9 @@ export class AdvancementFillStageService {
 
   private advancement(step: ResolvedStep): FillAdvancement {
     if (step.kind === 'characteristic') {
-      return { characteristic: CHARACTERISTIC_NAMES[step.characteristic] };
+      return {
+        characteristic: CHARACTERISTIC_NAME_BY_KEY[step.characteristic],
+      };
     }
     return {
       skill: { system: NAME_EXTERNAL_SYSTEM_NAME, id: step.nameId },

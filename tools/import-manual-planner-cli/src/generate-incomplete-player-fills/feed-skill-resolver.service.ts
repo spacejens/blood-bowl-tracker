@@ -1,12 +1,8 @@
-import type { PlayerCharacteristic } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
-import type {
-  CharacteristicKey,
-  ResolvedStep,
-  SkillNameRow,
-} from './fill-plan.types';
+import { CHARACTERISTIC_KEY_BY_NAME } from './characteristic-keys';
+import type { ResolvedStep, SkillNameRow } from './fill-plan.types';
 
 export interface ResolveStepsInput {
   /** One player's reports, oldest first. */
@@ -16,11 +12,6 @@ export interface ResolveStepsInput {
 
 /** `Mighty Blow (+1)` -> `Mighty Blow` and `+1`. */
 const VARIANT = /^(.+?)\s*\(([^()]+)\)$/u;
-
-const CHARACTERISTIC_KEYS_BY_NAME: Record<
-  PlayerCharacteristic,
-  CharacteristicKey
-> = { MA: 'ma', ST: 'st', AG: 'ag', PA: 'pa', AV: 'av' };
 
 interface NamedSkill {
   skillId: number;
@@ -77,7 +68,7 @@ export class FeedSkillResolverService {
       return category === 'characteristics' && gain.delta === 1
         ? {
             kind: 'characteristic',
-            characteristic: CHARACTERISTIC_KEYS_BY_NAME[gain.characteristic],
+            characteristic: CHARACTERISTIC_KEY_BY_NAME[gain.characteristic],
             selection,
             reportedCost: sppCost,
           }

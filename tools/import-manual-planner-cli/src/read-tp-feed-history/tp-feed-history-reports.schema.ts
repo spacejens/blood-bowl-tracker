@@ -1,9 +1,10 @@
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 const gainSchema = z.union([
   z.object({ skill: z.string().min(1) }),
   z.object({
-    characteristic: z.enum(['MA', 'ST', 'AG', 'PA', 'AV']),
+    characteristic: z.enum(PLAYER_CHARACTERISTICS),
     delta: z.number().int(),
   }),
 ]);

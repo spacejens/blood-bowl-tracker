@@ -14,11 +14,13 @@ import type {
   TpFeedHistoryReports,
 } from '../read-tp-feed-history/tp-feed-history-index.service';
 import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
+import type { CharacteristicKey } from './characteristic-keys';
 import type { TpPositionIdRow, TpSkillIdRow } from './snapshot-fill.types';
 
-/** The five characteristics, by the keys a fill entry uses. */
-export const CHARACTERISTIC_KEYS = ['ma', 'st', 'ag', 'pa', 'av'] as const;
-export type CharacteristicKey = (typeof CHARACTERISTIC_KEYS)[number];
+export {
+  CHARACTERISTIC_KEYS,
+  type CharacteristicKey,
+} from './characteristic-keys';
 
 /** A characteristic line; `pa` is null exactly when the rules set has no Passing. */
 export interface CharacteristicLine {
