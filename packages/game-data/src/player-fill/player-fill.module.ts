@@ -1,3 +1,4 @@
+import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
 import { Module } from '@nestjs/common';
 
 import { PlayerSkillsModule } from '../player-skills/player-skills.module';
@@ -14,6 +15,7 @@ import { PlayerFillStateService } from './player-fill-state.service';
 
 @Module({
   imports: [
+    GameRulesModule,
     PlayersModule,
     PlayerSkillsModule,
     PositionRulesSetsModule,

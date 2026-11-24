@@ -1,3 +1,4 @@
+import { LastingReductionService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -49,6 +50,7 @@ describe('PlayerFillReductionsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         PlayerFillReductionsService,
+        LastingReductionService,
         { provide: PositionRulesSetsService, useValue: positionRulesSets },
       ],
     }).compile();

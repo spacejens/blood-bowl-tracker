@@ -12,3 +12,5 @@ export {
 } from './advancements/advancement-limits';
 export { AdvancementSpendRangeService } from './advancements/advancement-spend-range.service';
 export { GameRulesModule } from './game-rules.module';
+export type { LastingReductionInput } from './lasting-reductions/lasting-reduction.service';
+export { LastingReductionService } from './lasting-reductions/lasting-reduction.service';
