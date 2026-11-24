@@ -6,7 +6,7 @@ import {
   NAF_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
-  TP_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM,
 } from '@blood-bowl-tracker/import';
 import type { TpCoach } from '@blood-bowl-tracker/parse-tp';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
@@ -54,10 +54,7 @@ export class TpCoachesImportService {
     const errors: ImportError[] = [];
 
     const systemNames = [
-      {
-        name: TP_EXTERNAL_SYSTEM_NAME,
-        category: 'imported_data_source' as const,
-      },
+      TP_EXTERNAL_SYSTEM,
       NAME_EXTERNAL_SYSTEM,
       NAF_EXTERNAL_SYSTEM,
     ];

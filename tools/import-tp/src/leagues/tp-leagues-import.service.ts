@@ -6,6 +6,7 @@ import {
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
+  TP_EXTERNAL_SYSTEM,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -51,7 +52,7 @@ export class TpLeaguesImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
+      TP_EXTERNAL_SYSTEM,
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

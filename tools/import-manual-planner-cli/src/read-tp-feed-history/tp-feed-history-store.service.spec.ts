@@ -54,7 +54,8 @@ describe('TpFeedHistoryStoreService', () => {
       providers: [
         TpFeedHistoryStoreService,
         { provide: GitRootsService, useValue: gitRoots },
-        // Pure and dependency-free, so passed real: the order asserted below is its order.
+        // Pure and dependency-free, so passed real: the order asserted below is
+        // its order.
         SnowflakeOrderService,
       ],
     }).compile();
