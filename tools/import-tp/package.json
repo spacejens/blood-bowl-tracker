@@ -21,6 +21,7 @@
   "dependencies": {
     "@blood-bowl-tracker/api-client": "workspace:*",
     "@blood-bowl-tracker/api-contract": "workspace:*",
+    "@blood-bowl-tracker/cli-shared": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
     "@blood-bowl-tracker/parse-tp": "workspace:*",
     "@nestjs/common": "^12.0.0",
