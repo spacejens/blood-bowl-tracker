@@ -168,7 +168,9 @@ pnpm --filter @blood-bowl-tracker/review-race run start
 ```
 
 Exit codes: `0` with `Reviewed <N> race(s); report written to <path>.` on success; `1`
-with `Review failed: <error>` when the database is unreachable or the config is unusable. Its entrypoint runs on [review-harness](../review-harness/index.md)'s
+with `Review failed: <error>` when the database is unreachable or the config is unusable.
+
+The tool's entrypoint runs on [review-harness](../review-harness/index.md)'s
 `runReviewCli`.
 
 A run scans every downloaded `teams/<rulesSet>/*.json` and every BBL team page once per process,

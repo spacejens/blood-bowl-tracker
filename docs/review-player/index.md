@@ -302,7 +302,9 @@ pnpm --filter @blood-bowl-tracker/review-player run start
 ```
 
 Exit codes: `0` with `Reviewed <N> player(s); report written to <path>.` on success; `1`
-with `Review failed: <error>` when the database is unreachable or the config is unusable. Its entrypoint runs on [review-harness](../review-harness/index.md)'s
+with `Review failed: <error>` when the database is unreachable or the config is unusable.
+
+The tool's entrypoint runs on [review-harness](../review-harness/index.md)'s
 `runReviewCli`.
 
 A TP-sampled player makes the tool scan every downloaded `match_<id>.json` once per
