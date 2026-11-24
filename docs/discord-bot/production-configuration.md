@@ -22,9 +22,9 @@ applying Fly secrets restarts the machines and the steps are not atomic:
 1. Add the new names to `.env.production`, each with the same value as the
    old name it replaces, so it equals the `connection.apiToken` in the
    matching importer config (importers send that value; they never read Fly
-   secrets). If a value must change, update the importer config before the
-   new release is deployed. Apply the file to Fly, keeping the old secrets
-   in place: the release still running reads only the old names, and
+   secrets). Do not rotate a token during the rename; rotation is a
+   separate, coordinated operation. Apply the file to Fly, keeping the old
+   secrets in place: the release still running reads only the old names, and
    `fly secrets import` never removes anything.
 2. Deploy the release that reads the new names and verify an importer
    request succeeds.
