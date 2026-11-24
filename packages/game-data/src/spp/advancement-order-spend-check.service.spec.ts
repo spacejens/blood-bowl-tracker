@@ -81,9 +81,6 @@ describe('AdvancementOrderSpendCheckService', () => {
 
   beforeEach(async () => {
     reads = mock<PlayerAdvancementReadsService>();
-    reads.resolveFreeExtras.mockImplementation((entries) =>
-      Promise.resolve(entries),
-    );
     unspentSpp = mock<UnspentSppService>();
     deduction = mock<AdvancementOrderDeductionService>();
     service = await compile(mockDb());
@@ -131,6 +128,15 @@ describe('AdvancementOrderSpendCheckService', () => {
       });
 
       it('groups the rows by player and leaves out players with none', async () => {
+        reads.resolveFreeExtras.mockResolvedValue(
+          rows.map((stored) => ({
+            playerId: stored.playerId,
+            skillId: stored.id,
+            source: 'chosen',
+            attributeValue: null,
+          })),
+        );
+
         const result = await service.storedWithFreeExtras([1, 2, 3]);
 
         expect(db.chains[0].from).toHaveBeenCalledWith(playerAdvancements);
