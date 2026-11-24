@@ -11,8 +11,6 @@ import type { SampledRace } from '../shared/review.types';
 import { RaceSamplerService } from './race-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
 
-export type { ReviewOutcome } from '@blood-bowl-tracker/review-harness';
-
 /**
  * The race report needs nothing beyond the sampled race itself — every panel
  * looks up what it needs per race — so the whole run is the shared one and

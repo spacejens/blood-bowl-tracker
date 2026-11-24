@@ -25,6 +25,7 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
+    "@blood-bowl-tracker/cli-shared": "workspace:*",
     "@blood-bowl-tracker/config-loader": "workspace:*",
     "@blood-bowl-tracker/db": "workspace:*",
     "@blood-bowl-tracker/domain-enums": "workspace:*",

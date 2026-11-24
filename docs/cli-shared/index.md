@@ -1,7 +1,7 @@
 # cli-shared
 
-`packages/cli-shared` is a library package with the plumbing six of the repo's
-CLI tools share. It has no CLI entry point of its own.
+`packages/cli-shared` is a library package with the plumbing the repo's CLI
+tools share. It has no CLI entry point of its own.
 
 ## What it owns
 
@@ -14,6 +14,18 @@ CLI tools share. It has no CLI entry point of its own.
   [workflow-lint](../workflow-lint/index.md). It runs before any Nest context
   exists, the bootstrap case of `CLAUDE.md`'s "Service vs. loose function"
   (case 3).
+- **`runApp`** — the single-run driver for the CLIs that take no
+  subcommand. It boots a Nest application context with logging off, runs the
+  tool's work against it, and closes the context even when that work throws.
+  It then hands the outcome to the tool's `onOutcome`, which prints it and
+  may return an exit code. A non-zero code ends the process with that code.
+  Any failure prints the tool's failure label with the error and exits with
+  status 1. `exitOnSuccess` also forces an explicit exit 0, for a tool whose
+  open database socket would otherwise keep the process alive.
+  [import-bbl](../import-bbl/index.md), [import-tp](../import-tp/index.md)
+  and [import-manual](../import-manual/index.md) run on it directly, and the
+  four review tools through [review-harness](../review-harness/index.md)'s
+  `runReviewCli`. Same bootstrap case as `runCli`.
 - **Git roots** — main-checkout and worktree resolution (`GitRootsService`).
 - **Child processes** — running and spawning them (`ChildProcessService`,
   `ProcessRunnerService`).
@@ -48,11 +60,13 @@ separate, so only the CLIs that need them import them.
 
 ## Rules
 
-- **Consumed by tools, depends on no tool.** The CLI tools above depend on it,
-  keeping the `tools/* → packages/*` direction intact. It depends on no other
-  workspace package, and must never depend on anything under `tools/`.
-- **Client-side only.** It is used by tools, never by `apps/discord-bot` or
-  the server-side packages.
+- **Consumed by tools, depends on no tool.** The CLI tools above depend on
+  it, as does [review-harness](../review-harness/index.md) for its
+  `runReviewCli`, keeping the `tools/* → packages/*` direction intact. It
+  depends on no other workspace package, and must never depend on anything
+  under `tools/`.
+- **Client-side only.** It is used by tools and the client-side
+  review-harness, never by `apps/discord-bot` or the server-side packages.
 
 ## Development
 

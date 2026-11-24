@@ -1067,6 +1067,9 @@ importers:
 
   packages/review-harness:
     dependencies:
+      '@blood-bowl-tracker/cli-shared':
+        specifier: workspace:*
+        version: link:../cli-shared
       '@blood-bowl-tracker/config-loader':
         specifier: workspace:*
         version: link:../config-loader
@@ -1398,6 +1401,9 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@blood-bowl-tracker/cli-shared':
+        specifier: workspace:*
+        version: link:../../packages/cli-shared
       '@blood-bowl-tracker/domain-enums':
         specifier: workspace:*
         version: link:../../packages/domain-enums
@@ -1462,6 +1468,9 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@blood-bowl-tracker/cli-shared':
+        specifier: workspace:*
+        version: link:../../packages/cli-shared
       '@blood-bowl-tracker/domain-enums':
         specifier: workspace:*
         version: link:../../packages/domain-enums
@@ -1593,6 +1602,9 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../../packages/api-contract
+      '@blood-bowl-tracker/cli-shared':
+        specifier: workspace:*
+        version: link:../../packages/cli-shared
       '@blood-bowl-tracker/import':
         specifier: workspace:*
         version: link:../../packages/import

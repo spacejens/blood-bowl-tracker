@@ -12,6 +12,13 @@ all four at once.
 - **Review-run orchestration** (`ReviewServiceBase`) and the **report document
   shell** (`ReportBuilderBase`). Each tool's `ReviewService` and
   `ReportBuilderService` is a thin subclass supplying only what differs.
+- **The review tools' entry point** (`runReviewCli`): each tool's `main.ts`
+  is one call naming its `AppModule`, its `ReviewService` and its printed
+  noun. It runs on [cli-shared](../cli-shared/index.md)'s `runApp`, prints
+  every gap as a warning and then the `Reviewed <N> <noun>; report written
+  to <path>.` line, and exits explicitly, since the open database socket
+  would otherwise keep the process alive. This is why the package depends on
+  cli-shared.
 - **HTML fragment assembly** (`HtmlService`), **timestamped report writing**,
   and **JSON5 config loading** (`createReviewConfigServiceBase`, over
   [config-loader](../config-loader/index.md)).

@@ -9,6 +9,13 @@ to reach a deployed api-server. A change here reaches all importers at once.
 
 - **Upsert bookkeeping** — `ImportRunnerService`, `BatchBufferService` and
   `ExternalIdResolverService`.
+- **The run summary** — `ImportRunSummaryService`, which folds every step's
+  `ImportResult` into the lines an import CLI prints and its exit code:
+  `Imported <N> record(s) successfully.` on stdout, or
+  `Import completed with <N> errors:` and one indented `- <message>` line per
+  error on stderr with exit code 1. [import-bbl](../import-bbl/index.md) and
+  [import-tp](../import-tp/index.md) build their outcome with it, and print
+  it from [cli-shared](../cli-shared/index.md)'s `runApp`.
 - **Entity import services** — coaches, teams, players, matches, trophies and
   the rest, each calling api-client.
 - **The shared upsert plumbing** (`createUpsertImportServiceBase`). For

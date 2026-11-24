@@ -20,6 +20,7 @@ import { ExternalIdResolverService } from './external-id-resolver.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportModule } from './import.module';
+import { ImportRunSummaryService } from './import-run-summary.service';
 import { ImportRunnerService } from './import-runner.service';
 import { KeywordsImportService } from './keywords-import.service';
 import { LeaguesImportService } from './leagues-import.service';
@@ -47,6 +48,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
 
 const providers = [
   ImportRunnerService,
+  ImportRunSummaryService,
   ImportResultService,
   CompetitionTypeService,
   UpsertRecorderService,

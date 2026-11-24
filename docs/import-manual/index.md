@@ -478,4 +478,5 @@ See [Running import tools against production](../discord-bot/production-imports.
   entity processors in dependency order, aggregating one `ImportResult`.
 
 `main.ts` hands the command line to `ImportManualCliService` and prints its
-outcome, mirroring `tools/import-tp/src/main.ts`'s console/exit-code contract.
+outcome on [cli-shared](../cli-shared/index.md)'s `runApp`, with the same
+console/exit-code contract as `tools/import-tp/src/main.ts`.
