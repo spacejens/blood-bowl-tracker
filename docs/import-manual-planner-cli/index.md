@@ -23,14 +23,14 @@ pnpm build
 node tools/import-manual-planner-cli/dist/main.js <subcommand>
 ```
 
-Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1. `generate-incomplete-player-fills` (for the database URL) and `read-tp-feed-history` (for the bot token) require `apps/discord-bot/.env.production` to be present in the checkout they run in, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)); they read it through `tools/cli-shared`'s `ProductionEnvFileService`, which never prints a value. `read-tp-feed-history` calls Discord through cli-shared's `DiscordRestService`, the same client [production-ops-cli](../production-ops-cli/index.md#running-it)'s Discord subcommands use.
+Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1. `generate-incomplete-player-fills` (for the database URL) and `read-tp-feed-history` (for the bot token) require `apps/discord-bot/.env.production` to be present in the checkout they run in, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)); they read it through `packages/cli-shared`'s `ProductionEnvFileService`, which never prints a value. `read-tp-feed-history` calls Discord through cli-shared's `DiscordRestService`, the same client [production-ops-cli](../production-ops-cli/index.md#running-it)'s Discord subcommands use.
 
 The evidence the two collectors save lives in the gitignored `tools/import-manual-planner-cli/data/`. Evidence saved in the main checkout's `tools/production-ops-cli/data/` is not moved by any command: move its `tp-feed-<channel-id>/` and `tp-roster-snapshots/` directories into `tools/import-manual-planner-cli/data/` by hand, or run `read-tp-feed-history` and `read-tp-roster-snapshots` again.
 
 ## Generating incomplete-player fills
 
 `generate-incomplete-player-fills` runs read-only queries through
-`tools/cli-shared`'s `RunProductionQueryService`, the same guarded `psql`
+`packages/cli-shared`'s `RunProductionQueryService`, the same guarded `psql`
 runner as production-ops-cli's `run-production-query`, one per kind of
 row. The query runner has a `tuplesOnly` mode for this: it passes `psql` its tuples-only
 flag so the output holds just the result. Each query is wrapped in
@@ -215,7 +215,7 @@ for what the files show.
 ## Dependency rules
 
 It is a client-side tool. It reaches production only through
-`tools/cli-shared`'s `RunProductionQueryService` and Discord only through
+`packages/cli-shared`'s `RunProductionQueryService` and Discord only through
 cli-shared's `DiscordRestService`, the services `tools/production-ops-cli`
 uses too, so neither tool depends on the other. It writes batch files that
 `tools/import-manual` applies, but does not depend on that package.

@@ -197,6 +197,7 @@ not shipped as part of any app).
 - **`packages/api-client`** — oRPC client for calling the hosted api-server over the network. See [api-client](api-client/index.md).
 - **`packages/api-contract`** — the oRPC contract and Zod schemas shared by server and clients. See [API](api/index.md#api-contract).
 - **`packages/api-server`** — the thin RPC transport layer the bot hosts in-process. See [API](api/index.md#api-server).
+- **`packages/cli-shared`** — plumbing the CLI tools share. See [cli-shared](cli-shared/index.md).
 - **`packages/config-loader`** — generic JSON5 config-file loading. See [config-loader](config-loader/index.md).
 - **`packages/db`** — Drizzle ORM schema and migrations for PostgreSQL. See [db](db/index.md).
 - **`packages/discord-bot-usage`** — records every Discord bot interaction. See [discord-bot-usage](discord-bot-usage/index.md).
@@ -218,7 +219,6 @@ not shipped as part of any app).
 ### Tools
 
 - **`tools/backup-cli`** — backs up, verifies and restores the production database. See [backup-cli](backup-cli/index.md).
-- **`tools/cli-shared`** — plumbing the CLI tools share. See [cli-shared](cli-shared/index.md).
 - **`tools/db-diagram`** — generates a SchemaSpy diagram of the local database. See [db-diagram](db-diagram/index.md).
 - **`tools/dev-workflow-cli`** — developer/PR workflow helpers the Claude Code skills call. See [dev-workflow-cli](dev-workflow-cli/index.md).
 - **`tools/download-tp`** — records TP's API responses as local JSON files. See [download-tp](download-tp/index.md).

@@ -103,7 +103,7 @@ five cases applies:
    `createApiClient` (`packages/api-client/src/client.ts`) as `useFactory`
    bootstraps; `createRegistryProvider` and `createReviewAppModule`
    (`packages/review-harness/src/`) at module-definition time; `runCli`
-   (`tools/cli-shared/src/run-cli.ts`) before the Nest context exists. The
+   (`packages/cli-shared/src/run-cli.ts`) before the Nest context exists. The
    exemption covers only the bootstrap step itself. Logic a bootstrap merely
    *hands to* the instance it builds is still a service, injected into the
    module's factory and passed in. Example: the retrying `fetch` that

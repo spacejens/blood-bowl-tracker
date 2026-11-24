@@ -1,6 +1,6 @@
 # cli-shared
 
-`tools/cli-shared` is a library package with the plumbing six of the repo's
+`packages/cli-shared` is a library package with the plumbing six of the repo's
 CLI tools share. It has no CLI entry point of its own.
 
 ## What it owns
@@ -45,6 +45,12 @@ CLI tools share. It has no CLI entry point of its own.
 they need it. `CliSharedModule` provides the common services;
 `ChildProcessModule`, `ProductionQueryModule` and `DiscordRestModule` are
 separate, so only the CLIs that need them import them.
+
+## Rules
+
+- **Consumed by tools, depends on no tool.** The CLI tools above depend on it,
+  keeping the `tools/* → packages/*` direction intact. It depends on no other
+  workspace package, and must never depend on anything under `tools/`.
 
 ## Development
 
