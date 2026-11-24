@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { SnowflakeOrderService } from '../read-tp-feed-history/snowflake-order.service';
 import type {
   TpFeedHistoryReport,
   TpFeedHistoryReports,
@@ -75,6 +76,7 @@ export class FeedPlayerMatcherService {
   constructor(
     private readonly splits: FeedSplitSearchService,
     private readonly pricingRulesSets: PricingRulesSetsService,
+    private readonly snowflakes: SnowflakeOrderService,
   ) {}
 
   match(input: FeedMatchInput): FeedMatchResult {
@@ -209,7 +211,9 @@ export class FeedPlayerMatcherService {
     }
     const reports = component
       .flatMap((claim) => claim.reports)
-      .sort((a, b) => this.byPosting(a.report, b.report));
+      .sort((a, b) =>
+        this.snowflakes.compare(a.report.messageId, b.report.messageId),
+      );
     if (component.length === 1 && owners.length === 1) {
       return new Map([[owners[0].playerId, reports.map((row) => row.report)]]);
     }
@@ -260,15 +264,6 @@ export class FeedPlayerMatcherService {
       }
     }
     return [...rows.values()];
-  }
-
-  /** Posting order: message ids are snowflakes, numbers too large for a double. */
-  private byPosting(a: TpFeedHistoryReport, b: TpFeedHistoryReport): number {
-    const [first, second] = [BigInt(a.messageId), BigInt(b.messageId)];
-    if (first < second) {
-      return -1;
-    }
-    return first > second ? 1 : 0;
   }
 
   private key(teamId: number, playerName: string, position: string): string {

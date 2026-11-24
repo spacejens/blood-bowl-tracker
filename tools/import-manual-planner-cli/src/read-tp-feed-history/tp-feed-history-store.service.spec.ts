@@ -16,6 +16,7 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import { SnowflakeOrderService } from './snowflake-order.service';
 import type { TpFeedHistoryReports } from './tp-feed-history-index.service';
 import { TpFeedHistoryStoreService } from './tp-feed-history-store.service';
 import type { TpFeedMessage } from './tp-feed-message.schema';
@@ -53,6 +54,8 @@ describe('TpFeedHistoryStoreService', () => {
       providers: [
         TpFeedHistoryStoreService,
         { provide: GitRootsService, useValue: gitRoots },
+        // Pure and dependency-free, so passed real: the order asserted below is its order.
+        SnowflakeOrderService,
       ],
     }).compile();
     service = moduleRef.get(TpFeedHistoryStoreService);

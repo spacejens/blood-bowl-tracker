@@ -14,6 +14,7 @@ import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+import { SnowflakeOrderService } from './snowflake-order.service';
 import type {
   TpFeedHistoryIndex,
   TpFeedHistoryReports,
@@ -51,7 +52,10 @@ const stateSchema = z.object({
 export class TpFeedHistoryStoreService {
   private root?: Promise<string>;
 
-  constructor(private readonly gitRoots: GitRootsService) {}
+  constructor(
+    private readonly gitRoots: GitRootsService,
+    private readonly snowflakes: SnowflakeOrderService,
+  ) {}
 
   async directory(channelId: string): Promise<string> {
     if (!/^\d+$/.test(channelId)) {
@@ -129,10 +133,7 @@ export class TpFeedHistoryStoreService {
       }
       messages.push(parsed.data);
     }
-    return messages.sort((a, b) => {
-      const diff = BigInt(a.id) - BigInt(b.id);
-      return diff === 0n ? 0 : diff < 0n ? -1 : 1;
-    });
+    return messages.sort((a, b) => this.snowflakes.compare(a.id, b.id));
   }
 
   async writeIndex(
