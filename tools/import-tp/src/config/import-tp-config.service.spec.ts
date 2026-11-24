@@ -69,7 +69,7 @@ describe('ImportTpConfigService', () => {
     expect(() => service.getApiToken()).toThrow(
       'connection.apiToken is not set in import-tp-config.json5. Set it to ' +
         'the bearer token this tool authenticates with; it must match the ' +
-        'API_TOKEN_IMPORT_TP value in apps/discord-bot/.env.',
+        'IMPORT_TP_API_TOKEN value in apps/discord-bot/.env.',
     );
   });
 

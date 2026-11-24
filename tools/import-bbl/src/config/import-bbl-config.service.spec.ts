@@ -71,7 +71,7 @@ describe('ImportBblConfigService', () => {
     expect(() => service.getApiToken()).toThrow(
       'connection.apiToken is not set in import-bbl-config.json5. Set it to ' +
         'the bearer token this tool authenticates with; it must match the ' +
-        'API_TOKEN_IMPORT_BBL value in apps/discord-bot/.env.',
+        'IMPORT_BBL_API_TOKEN value in apps/discord-bot/.env.',
     );
   });
 
