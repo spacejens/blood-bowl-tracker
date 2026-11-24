@@ -275,7 +275,7 @@ describe('CompetitionDeepdiveService', () => {
           description: [
             `Type: ${STUB_SEASON_LABEL}`,
             'Era: BB2020 (2020-01-01 – 2023-12-31)',
-            'Group: The Major',
+            'Competition group: The Major',
             'Dates: 2024-01-15 – 2024-06-30',
             '',
             'Participating teams:',
@@ -343,7 +343,7 @@ describe('CompetitionDeepdiveService', () => {
     expect(lines.slice(0, 6)).toEqual([
       `Type: ${STUB_SEASON_LABEL}`,
       'Era: BB2020 (2020-01-01 – 2023-12-31)',
-      'Group: The Major',
+      'Competition group: The Major',
       'Dates: 2024-01-15 – 2024-06-30',
       '',
       'Participating teams:',
@@ -718,7 +718,7 @@ describe('CompetitionDeepdiveService', () => {
     expect(result.embeds[0].description.split('\n')).toEqual([
       `Type: ${STUB_SEASON_LABEL}`,
       'Era: BB2020 (2020-01-01 – 2023-12-31)',
-      'Group: The Major',
+      'Competition group: The Major',
       'Dates: 2020-01-01 – 2023-12-31',
       '',
       'Participating teams:',

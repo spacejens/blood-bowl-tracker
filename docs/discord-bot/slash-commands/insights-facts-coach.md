@@ -71,7 +71,7 @@ how a fact path is chosen and which scope options apply.
 - `coach.toplist.deaths.suffered` — coaches ranked by their own players killed,
   counted the same way as `team.toplist.deaths.suffered`.
 - `coach.toplist.casualties.average.caused.descending` — coaches ranked by
-  average casualties caused per match, highest first.
+  average casualties inflicted per match, highest first.
 - `coach.toplist.casualties.average.caused.ascending` — the same average,
   lowest first.
 - `coach.toplist.casualties.average.suffered.descending` — coaches ranked by
@@ -79,7 +79,7 @@ how a fact path is chosen and which scope options apply.
 - `coach.toplist.casualties.average.suffered.ascending` — the same average,
   lowest first.
 - `coach.toplist.injuries.serious.average.caused.descending` — coaches ranked
-  by average serious injuries caused per match, highest first.
+  by average serious injuries inflicted per match, highest first.
 - `coach.toplist.injuries.serious.average.caused.ascending` — the same
   average, lowest first.
 - `coach.toplist.injuries.serious.average.suffered.descending` — coaches
@@ -87,7 +87,7 @@ how a fact path is chosen and which scope options apply.
 - `coach.toplist.injuries.serious.average.suffered.ascending` — the same
   average, lowest first.
 - `coach.toplist.injuries.lasting.average.caused.descending` — coaches ranked
-  by average lasting injuries caused per match, highest first.
+  by average lasting injuries inflicted per match, highest first.
 - `coach.toplist.injuries.lasting.average.caused.ascending` — the same
   average, lowest first.
 - `coach.toplist.injuries.lasting.average.suffered.descending` — coaches
