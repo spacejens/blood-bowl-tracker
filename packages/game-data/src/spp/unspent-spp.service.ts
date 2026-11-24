@@ -282,7 +282,7 @@ export class UnspentSppService {
     }
     const options = this.candidates.candidates(candidatesInput);
     const range = this.spendRange.range(options, costs);
-    if (range === null) {
+    if (range === undefined) {
       return { kind: 'inconsistent' };
     }
     const cheapestNextCost = this.spendRange.cheapestCostAt(

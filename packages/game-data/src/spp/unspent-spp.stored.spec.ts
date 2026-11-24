@@ -132,10 +132,10 @@ describe('UnspentSppService.modelledForPlayers', () => {
           costs: [...crpCosts(), ...bb2020Costs()],
         })
       )?.pricingModel,
-    ).toBeNull();
+    ).toBeUndefined();
     expect(
       (await modelledUnspentSppFor({ players: [playerRow({ sppTotal: 20 })] }))
         ?.pricingModel,
-    ).toBeNull();
+    ).toBeUndefined();
   });
 });

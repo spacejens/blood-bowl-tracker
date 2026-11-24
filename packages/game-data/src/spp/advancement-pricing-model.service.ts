@@ -23,7 +23,7 @@ export class AdvancementPricingModelService {
   modelFor(
     rulesSetIds: readonly number[],
     costs: readonly PricedCostRow[],
-  ): PricingModel | null {
+  ): PricingModel | undefined {
     const models = new Set<PricingModel>();
     for (const rulesSetId of rulesSetIds) {
       const own = costs.filter(
@@ -39,6 +39,6 @@ export class AdvancementPricingModelService {
       );
     }
     const distinct = [...models];
-    return distinct.length === 1 ? distinct[0] : null;
+    return distinct.length === 1 ? distinct[0] : undefined;
   }
 }

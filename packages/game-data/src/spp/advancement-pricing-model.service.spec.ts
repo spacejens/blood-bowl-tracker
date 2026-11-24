@@ -61,13 +61,13 @@ describe('AdvancementPricingModelService', () => {
     ).toBe('fixed_threshold');
   });
 
-  it('is null when the rules sets disagree', () => {
+  it('has no model when the rules sets disagree', () => {
     expect(
       service.modelFor(
         [CRP, BB2020],
         [row(CRP, 'table_roll'), row(BB2020, 'random_primary_skill')],
       ),
-    ).toBeNull();
+    ).toBeUndefined();
   });
 
   it('lets a rules set with no own rows abstain', () => {
@@ -76,8 +76,10 @@ describe('AdvancementPricingModelService', () => {
     );
   });
 
-  it('is null when no rules set has own rows', () => {
-    expect(service.modelFor([CRP], [row(CRP, 'granted_skill', 30)])).toBeNull();
-    expect(service.modelFor([], [])).toBeNull();
+  it('has no model when no rules set has own rows', () => {
+    expect(
+      service.modelFor([CRP], [row(CRP, 'granted_skill', 30)]),
+    ).toBeUndefined();
+    expect(service.modelFor([], [])).toBeUndefined();
   });
 });

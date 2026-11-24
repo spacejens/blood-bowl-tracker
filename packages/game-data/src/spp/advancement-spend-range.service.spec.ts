@@ -115,23 +115,23 @@ describe('AdvancementSpendRangeService', () => {
     it('finds no fit when a fixed number lies beyond the advancements gained', () => {
       const options = [anyNumber('table_roll'), GRANTED_AT_7];
 
-      expect(service.range(options, [...FIXED, FAN_FAVOURITE])).toBeNull();
+      expect(service.range(options, [...FIXED, FAN_FAVOURITE])).toBeUndefined();
     });
 
     it('finds no fit when more advancements were gained than the table prices', () => {
       const options = Array.from({ length: 7 }, () => anyNumber('table_roll'));
 
-      expect(service.range(options, FIXED)).toBeNull();
+      expect(service.range(options, FIXED)).toBeUndefined();
     });
 
     it('finds no fit when an advancement has no option at all', () => {
-      expect(service.range([[]], FIXED)).toBeNull();
+      expect(service.range([[]], FIXED)).toBeUndefined();
     });
 
     it('finds no fit when no option is priced at any free number', () => {
       expect(
         service.range([anyNumber('random_characteristic')], FIXED),
-      ).toBeNull();
+      ).toBeUndefined();
     });
 
     describe('with a very long cost table', () => {
@@ -160,13 +160,13 @@ describe('AdvancementSpendRangeService', () => {
       it('finds no fit beyond the most advancements it supports', () => {
         const { options, table } = pricedUpTo(17);
 
-        expect(service.range(options, table)).toBeNull();
+        expect(service.range(options, table)).toBeUndefined();
       });
 
       it('finds no fit rather than overflowing the number set', () => {
         const { options, table } = pricedUpTo(32);
 
-        expect(service.range(options, table)).toBeNull();
+        expect(service.range(options, table)).toBeUndefined();
       });
     });
   });

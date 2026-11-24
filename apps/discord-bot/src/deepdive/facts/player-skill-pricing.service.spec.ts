@@ -85,10 +85,13 @@ describe('PlayerSkillPricingService', () => {
     expect(databaseTimeout.run).not.toHaveBeenCalled();
   });
 
-  it('runs the lookup under the database timeout with a null fallback', async () => {
+  it('runs the lookup under the database timeout with an undefined fallback', async () => {
     await service.pricesByKind(PLAYER, [skill()]);
 
-    expect(databaseTimeout.run).toHaveBeenCalledWith(expect.any(Promise), null);
+    expect(databaseTimeout.run).toHaveBeenCalledWith(
+      expect.any(Promise),
+      undefined,
+    );
   });
 
   it('is false when the lookup times out', async () => {
