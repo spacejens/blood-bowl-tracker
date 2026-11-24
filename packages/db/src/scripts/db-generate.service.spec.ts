@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import {
   mkdirSync,
   mkdtempSync,
@@ -14,9 +13,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DbGenerateService } from './db-generate.service.js';
 
-vi.mock('node:child_process', () => ({
-  execFileSync: vi.fn(),
-}));
+vi.mock('node:child_process', async () =>
+  (
+    await import('./child-process-mock.test-helpers.js')
+  ).childProcessModuleMock(),
+);
+
+import type { ChildProcessMocks } from './child-process-mock.test-helpers.js';
+import {
+  installChildProcessMocks,
+  resetChildProcessMocks,
+} from './child-process-mock.test-helpers.js';
 
 function writeSnapshot(
   folder: string,
@@ -534,18 +541,20 @@ describe('DbGenerateService', () => {
 
     let root: string;
     let migrationsDir: string;
+    let childProcess: ChildProcessMocks;
 
     beforeEach(() => {
       root = mkdtempSync(join(tmpdir(), 'db-generate-root-'));
       migrationsDir = join(root, 'migrations');
       mkdirSync(migrationsDir, { recursive: true });
-      vi.mocked(execFileSync).mockReset();
+      childProcess = installChildProcessMocks();
       vi.spyOn(console, 'log').mockImplementation(() => undefined);
       vi.spyOn(console, 'error').mockImplementation(() => undefined);
     });
 
     afterEach(() => {
       rmSync(root, { recursive: true, force: true });
+      resetChildProcessMocks();
       vi.restoreAllMocks();
     });
 
@@ -559,7 +568,7 @@ describe('DbGenerateService', () => {
     it('rewrites the new migration folder produced by drizzle-kit', () => {
       const previous = addMigration('20260101000000_previous', 'SELECT 1;');
       writeSnapshot(previous, [{ schema: 'game_data', name: 'coaches' }]);
-      vi.mocked(execFileSync).mockImplementation(() => {
+      childProcess.execFileSync.mockImplementation(() => {
         const next = addMigration('20260102000000_next', createBlockSql);
         writeSnapshot(next, [
           { schema: 'game_data', name: 'coaches' },
@@ -570,7 +579,7 @@ describe('DbGenerateService', () => {
 
       service.generate(['--name', 'add_coaches'], root);
 
-      expect(execFileSync).toHaveBeenCalledWith(
+      expect(childProcess.execFileSync).toHaveBeenCalledWith(
         'drizzle-kit',
         ['generate', '--name', 'add_coaches'],
         { cwd: root, stdio: 'inherit' },
@@ -600,7 +609,7 @@ describe('DbGenerateService', () => {
       rmSync(migrationsDir, { recursive: true, force: true });
       const sql =
         'ALTER TABLE "game_data"."coaches" ADD COLUMN "nickname" text;';
-      vi.mocked(execFileSync).mockImplementation(() => {
+      childProcess.execFileSync.mockImplementation(() => {
         const first = addMigration('20260101000000_first', sql);
         writeSnapshot(first, [{ schema: 'game_data', name: 'coaches' }]);
         return '';
@@ -619,7 +628,7 @@ describe('DbGenerateService', () => {
     it('leaves a new migration untouched when it needs no history rewriting', () => {
       const sql =
         'ALTER TABLE "game_data"."coaches" ADD COLUMN "nickname" text;';
-      vi.mocked(execFileSync).mockImplementation(() => {
+      childProcess.execFileSync.mockImplementation(() => {
         const first = addMigration('20260101000000_first', sql);
         writeSnapshot(first, [{ schema: 'game_data', name: 'coaches' }]);
         return '';
@@ -639,7 +648,7 @@ describe('DbGenerateService', () => {
     it('does nothing when drizzle-kit produces no new migration folder', () => {
       const existing = addMigration('20260101000000_existing', 'SELECT 1;');
       writeSnapshot(existing, [{ schema: 'game_data', name: 'coaches' }]);
-      vi.mocked(execFileSync).mockReturnValue('');
+      childProcess.execFileSync.mockReturnValue('');
 
       service.generate(['--name', 'no_changes'], root);
 
@@ -658,7 +667,7 @@ describe('DbGenerateService', () => {
 
       expect(() => service.generate([], root)).toThrow('process.exit: 1');
       expect(exit).toHaveBeenCalledWith(1);
-      expect(execFileSync).not.toHaveBeenCalled();
+      expect(childProcess.execFileSync).not.toHaveBeenCalled();
       expect(console.error).toHaveBeenCalledWith(
         'db:generate requires a descriptive migration name.\n' +
           'Pass one with --name, e.g.: pnpm db:generate --name add_players_table',
