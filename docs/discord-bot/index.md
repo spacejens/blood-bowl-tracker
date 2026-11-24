@@ -151,7 +151,7 @@ Configuration is supplied through an environment file in the app directory.
      notifications are still parsed and unrecognised shapes and status
      conflicts still logged, but nothing is posted. This is diagnostic
      output, so it belongs in a maintainer channel.
-   - `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, `API_TOKEN_IMPORT_MANUAL`
+   - `IMPORT_BBL_API_TOKEN`, `IMPORT_TP_API_TOKEN`, `IMPORT_MANUAL_API_TOKEN`
      — the bearer tokens the API accepts on `/rpc`, one per importer tool
      (`tools/import-bbl`, `tools/import-tp`, `tools/import-manual`). Any
      hard-to-guess string works for local development; each must match the

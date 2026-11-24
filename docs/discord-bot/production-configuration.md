@@ -9,9 +9,17 @@ files — plus `DATABASE_URL`.
 
 Its values are an independent set, not a copy of your local `.env`: the
 Discord token and channel ids point at the real production Discord
-application and server, the `API_TOKEN_IMPORT_*` values are separate
+application and server, the `IMPORT_*_API_TOKEN` values are separate
 production secrets, and the `RANDOM_INSIGHTS_*` tunables are set for a live
 audience rather than for development.
+
+The api-server reads the importer tokens only as `IMPORT_BBL_API_TOKEN`,
+`IMPORT_TP_API_TOKEN` and `IMPORT_MANUAL_API_TOKEN`. An
+`apps/discord-bot/.env.production` that still uses the older
+`API_TOKEN_IMPORT_*` names must be updated and re-applied to Fly (and the
+stale secrets removed with `fly secrets unset`) together with the deploy
+that introduces these names, or every importer request is rejected with
+`401`.
 
 Concretely: `RANDOM_INSIGHTS_DISCORD_CHANNEL_ID` in production points at a
 channel dedicated to the bot's scheduled output for real server members,
