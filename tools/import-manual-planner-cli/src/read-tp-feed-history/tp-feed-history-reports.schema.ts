@@ -1,4 +1,8 @@
-import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
+import {
+  PLAYER_CHARACTERISTICS,
+  PLAYER_SKILL_SOURCES,
+  SKILL_ACCESS_LEVELS,
+} from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
 const gainSchema = z.union([
@@ -23,8 +27,8 @@ const tpFeedHistoryReportSchema = z.object({
   position: z.string(),
   botReacted: z.boolean(),
   rosterLink: z.string(),
-  selection: z.enum(['random', 'chosen']),
-  category: z.enum(['primary', 'secondary', 'characteristics']),
+  selection: z.enum(PLAYER_SKILL_SOURCES).extract(['random', 'chosen']),
+  category: z.enum([...SKILL_ACCESS_LEVELS, 'characteristics']),
   gain: gainSchema,
   sppCost: z.number().int().nonnegative(),
   valueText: z.string(),

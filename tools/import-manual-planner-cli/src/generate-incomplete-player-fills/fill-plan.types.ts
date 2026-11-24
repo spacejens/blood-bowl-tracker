@@ -3,6 +3,7 @@ import type {
   CharacteristicFormat,
   NAME_EXTERNAL_SYSTEM_NAME,
   PlayerCharacteristic,
+  PlayerSkillSource,
   PlayerStatus,
   SkillAccess,
   SkillCategory,
@@ -426,7 +427,7 @@ export interface FeedMatchResult {
   summary: FeedSummary;
 }
 
-export type FeedSelection = 'chosen' | 'random';
+export type FeedSelection = Extract<PlayerSkillSource, 'chosen' | 'random'>;
 
 /** One feed report, its skill resolved to a stored skill. */
 export type ResolvedStep =
@@ -437,7 +438,7 @@ export type ResolvedStep =
       nameId: string;
       attributeValue: string | null;
       selection: FeedSelection;
-      category: 'primary' | 'secondary';
+      category: SkillAccess;
       reportedCost: number;
     }
   | {
