@@ -1,5 +1,6 @@
 import type { InteractionEventRow } from '@blood-bowl-tracker/discord-bot-usage';
 import { Injectable } from '@nestjs/common';
+import { time, TimestampStyles } from 'discord.js';
 
 /** Shown for a parameter the bot recorded with a null value. */
 const EMPTY_PARAMETER_VALUE = '<empty>';
@@ -47,7 +48,7 @@ export class DebugInteractionRowFormatterService {
   }
 
   private timestamp(occurredAt: Date): string {
-    return `<t:${Math.floor(occurredAt.getTime() / 1000)}:f>`;
+    return time(occurredAt, TimestampStyles.LongDateShortTime);
   }
 
   private trigger(row: InteractionEventRow): string {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
-import { MessageFlags } from 'discord.js';
+import { MessageFlags, time, TimestampStyles } from 'discord.js';
 
 import { MAX_DESCRIPTION_LENGTH } from '../../description-limits';
 import { ErrorListFitService } from '../../tp-import/error-list-fit.service';
@@ -82,7 +82,7 @@ export class ImportTpReplyService {
   blocked(retryAt: Date): InteractionReplyOptions {
     const at = Math.ceil(retryAt.getTime() / 1000);
     return {
-      content: `TP is blocking requests (HTTP 403), so the import stopped and may have imported partial data. The bot sends TP nothing more until <t:${at}:f> (<t:${at}:R>); try again after that.`,
+      content: `TP is blocking requests (HTTP 403), so the import stopped and may have imported partial data. The bot sends TP nothing more until ${time(at, TimestampStyles.LongDateShortTime)} (${time(at, TimestampStyles.RelativeTime)}); try again after that.`,
       flags: MessageFlags.Ephemeral,
     };
   }

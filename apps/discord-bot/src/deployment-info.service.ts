@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { time, TimestampStyles } from 'discord.js';
 
 import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 
@@ -105,7 +106,7 @@ export class DeploymentInfoService {
   private formatCommitTimestamp(raw: string): string | undefined {
     const parsed = new Date(raw);
     if (Number.isNaN(parsed.getTime())) return undefined;
-    return `<t:${Math.floor(parsed.getTime() / 1000)}:f>`;
+    return time(parsed, TimestampStyles.LongDateShortTime);
   }
 
   /**
