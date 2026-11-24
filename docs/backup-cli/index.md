@@ -86,11 +86,11 @@ Behaviors worth knowing:
   the docker-compose database) and applies the same localhost-only rule as
   `verify`, with no override: a URL carrying a `host` or `hostaddr` query
   parameter is refused too. Unlike `verify`, the target need not be empty.
-- `psql`, `pg_dump` and `pg_restore` run through `tools/cli-shared`'s `PgClientService`,
+- `psql`, `pg_dump` and `pg_restore` run through `packages/cli-shared`'s `PgClientService`,
   which removes the libpq variables `PGHOSTADDR`, `PGHOST`, `PGSERVICE` and
   `PGSERVICEFILE` from their environment, so they cannot redirect a
   connection the guard judged local. It passes the URL as `--dbname=` and,
-  through `tools/cli-shared`'s `DatabaseUrlRedactorService`, masks the URL's
+  through `packages/cli-shared`'s `DatabaseUrlRedactorService`, masks the URL's
   password in every error. `tools/production-ops-cli`'s
   `run-production-query` uses the same runner.
 - `restore` downloads first, so a network or credential failure never
@@ -110,7 +110,7 @@ Behaviors worth knowing:
   whether the restore succeeded or not.
 - `restore-production` reads production's `DATABASE_URL` from
   `apps/discord-bot/.env.production` of the checkout it runs in, through
-  `tools/cli-shared`'s `ProductionEnvFileService` (parsed with dotenv, the
+  `packages/cli-shared`'s `ProductionEnvFileService` (parsed with dotenv, the
   same parser the bot uses; anything but a `postgres://` or `postgresql://`
   URL is refused), never from an argument or setting, and never prints it;
   errors show it with its password masked. The file is gitignored and lives
