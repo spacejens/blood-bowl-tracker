@@ -22,7 +22,7 @@ import { tpFeedHistoryReportsSchema } from './tp-feed-history-reports.schema';
 import { TpFeedMessage, tpFeedMessageSchema } from './tp-feed-message.schema';
 
 /** Gitignored; symlinked back to the main checkout from every worktree. */
-export const TP_FEED_HISTORY_DATA_DIR = 'tools/production-ops-cli/data';
+export const TP_FEED_HISTORY_DATA_DIR = 'tools/import-manual-planner-cli/data';
 
 /** How far a channel's history has been read, saved after every page. */
 export interface TpFeedHistoryState {

@@ -8,7 +8,7 @@ import {
   Routes,
 } from 'discord.js';
 
-import { DiscordBotTokenService } from '../discord-bot-token/discord-bot-token.service';
+import { DiscordBotTokenService } from './discord-bot-token.service';
 
 /** The Discord API version `packages/discord-client` also pins. */
 const DISCORD_API_VERSION = '10';
@@ -28,7 +28,7 @@ interface DiscordGetRequest {
 }
 
 /**
- * The production-ops CLI's one door to Discord's REST API, through the
+ * The CLI tools' one door to Discord's REST API, through the
  * discord.js `REST` client: it supplies the base URL, `Bot` authorization,
  * rate-limit handling, retries and the request timeout. Every method returns
  * Discord's response verbatim, so embeds, attachments and every other field

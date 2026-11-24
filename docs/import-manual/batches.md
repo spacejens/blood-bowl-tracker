@@ -139,7 +139,7 @@ players whose total SPP is below the cheapest advancement of their era, so
 they provably have none: each gets his position's characteristics and
 starting skills, his whole SPP unspent, and a status of dead (a death in
 his match events) or retired. It is generated from the production database
-by `production-ops-cli generate-incomplete-player-fills` (see
+by `import-manual-planner-cli generate-incomplete-player-fills` (see
 [Generated fills](filling-missing-players.md#generated-fills) for who is
 skipped and why), so it references players the TP importer creates and
 applies after the source importers, in a plain `apply`.
@@ -151,7 +151,7 @@ players whose data could be proven: 118 whose advancements the TP feed
 reports prove, in order and to the SPP they spent, and 38 too low on SPP
 to have advanced whose stat reductions all fall in their last competition.
 It is generated from the production database and the saved TP feed history
-by `production-ops-cli generate-incomplete-player-fills --feed-channel=<id>`
+by `import-manual-planner-cli generate-incomplete-player-fills --feed-channel=<id>`
 (see [Generated fills](filling-missing-players.md#generated-fills) for who
 is skipped and why). It references players the TP importer creates and
 batch 004's advancement costs, so it applies after the source importers

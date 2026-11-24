@@ -3,7 +3,7 @@ import { DiscordAPIError, HTTPError, REST } from 'discord.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { DiscordBotTokenService } from '../discord-bot-token/discord-bot-token.service';
+import { DiscordBotTokenService } from './discord-bot-token.service';
 import {
   installDiscordRestMock,
   MockRest,

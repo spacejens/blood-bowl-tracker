@@ -37,6 +37,8 @@ tmp/
 # worktrees — no trailing slash so both forms are ignored)
 tools/import-bbl/data
 tools/import-tp/data
+tools/import-manual-planner-cli/data
+# Evidence saved by the collectors before they moved to import-manual-planner-cli
 tools/production-ops-cli/data
 
 # tools/import-bbl real configs, local and production (the committed template

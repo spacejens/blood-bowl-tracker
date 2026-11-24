@@ -1,8 +1,8 @@
+import { RunProductionQueryService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { RunProductionQueryService } from '../run-production-query/run-production-query.service';
 import { ProductionJsonQueryService } from './production-json-query.service';
 
 const ok = (stdout: string) => ({

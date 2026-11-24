@@ -23,7 +23,7 @@ docs/
   discord-bot/             # Spec style: Discord bot app specs (with how-to exceptions, see below)
   <future-app>/            # Spec style: future apps get their own top-level subfolder
   dev-workflow-cli/        # Tool/how-to: developer/PR workflow CLI used by Claude Code skills
-  production-ops-cli/      # Tool/how-to: production database and tunnel operations CLI
+  production-ops-cli/      # Tool/how-to: production database, tunnel and Discord operations CLI
   backup-cli/              # Tool/how-to: production database backup CLI
   fs-utils-cli/            # Tool/how-to: worktree-aware filesystem helper CLI
   workflow-lint/           # Tool/how-to: GitHub Actions SHA-pin check run by pnpm lint
@@ -32,6 +32,7 @@ docs/
   game-data-queries/       # Tool/how-to: bot-only read queries package
   import-bbl/              # Tool/how-to: BBL data importer
   import-manual/           # Tool/how-to: hand-authored data importer
+  import-manual-planner-cli/ # Tool/how-to: import-manual fill planner CLI
   import-tp/               # Tool/how-to: TP data importer
   import-tp-live/          # Tool/how-to: live TP team import package
   logging/                 # Tool/how-to: shared error-logging package
@@ -68,7 +69,7 @@ Every workspace (app, package or tool) has its own documentation folder, named a
 Besides `glossary.md` and this file — tagged `Docs-about-docs` above, since they describe the docs themselves rather than fitting one of the three styles below — `docs/` holds three kinds of document, and different expectations apply to each:
 
 - **Spec docs** — `game-concepts/`, `insights/`, `api/`, `discord-bot/`, and future app subfolders. These are governed by [Spec file conventions](#spec-file-conventions) below: describe why and what, and leave implementation detail to the code.
-- **Tool/how-to docs** — `dev-workflow-cli/`, `production-ops-cli/`, `backup-cli/`, `fs-utils-cli/`, `workflow-lint/`, `download-tp/`, `scrape-tp/`, `game-data-queries/`, `import-bbl/`, `import-manual/`, `import-tp/`, `import-tp-live/`, `logging/`, `review-match/`, `review-player/`, `review-race/`, `review-star-player/`, `api-client/`, `cli-shared/`, `config-loader/`, `db/`, `db-diagram/`, `discord-bot-usage/`, `discord-client/`, `domain-enums/`, `eslint-rules/`, `game-data/`, `import/`, `import-shared/`, `markdownlint-rules/`, `parse-tp/`, `parse-tp-feed/`, `read-bbl-mirror/`, `review-harness/`, `tp-paths/`. These document how to configure, run, and operate a tool, or what a shared package owns and which dependency rules it keeps. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
+- **Tool/how-to docs** — `dev-workflow-cli/`, `production-ops-cli/`, `backup-cli/`, `fs-utils-cli/`, `workflow-lint/`, `download-tp/`, `scrape-tp/`, `game-data-queries/`, `import-bbl/`, `import-manual/`, `import-manual-planner-cli/`, `import-tp/`, `import-tp-live/`, `logging/`, `review-match/`, `review-player/`, `review-race/`, `review-star-player/`, `api-client/`, `cli-shared/`, `config-loader/`, `db/`, `db-diagram/`, `discord-bot-usage/`, `discord-client/`, `domain-enums/`, `eslint-rules/`, `game-data/`, `import/`, `import-shared/`, `markdownlint-rules/`, `parse-tp/`, `parse-tp-feed/`, `read-bbl-mirror/`, `review-harness/`, `tp-paths/`. These document how to configure, run, and operate a tool, or what a shared package owns and which dependency rules it keeps. Implementation detail — configuration schemas, CLI flags, file formats, setup and deployment steps — is expected and appropriate here, not something to omit.
 - **Repo-meta docs** — `architecture.md`, `database.md` (with its `database/` pages) and `development-workflow.md`. These describe the project's own technical stack, cross-workspace rules and development process. No fixed rule set applies; follow the existing style of each file.
 
 One accepted exception: `discord-bot/index.md`, `discord-bot/local-development.md`, `discord-bot/tp-feed-setup.md`, and `discord-bot/production-hosting.md` — together with the `discord-bot/production-*.md` pages it indexes — are how-to content (Discord app creation, local development, TP feed setup, Fly.io/Neon hosting) inside a spec-style folder. That is intentional, not a violation of the spec-style categorization — the folder's conceptual specs are its `slash-commands/*.md` files.

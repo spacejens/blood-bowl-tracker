@@ -142,16 +142,16 @@ describe('SyncGitignoredService', () => {
     expect(readlinkSync(link)).toBe(join(mainRoot, 'docs/plans'));
   });
 
-  it('creates the production-ops-cli data directory in the main checkout when missing, then symlinks it', async () => {
+  it('creates the import-manual-planner-cli data directory in the main checkout when missing, then symlinks it', async () => {
     const result = await service.run();
 
-    expect(result.symlinked).toContain('tools/production-ops-cli/data');
-    expect(existsSync(join(mainRoot, 'tools/production-ops-cli/data'))).toBe(
-      true,
-    );
+    expect(result.symlinked).toContain('tools/import-manual-planner-cli/data');
     expect(
-      readlinkSync(join(worktreeRoot, 'tools/production-ops-cli/data')),
-    ).toBe(join(mainRoot, 'tools/production-ops-cli/data'));
+      existsSync(join(mainRoot, 'tools/import-manual-planner-cli/data')),
+    ).toBe(true);
+    expect(
+      readlinkSync(join(worktreeRoot, 'tools/import-manual-planner-cli/data')),
+    ).toBe(join(mainRoot, 'tools/import-manual-planner-cli/data'));
   });
 
   it('symlinks an existing main-checkout docs/plans without disturbing its contents', async () => {

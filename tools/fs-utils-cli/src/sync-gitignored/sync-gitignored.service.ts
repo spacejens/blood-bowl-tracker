@@ -33,7 +33,7 @@ export interface SyncGitignoredResult {
  * overwritten, because a developer may have deliberately set one up
  * differently. The large data directories are symlinked rather than copied,
  * as are the auto-created holding directories (`docs/plans`,
- * `tools/production-ops-cli/data`), which are additionally created on the
+ * `tools/import-manual-planner-cli/data`), which are additionally created on the
  * main-checkout side first when they do not exist yet. When this command is
  * the one that creates such a link, files written through it in the worktree
  * afterward survive its removal; if the worktree already had its own
