@@ -30,6 +30,9 @@ async function runInContext<TOutcome>(
 ): Promise<TOutcome> {
   const app = await NestFactory.createApplicationContext(options.module, {
     logger: false,
+    // Without this Nest exits the process itself when a provider throws during
+    // initialization, and with logging off that exit prints nothing.
+    abortOnError: false,
   });
   try {
     return await options.run(app);

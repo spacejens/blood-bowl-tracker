@@ -83,8 +83,11 @@ describe('runApp', () => {
 
     await runApp({ module: TestModule, run, onOutcome, failureLabel: 'Boom:' });
 
+    // abortOnError: false makes an initialization failure reject, so it reaches
+    // the failure label instead of Nest exiting silently.
     expect(createApplicationContext).toHaveBeenCalledWith(TestModule, {
       logger: false,
+      abortOnError: false,
     });
     expect(run).toHaveBeenCalledWith(app);
     expect(onOutcome).toHaveBeenCalledWith(OUTCOME);
