@@ -1,4 +1,5 @@
 import type {
+  PlayerSkillRef,
   SyncPlayerSkills,
   SyncPlayerSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -19,7 +20,6 @@ import {
 } from '@blood-bowl-tracker/db';
 import type {
   PlayerCharacteristic,
-  PlayerSkillSource,
   SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
@@ -41,14 +41,11 @@ import {
 /**
  * One skill a player has, named for display. Not called `PlayerAdvancement`:
  * `@blood-bowl-tracker/db` already exports that name for the raw table row,
- * and a consumer importing both would collide.
+ * and a consumer importing both would collide. The stored fields,
+ * `isFreeExtra` included, come from the contract's row.
  */
-export interface PlayerSkillRow {
-  skillId: number;
+export interface PlayerSkillRow extends PlayerSkillRef {
   skillName: string;
-  source: PlayerSkillSource;
-  attributeValue: string | null;
-  advancementOrder: number | null;
   /**
    * Whether `advancementOrder` is the player's real sequence rather than a
    * presentation proxy. Always false for a starting skill.
@@ -68,12 +65,6 @@ export interface PlayerSkillRow {
    * column's own `NOT NULL DEFAULT false` makes.
    */
   isElite: boolean;
-  /**
-   * Whether the stored row is a free extra: gained without spending SPP and
-   * not one of the player's advancements, so a cost model prices it at 0 and
-   * leaves it out of the advancement count.
-   */
-  isFreeExtra: boolean;
 }
 
 /** What a batch's entries are validated and marked against. */
