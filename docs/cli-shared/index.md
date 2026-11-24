@@ -36,6 +36,12 @@ tools share. It has no CLI entry point of its own.
 - **Postgres tooling** — the guarded `psql`/`pg_dump`/`pg_restore` runner
   (`PgClientService`), with connection-string redaction
   (`DatabaseUrlRedactorService`).
+- **Local database guard** — `LocalDatabaseGuardService`, which refuses
+  any connection string whose host is not `localhost`, `127.0.0.1` or `::1`
+  (a `host` or `hostaddr` query parameter is refused too), and
+  `DEFAULT_LOCAL_DATABASE_URL`, the docker-compose database.
+  `backup-cli`'s `verify` and `restore` and `import-manual-planner-cli`'s
+  `generate-incomplete-player-fills` use both.
 - **Read-only production queries** — `RunProductionQueryService`, in
   `ProductionQueryModule`: one query from the caller, run against
   production's `DATABASE_URL` in a read-only transaction with a statement
