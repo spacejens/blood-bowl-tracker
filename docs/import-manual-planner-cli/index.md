@@ -225,8 +225,10 @@ characteristic-format, skill, advancement-kind and match-event enums, and
 on `@blood-bowl-tracker/parse-tp`, whose `RosterParserService` reads each
 roster copy the way the TP import does, so a copy the import drops is
 unreadable here too. `@blood-bowl-tracker/db` and
-`@blood-bowl-tracker/game-data` are dev dependencies, used only by
-drift-guard specs. Four drift-guard specs keep the tool in step with the
+`@blood-bowl-tracker/game-data` are regular dependencies: the generator's
+query building blocks (`fill-query-conditions.ts` and the
+`FillQueryScope` and `FillRowShapes` services) use db's drizzle exports and
+game-data's `INCOMPLETE_PLAYER_CRITERIA` directly. Four drift-guard specs keep the tool in step with the
 code it mirrors. One keeps the SQL selection in step with
 `INCOMPLETE_PLAYER_CRITERIA`. Another runs the generator's advancement
 pricing next to game-data's own order check
