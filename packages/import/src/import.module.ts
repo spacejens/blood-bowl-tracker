@@ -10,6 +10,7 @@ import { ErasImportService } from './eras-import.service';
 import { ExternalIdResolverService } from './external-id-resolver.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
+import { ImportRunSummaryService } from './import-run-summary.service';
 import { ImportRunnerService } from './import-runner.service';
 import { IncompletePlayerFillImportService } from './incomplete-player-fill-import.service';
 import { KeywordsImportService } from './keywords-import.service';
@@ -48,6 +49,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
   imports: [ImportSharedModule],
   providers: [
     ImportRunnerService,
+    ImportRunSummaryService,
     BatchBufferService,
     CoachesImportService,
     CompetitionGroupsImportService,
@@ -88,6 +90,7 @@ import { TrophyAwardsImportService } from './trophy-awards-import.service';
   exports: [
     ImportSharedModule,
     ImportRunnerService,
+    ImportRunSummaryService,
     BatchBufferService,
     CoachesImportService,
     CompetitionGroupsImportService,

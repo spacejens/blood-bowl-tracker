@@ -415,8 +415,10 @@ long-lived database carrying lasting-injury columns from a partial rollout,
 which would take a data migration (see
 [Changing data in a long-lived database](../database.md#changing-data-in-a-long-lived-database)).
 
-`main.ts` orchestrates these in dependency order, aggregating each step's
-`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`. The order is:
+`main.ts` orchestrates these in dependency order on
+[cli-shared](../cli-shared/index.md)'s `runApp`, folding each step's
+`ImportResult` into one summary through [import](../import/index.md)'s
+`ImportRunSummaryService`, like `tools/import-bbl/src/main.ts`. The order is:
 
 1. League.
 2. Rule sets.

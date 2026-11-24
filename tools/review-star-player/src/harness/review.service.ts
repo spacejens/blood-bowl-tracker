@@ -11,8 +11,6 @@ import type { SampledStarPlayer } from '../shared/review.types';
 import { ReportBuilderService } from './report-builder.service';
 import { StarPlayerSamplerService } from './star-player-sampler.service';
 
-export type { ReviewOutcome } from '@blood-bowl-tracker/review-harness';
-
 /**
  * The star player report needs nothing beyond the sampled star itself — every
  * panel looks up what it needs per star — so the whole run is the shared one

@@ -211,6 +211,9 @@ Exit codes: `0` with `Reviewed <N> star player(s); report written to <path>.` on
 success; `1` with `Review failed: <error>` when the database is unreachable or the
 config is unusable.
 
+The tool's entrypoint runs on [review-harness](../review-harness/index.md)'s
+`runReviewCli`.
+
 A run scans every downloaded `teams/<rulesSet>/*.json` file once, and every one of
 the roughly 216 BBL `p=pt` position pages once, the first time any star needs the
 name fallback — the slowest part of a run by a wide margin, when it happens. That

@@ -438,7 +438,10 @@ resolves everything it needs in one batched call and then looks the records up
 locally, so the network cost is one round trip per step, not per record.
 
 The ordering in `main.ts` matters: a race has to be upserted before a team
-referencing it can be resolved.
+referencing it can be resolved. `main.ts` runs on
+[cli-shared](../cli-shared/index.md)'s `runApp` and folds every step's
+`ImportResult` into the printed summary and exit code through
+[import](../import/index.md)'s `ImportRunSummaryService`.
 
 Some maps deliberately remain. The player id map (`playerIdsByPid`) collects
 the ids the player upserts return and is handed to the later steps that need

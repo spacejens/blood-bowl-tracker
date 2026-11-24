@@ -27,13 +27,14 @@ export type {
 } from './review.types';
 export { REVIEW_SOURCES } from './review.types';
 export { createReviewAppModule } from './review-app-module';
-export type { ReviewOutcome, ReviewSampler } from './review-base.service';
+export type { ReviewSampler } from './review-base.service';
 export { ReviewServiceBase } from './review-base.service';
 // Needed by consumers' declaration emit: the classes their config services
 // extend are typed with it, so it must be nameable through the package entry.
 /** @public */
 export type { ReviewConfigServiceConstructor } from './review-config-base.service';
 export { createReviewConfigServiceBase } from './review-config-base.service';
+export { runReviewCli } from './run-review-cli';
 export { SkillFormatService } from './skill-format.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
 export { STRATIFIERS } from './stratifier';

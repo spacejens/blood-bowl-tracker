@@ -1,34 +1,21 @@
 #!/usr/bin/env node
 
-import { NestFactory } from '@nestjs/core';
+import { runApp } from '@blood-bowl-tracker/cli-shared';
 
 import { AppModule } from './app.module';
-import type { CliOutcome } from './cli/import-manual-cli.service';
 import { ImportManualCliService } from './cli/import-manual-cli.service';
 
-async function run(): Promise<CliOutcome> {
-  const app = await NestFactory.createApplicationContext(AppModule.register(), {
-    logger: false,
-  });
-  try {
-    return await app.get(ImportManualCliService).execute({
+void runApp({
+  module: AppModule.register(),
+  run: (app) =>
+    app.get(ImportManualCliService).execute({
       args: process.argv.slice(2),
       cwd: process.cwd(),
-    });
-  } finally {
-    await app.close();
-  }
-}
-
-run()
-  .then((outcome) => {
+    }),
+  onOutcome: (outcome) => {
     outcome.stdout.forEach((line) => console.log(line));
     outcome.stderr.forEach((line) => console.error(line));
-    if (outcome.exitCode !== 0) {
-      process.exit(outcome.exitCode);
-    }
-  })
-  .catch((error: unknown) => {
-    console.error('Import failed:', error);
-    process.exit(1);
-  });
+    return outcome.exitCode;
+  },
+  failureLabel: 'Import failed:',
+});

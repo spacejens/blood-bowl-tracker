@@ -21,6 +21,8 @@ export { ExternalIdResolverService } from './external-id-resolver.service';
 export { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
+export type { ImportRunSummary } from './import-run-summary.service';
+export { ImportRunSummaryService } from './import-run-summary.service';
 export { ImportRunnerService } from './import-runner.service';
 export { IncompletePlayerFillImportService } from './incomplete-player-fill-import.service';
 export { KeywordsImportService } from './keywords-import.service';
