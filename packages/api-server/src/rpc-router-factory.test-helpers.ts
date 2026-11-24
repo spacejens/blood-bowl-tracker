@@ -3,7 +3,6 @@ import {
   CoachesService,
   CompetitionGroupsService,
   CompetitionsService,
-  CuratedAdvancementOrderService,
   ErasService,
   ExternalSystemsService,
   KeywordsService,
@@ -42,11 +41,13 @@ import {
 import { Test } from '@nestjs/testing';
 import { mock } from 'vitest-mock-extended';
 
+import { PlayerSkillsSyncRouterService } from './player-skills-sync-router.service';
 import { RpcRouterFactoryService } from './rpc-router-factory.service';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
- * Builds the real router with every `game-data` service mocked, and the real
+ * Builds the real router with every `game-data` service, and `PlayerSkillsSyncRouterService` (which
+ * calls two of them), mocked, and the real
  * `UpsertHandlerService`. That service is pure and dependency-free — it has
  * no constructor, no injected collaborators and no I/O, only exception
  * classification — so passing the real instance carries none of the coupling
@@ -70,7 +71,7 @@ export async function createRouterHarness() {
     positionRulesSetSkillCategoriesService:
       mock<PositionRulesSetSkillCategoriesService>(),
     playerSkillsService: mock<PlayerSkillsService>(),
-    curatedAdvancementOrder: mock<CuratedAdvancementOrderService>(),
+    playerSkillsSyncRouter: mock<PlayerSkillsSyncRouterService>(),
     skillsService: mock<SkillsService>(),
     keywordsService: mock<KeywordsService>(),
     skillRulesSetsService: mock<SkillRulesSetsService>(),
@@ -133,8 +134,8 @@ export async function createRouterHarness() {
       },
       { provide: PlayerSkillsService, useValue: mocks.playerSkillsService },
       {
-        provide: CuratedAdvancementOrderService,
-        useValue: mocks.curatedAdvancementOrder,
+        provide: PlayerSkillsSyncRouterService,
+        useValue: mocks.playerSkillsSyncRouter,
       },
       { provide: SkillsService, useValue: mocks.skillsService },
       { provide: KeywordsService, useValue: mocks.keywordsService },

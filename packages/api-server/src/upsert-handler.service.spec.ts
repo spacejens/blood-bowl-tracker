@@ -3,6 +3,7 @@ import {
   CharacteristicFormatMismatchError,
   CompetitionEnrollmentError,
   KeywordValidationError,
+  ManualImportBatchContentMismatchError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
   PositionSkillCategoryValidationError,
@@ -509,6 +510,38 @@ describe('UpsertHandlerService', () => {
       expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
         message: 'Entry 3 is not valid',
       });
+    });
+  });
+
+  describe('runManualImportBatchRecord', () => {
+    it('returns the result untouched on success', async () => {
+      const recorded = { batch: { name: '001' }, created: true };
+
+      await expect(
+        handler.runManualImportBatchRecord(errors, () =>
+          Promise.resolve(recorded),
+        ),
+      ).resolves.toBe(recorded);
+    });
+
+    it('translates a content mismatch into a CONFLICT reply', async () => {
+      await expect(
+        handler.runManualImportBatchRecord(errors, () => {
+          throw new ManualImportBatchContentMismatchError('edited');
+        }),
+      ).rejects.toBeInstanceOf(ConflictReply);
+      expect(errors.CONFLICT).toHaveBeenCalledWith({ message: 'edited' });
+    });
+
+    it('lets any other failure propagate untouched', async () => {
+      const failure = new Error('database down');
+
+      await expect(
+        handler.runManualImportBatchRecord(errors, () => {
+          throw failure;
+        }),
+      ).rejects.toBe(failure);
+      expect(errors.CONFLICT).not.toHaveBeenCalled();
     });
   });
 });

@@ -38,6 +38,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { ApiTokenAuthService } from './api-token-auth.service';
+import { PlayerSkillsSyncRouterService } from './player-skills-sync-router.service';
 import { RpcMiddleware } from './rpc.middleware';
 import { RPC_ROUTER } from './rpc-router.token';
 import { RpcRouterFactoryService } from './rpc-router-factory.service';
@@ -82,6 +83,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
     ApiTokenAuthService,
     ErrorLogService,
     RpcRouterFactoryService,
+    PlayerSkillsSyncRouterService,
     UpsertHandlerService,
     {
       provide: RPC_ROUTER,

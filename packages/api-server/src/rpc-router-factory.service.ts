@@ -7,7 +7,6 @@ import {
   CompetitionGroupUpsertConflictError,
   CompetitionsService,
   CompetitionUpsertConflictError,
-  CuratedAdvancementOrderService,
   ErasService,
   EraUpsertConflictError,
   ExternalSystemsService,
@@ -65,6 +64,7 @@ import type {
 } from '@orpc/contract';
 import { implement } from '@orpc/server';
 
+import { PlayerSkillsSyncRouterService } from './player-skills-sync-router.service';
 import {
   buildAdvancementCostsRoutes,
   buildCompetitionGroupsListRoute,
@@ -130,7 +130,7 @@ export class RpcRouterFactoryService {
     private readonly positionRulesSetKeywordsService: PositionRulesSetKeywordsService,
     private readonly positionRulesSetSkillCategoriesService: PositionRulesSetSkillCategoriesService,
     private readonly playerSkillsService: PlayerSkillsService,
-    private readonly curatedAdvancementOrder: CuratedAdvancementOrderService,
+    private readonly playerSkillsSyncRouter: PlayerSkillsSyncRouterService,
     private readonly skillsService: SkillsService,
     private readonly keywordsService: KeywordsService,
     private readonly skillRulesSetsService: SkillRulesSetsService,
@@ -429,7 +429,7 @@ export class RpcRouterFactoryService {
       playerSkills: buildPlayerSkillsRoutes(
         this.upsertHandler,
         this.playerSkillsService,
-        this.curatedAdvancementOrder,
+        this.playerSkillsSyncRouter,
       ),
       skills: this.buildStandardEntityRoutes({
         procedures: contract.skills,
@@ -559,6 +559,7 @@ export class RpcRouterFactoryService {
         this.externalSystemsService,
       ),
       manualImportBatches: buildManualImportBatchesRoutes(
+        this.upsertHandler,
         this.manualImportBatchesService,
       ),
       tpRosters: buildTpRostersRoutes(this.tpRosterImport),
