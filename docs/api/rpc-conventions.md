@@ -9,8 +9,8 @@ REST/OpenAPI), implemented in `packages/api-server`.
 Every `/rpc` request must carry an `Authorization: Bearer <token>` header. The
 server (`packages/api-server`) accepts one token per known network caller —
 `tools/import-bbl`, `tools/import-tp`, and `tools/import-manual` — configured
-as the `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, and
-`API_TOKEN_IMPORT_MANUAL` environment variables of the hosting
+as the `IMPORT_BBL_API_TOKEN`, `IMPORT_TP_API_TOKEN`, and
+`IMPORT_MANUAL_API_TOKEN` environment variables of the hosting
 `apps/discord-bot` process (see [discord-bot](../discord-bot/index.md)).
 `apps/discord-bot` itself needs no token: its own commands call
 `packages/game-data` in-process, never over HTTP.

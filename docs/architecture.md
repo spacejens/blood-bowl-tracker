@@ -155,6 +155,10 @@ is described in [db](db/index.md).
 - Settings that are not a Postgres connection string may carry a tool
   prefix, which keeps them from colliding across tools: backup-cli's
   `BACKUP_STORAGE_*`, `BACKUP_RETENTION_DAYS` and `BACKUP_MAX_AGE_HOURS`.
+- Names run owner first and kind last, so related settings group by owner:
+  `TP_SCRAPING_ENABLED`, `BACKUP_RETENTION_DAYS`, and the per-caller API
+  bearer tokens `IMPORT_BBL_API_TOKEN`, `IMPORT_TP_API_TOKEN` and
+  `IMPORT_MANUAL_API_TOKEN`.
 
 ## Discord bot user-facing messages
 

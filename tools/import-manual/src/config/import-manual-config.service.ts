@@ -35,5 +35,5 @@ export const resolveImportManualConfigPath = paths.resolvePath;
 export class ImportManualConfigService extends createImportConfigServiceBase({
   pathToken: IMPORT_MANUAL_CONFIG_PATH,
   fileBaseName: 'import-manual-config',
-  apiTokenEnvVar: 'API_TOKEN_IMPORT_MANUAL',
+  apiTokenEnvVar: 'IMPORT_MANUAL_API_TOKEN',
 }) {}

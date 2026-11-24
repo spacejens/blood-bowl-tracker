@@ -69,7 +69,7 @@ describe('ImportManualConfigService', () => {
     expect(() => service.getApiToken()).toThrow(
       'connection.apiToken is not set in import-manual-config.json5. Set ' +
         'it to the bearer token this tool authenticates with; it must ' +
-        'match the API_TOKEN_IMPORT_MANUAL value in apps/discord-bot/.env.',
+        'match the IMPORT_MANUAL_API_TOKEN value in apps/discord-bot/.env.',
     );
   });
 });

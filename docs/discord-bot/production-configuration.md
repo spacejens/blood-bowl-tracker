@@ -9,9 +9,29 @@ files — plus `DATABASE_URL`.
 
 Its values are an independent set, not a copy of your local `.env`: the
 Discord token and channel ids point at the real production Discord
-application and server, the `API_TOKEN_IMPORT_*` values are separate
+application and server, the `IMPORT_*_API_TOKEN` values are separate
 production secrets, and the `RANDOM_INSIGHTS_*` tunables are set for a live
 audience rather than for development.
+
+The api-server reads the importer tokens only as `IMPORT_BBL_API_TOKEN`,
+`IMPORT_TP_API_TOKEN` and `IMPORT_MANUAL_API_TOKEN`. An
+`apps/discord-bot/.env.production` that still uses the older
+`API_TOKEN_IMPORT_*` names must be rolled out in this order, because
+applying Fly secrets restarts the machines and the steps are not atomic:
+
+1. Add the new names to `.env.production`, each with the same value as the
+   old name it replaces, so it equals the `connection.apiToken` in the
+   matching importer config (importers send that value; they never read Fly
+   secrets). Do not rotate a token during the rename; rotation is a
+   separate, coordinated operation. Apply the file to Fly, keeping the old
+   secrets in place: the release still running reads only the old names, and
+   `fly secrets import` never removes anything.
+2. Deploy the release that reads the new names and verify an importer
+   request succeeds.
+3. Only then remove the stale secrets with `fly secrets unset`, and delete
+   the old entries from `.env.production` too, so a later import of the
+   file does not set them again. Removing them earlier makes the running
+   release reject every importer request with `401`.
 
 Concretely: `RANDOM_INSIGHTS_DISCORD_CHANNEL_ID` in production points at a
 channel dedicated to the bot's scheduled output for real server members,

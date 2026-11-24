@@ -33,9 +33,9 @@ under the `tloeg.bbleague.se` external system (`BBL_EXTERNAL_SYSTEM_NAME` in
     to `http://localhost:3000` (a local docker-compose deployment) if unset.
   - `apiToken` — **required.** The bearer token this tool authenticates with;
     the api-server rejects unauthenticated requests with `401`. Must match the
-    `API_TOKEN_IMPORT_BBL` value in `apps/discord-bot/.env` (see
+    `IMPORT_BBL_API_TOKEN` value in `apps/discord-bot/.env` (see
     [RPC conventions](../api/rpc-conventions.md)) — or, in
-    `import-bbl-config.production.json5`, the `API_TOKEN_IMPORT_BBL` value in
+    `import-bbl-config.production.json5`, the `IMPORT_BBL_API_TOKEN` value in
     `apps/discord-bot/.env.production`. Treat it like a password — both
     `import-bbl-config.json5` and `import-bbl-config.production.json5` are
     git-ignored, so they are never committed.

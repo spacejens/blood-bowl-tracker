@@ -17,7 +17,7 @@ hour or more does not block local development in the meantime. An
 importer's production `apiBaseUrl` is therefore `http://localhost:3001`,
 while its local-development `apiBaseUrl` stays `http://localhost:3000`. The
 bearer token differs too: production `apiToken` values come from the
-`API_TOKEN_IMPORT_*` secrets in `apps/discord-bot/.env.production`, not from
+`IMPORT_*_API_TOKEN` secrets in `apps/discord-bot/.env.production`, not from
 the local `.env`.
 
 Each importer therefore keeps a second, git-ignored config file next to its
@@ -121,7 +121,7 @@ Common failures:
   stack is not the cause: it binds `3000`, and the tunnel deliberately does
   not.
 - **`401`** — the `apiToken` in the `.production.json5` file does not match
-  the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
+  the corresponding `IMPORT_*_API_TOKEN` secret pushed to Fly.
 - **Wrong data imported** — `IMPORT_CONFIG_ENV` was not set (or was set in a
   different shell than the one that ran the tool), so the default config file
   was used.
