@@ -1,11 +1,9 @@
-import type {
-  PlayerSkillRow,
-  PricingModel,
-} from '@blood-bowl-tracker/game-data';
+import type { PlayerSkillRow } from '@blood-bowl-tracker/game-data';
 import { PlayerPricingModelService } from '@blood-bowl-tracker/game-data';
 import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
@@ -33,47 +31,40 @@ function skill(overrides: Partial<PlayerSkillRow> = {}): PlayerSkillRow {
   };
 }
 
-/**
- * Built per test: the era's pricing model is an input the lookup mock must
- * carry before the service is compiled.
- */
-async function makeService(model: PricingModel = 'kind_priced') {
-  const pricing = mock<PlayerPricingModelService>();
-  pricing.pricingModelForPlayer.mockResolvedValue(model);
-  const databaseTimeout = mockDatabaseTimeout();
-  const errorLog = mock<ErrorLogService>();
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      PlayerSkillPricingService,
-      { provide: PlayerPricingModelService, useValue: pricing },
-      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
-      { provide: ErrorLogService, useValue: errorLog },
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(PlayerSkillPricingService),
-    pricing,
-    databaseTimeout,
-    errorLog,
-  };
-}
-
 describe('PlayerSkillPricingService', () => {
-  it('is true for an advancement of unknown source in a kind-priced era', async () => {
-    const { service, pricing } = await makeService('kind_priced');
+  let service: PlayerSkillPricingService;
+  let pricing: MockProxy<PlayerPricingModelService>;
+  let databaseTimeout: ReturnType<typeof mockDatabaseTimeout>;
+  let errorLog: MockProxy<ErrorLogService>;
 
+  beforeEach(async () => {
+    pricing = mock<PlayerPricingModelService>();
+    pricing.pricingModelForPlayer.mockResolvedValue('kind_priced');
+    databaseTimeout = mockDatabaseTimeout();
+    errorLog = mock<ErrorLogService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PlayerSkillPricingService,
+        { provide: PlayerPricingModelService, useValue: pricing },
+        { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+        { provide: ErrorLogService, useValue: errorLog },
+      ],
+    }).compile();
+    service = moduleRef.get(PlayerSkillPricingService);
+  });
+
+  it('is true for an advancement of unknown source in a kind-priced era', async () => {
     await expect(service.pricesByKind(PLAYER, [skill()])).resolves.toBe(true);
     expect(pricing.pricingModelForPlayer).toHaveBeenCalledWith(PLAYER);
   });
 
   it('is false in a fixed-threshold era', async () => {
-    const { service } = await makeService('fixed_threshold');
+    pricing.pricingModelForPlayer.mockResolvedValue('fixed_threshold');
 
     await expect(service.pricesByKind(PLAYER, [skill()])).resolves.toBe(false);
   });
 
   it('is false when the era has no pricing model', async () => {
-    const { service, pricing } = await makeService();
     pricing.pricingModelForPlayer.mockResolvedValue(undefined);
 
     await expect(service.pricesByKind(PLAYER, [skill()])).resolves.toBe(false);
@@ -89,30 +80,24 @@ describe('PlayerSkillPricingService', () => {
     ['only a rolled skill', [skill({ source: 'random' })]],
     ['only a free extra', [skill({ isFreeExtra: true })]],
   ])('skips the lookup for a player with %s', async (_label, rows) => {
-    const { service, pricing, databaseTimeout } = await makeService();
-
     await expect(service.pricesByKind(PLAYER, rows)).resolves.toBe(false);
     expect(pricing.pricingModelForPlayer).not.toHaveBeenCalled();
     expect(databaseTimeout.run).not.toHaveBeenCalled();
   });
 
   it('runs the lookup under the database timeout with a null fallback', async () => {
-    const { service, databaseTimeout } = await makeService();
-
     await service.pricesByKind(PLAYER, [skill()]);
 
     expect(databaseTimeout.run).toHaveBeenCalledWith(expect.any(Promise), null);
   });
 
   it('is false when the lookup times out', async () => {
-    const { service, databaseTimeout } = await makeService('kind_priced');
     stubDatabaseTimeoutOnce(databaseTimeout);
 
     await expect(service.pricesByKind(PLAYER, [skill()])).resolves.toBe(false);
   });
 
   it('is false and logs when the lookup fails', async () => {
-    const { service, pricing, errorLog } = await makeService();
     const failure = new Error('connection lost');
     pricing.pricingModelForPlayer.mockRejectedValue(failure);
 

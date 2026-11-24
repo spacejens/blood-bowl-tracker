@@ -22,50 +22,46 @@ import {
 
 describe('WorkflowLintService', () => {
   let dir: string;
+  let service: WorkflowLintService;
   let extractor: MockProxy<WorkflowUsesExtractorService>;
   let classifier: MockProxy<UsesRefClassifierService>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     dir = mkdtempSync(join(tmpdir(), 'workflow-lint-'));
     extractor = mock<WorkflowUsesExtractorService>();
     classifier = mock<UsesRefClassifierService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        WorkflowLintService,
+        { provide: WORKFLOWS_DIR, useValue: dir },
+        { provide: WorkflowUsesExtractorService, useValue: extractor },
+        { provide: UsesRefClassifierService, useValue: classifier },
+      ],
+    }).compile();
+    service = moduleRef.get(WorkflowLintService);
   });
 
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  async function makeService(
-    workflowsDir: string = dir,
-  ): Promise<WorkflowLintService> {
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        WorkflowLintService,
-        { provide: WORKFLOWS_DIR, useValue: workflowsDir },
-        { provide: WorkflowUsesExtractorService, useValue: extractor },
-        { provide: UsesRefClassifierService, useValue: classifier },
-      ],
-    }).compile();
-    return moduleRef.get(WorkflowLintService);
-  }
-
   function givenFile(name: string, content: string): void {
     writeFileSync(join(dir, name), content);
   }
 
-  it('reports no problems and counts files and uses when every reference is pinned', async () => {
+  it('reports no problems and counts files and uses when every reference is pinned', () => {
     givenFile('a.yml', 'a-content');
     givenFile('b.yaml', 'b-content');
     extractor.extract.mockReturnValue([{ uses: 'pinned', line: 3 }]);
     classifier.isPinned.mockReturnValue(true);
 
-    const result = (await makeService()).run();
+    const result = service.run();
 
     expect(result).toEqual({ filesChecked: 2, usesChecked: 2, problems: [] });
     expect(classifier.isPinned).toHaveBeenCalledWith('pinned');
   });
 
-  it('reads only .yml and .yaml files directly in the directory', async () => {
+  it('reads only .yml and .yaml files directly in the directory', () => {
     givenFile('ci.yml', 'ci-content');
     givenFile('README.md', 'not a workflow');
     mkdirSync(join(dir, 'nested'));
@@ -73,14 +69,14 @@ describe('WorkflowLintService', () => {
     mkdirSync(join(dir, 'dir.yml'));
     extractor.extract.mockReturnValue([]);
 
-    const result = (await makeService()).run();
+    const result = service.run();
 
     expect(result.filesChecked).toBe(1);
     expect(extractor.extract).toHaveBeenCalledTimes(1);
     expect(extractor.extract).toHaveBeenCalledWith('ci-content');
   });
 
-  it('reports each unpinned reference with file, line and value', async () => {
+  it('reports each unpinned reference with file, line and value', () => {
     givenFile('ci.yml', 'ci-content');
     extractor.extract.mockReturnValue([
       { uses: 'actions/checkout@abc', line: 7 },
@@ -88,7 +84,7 @@ describe('WorkflowLintService', () => {
     ]);
     classifier.isPinned.mockReturnValueOnce(true).mockReturnValueOnce(false);
 
-    const result = (await makeService()).run();
+    const result = service.run();
 
     expect(result.usesChecked).toBe(2);
     expect(result.problems).toEqual([
@@ -96,21 +92,21 @@ describe('WorkflowLintService', () => {
     ]);
   });
 
-  it('asks for a sha256 image digest, not a commit SHA, when a docker reference is unpinned', async () => {
+  it('asks for a sha256 image digest, not a commit SHA, when a docker reference is unpinned', () => {
     givenFile('ci.yml', 'ci-content');
     extractor.extract.mockReturnValue([
       { uses: 'docker://alpine:3.20', line: 9 },
     ]);
     classifier.isPinned.mockReturnValue(false);
 
-    const result = (await makeService()).run();
+    const result = service.run();
 
     expect(result.problems).toEqual([
       ".github/workflows/ci.yml:9: 'docker://alpine:3.20' is not pinned to a sha256 image digest",
     ]);
   });
 
-  it('reports a file that fails to parse and keeps checking the rest, in file-name order', async () => {
+  it('reports a file that fails to parse and keeps checking the rest, in file-name order', () => {
     givenFile('b.yml', 'b-content');
     givenFile('a.yml', 'a-content');
     extractor.extract
@@ -120,7 +116,7 @@ describe('WorkflowLintService', () => {
       .mockReturnValueOnce([{ uses: 'actions/checkout@v7', line: 4 }]);
     classifier.isPinned.mockReturnValue(false);
 
-    const result = (await makeService()).run();
+    const result = service.run();
 
     expect(extractor.extract).toHaveBeenNthCalledWith(1, 'a-content');
     expect(extractor.extract).toHaveBeenNthCalledWith(2, 'b-content');
@@ -134,16 +130,14 @@ describe('WorkflowLintService', () => {
     });
   });
 
-  it('fails when the workflows directory does not exist', async () => {
-    const service = await makeService(join(dir, 'missing'));
+  it('fails when the workflows directory does not exist', () => {
+    rmSync(dir, { recursive: true, force: true });
 
     expect(() => service.run()).toThrow(/Workflows directory not found/);
   });
 
-  it('fails, naming the directory, when it contains no workflow files', async () => {
+  it('fails, naming the directory, when it contains no workflow files', () => {
     givenFile('README.md', 'not a workflow');
-
-    const service = await makeService();
 
     expect(() => service.run()).toThrow(`No workflow files found in ${dir}`);
   });
