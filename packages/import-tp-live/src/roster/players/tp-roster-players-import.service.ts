@@ -101,10 +101,11 @@ export class TpRosterPlayersImportService {
    * only for a player this roster file does not list, the freshest
    * match-embedded entry that carries one. Players carry
    * only a TP external id (their `lineUps[].id`), never a Name one: player
-   * names are not unique. Every player's status is sent too, `null` when
-   * TP's data establishes none, so a re-import clears one the player no
-   * longer has; a roster file and a match snapshot count equally for
-   * deciding a player is active. Each player's journeyman marker is sent
+   * names are not unique. Each player's status is sent whenever TP's data
+   * establishes one, so a re-import replaces one the player no longer has,
+   * and left out when it establishes none, so the stored status is kept; a
+   * roster file and a match snapshot count equally for deciding a player is
+   * active. Each player's journeyman marker is sent
    * as TpJourneymanService decides it, and left out when it decides none; a
    * match-snapshot-only player is read by the Loner ids its snapshot lists,
    * named for the whole roster in one lookup.
@@ -460,7 +461,7 @@ export class TpRosterPlayersImportService {
       // the player no longer has. An entry that establishes none (no
       // isActive, no status bit) says nothing, so the stored status, from
       // an earlier import or a manual fill, is kept.
-      ...(status === null ? {} : { status }),
+      ...(status === undefined ? {} : { status }),
       ...(isJourneyman === undefined ? {} : { isJourneyman }),
       externalIds: [
         { externalSystemId: context.tpSystemId, externalId: String(player.id) },

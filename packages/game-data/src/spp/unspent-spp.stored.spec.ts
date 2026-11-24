@@ -124,18 +124,18 @@ describe('UnspentSppService.modelledForPlayers', () => {
   });
 
   it('has no pricing model when the rules sets disagree or are missing', async () => {
-    expect(
-      (
-        await modelledUnspentSppFor({
-          players: [playerRow({ sppTotal: 20 })],
-          eraRulesSets: [...CRP_ERA, ...BB2020_ERA],
-          costs: [...crpCosts(), ...bb2020Costs()],
-        })
-      )?.pricingModel,
-    ).toBeNull();
-    expect(
-      (await modelledUnspentSppFor({ players: [playerRow({ sppTotal: 20 })] }))
-        ?.pricingModel,
-    ).toBeNull();
+    const disagreeing = await modelledUnspentSppFor({
+      players: [playerRow({ sppTotal: 20 })],
+      eraRulesSets: [...CRP_ERA, ...BB2020_ERA],
+      costs: [...crpCosts(), ...bb2020Costs()],
+    });
+    const missing = await modelledUnspentSppFor({
+      players: [playerRow({ sppTotal: 20 })],
+    });
+
+    expect(disagreeing).toBeDefined();
+    expect(disagreeing?.pricingModel).toBeUndefined();
+    expect(missing).toBeDefined();
+    expect(missing?.pricingModel).toBeUndefined();
   });
 });

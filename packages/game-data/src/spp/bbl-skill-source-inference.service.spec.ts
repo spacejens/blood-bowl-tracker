@@ -341,7 +341,7 @@ describe('BblSkillSourceInferenceService', () => {
     // it cannot fit two skills into a spend of 3.
     const leagueOnly: RulesSetAdvancementInput = {
       ...bb2020([gained(BLOCK)]),
-      pricingModel: null,
+      pricingModel: undefined,
     };
     const h = await inferFor(
       [bb2020([gained(BLOCK), gained(TACKLE)]), leagueOnly],
@@ -367,7 +367,7 @@ describe('BblSkillSourceInferenceService', () => {
         ],
         [gained(BLOCK)],
       ),
-      pricingModel: null,
+      pricingModel: undefined,
     };
     const h = await inferFor([bb2020([gained(BLOCK)]), leagueOnly], 3);
 

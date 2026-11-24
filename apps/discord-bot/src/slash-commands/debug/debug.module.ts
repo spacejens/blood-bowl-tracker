@@ -11,6 +11,7 @@ import {
   TeamsQueriesModule,
   TrophiesQueriesModule,
 } from '@blood-bowl-tracker/game-data-queries';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Module } from '@nestjs/common';
 
 import { SlashCommandRegistryModule } from '../slash-command-registry.module';
@@ -47,6 +48,8 @@ import { OptionValueResolverService } from './option-value-resolver.service';
  * StarPlayersService and IncompleteImportPlayersService (for
  * /debugincompleteimport);
  * CompetitionGroupsQueriesModule's only by-id lookup is findByIdWithLeague.
+ * `ErrorLogService` is dependency-free and logs OptionValueResolverService's
+ * failed lookups.
  */
 @Module({
   imports: [
@@ -72,6 +75,7 @@ import { OptionValueResolverService } from './option-value-resolver.service';
     DebugFilterUsageCommandService,
     FilterUsageReportService,
     OptionValueResolverService,
+    ErrorLogService,
     DebugIncompleteImportCommandService,
     DebugIncompleteImportPageHandlerService,
     DebugIncompleteImportReplyService,

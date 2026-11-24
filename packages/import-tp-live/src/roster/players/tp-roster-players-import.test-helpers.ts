@@ -76,7 +76,7 @@ export async function buildPlayersImport(
     baselinesByPositionId: new Map(),
     reportedGaps: new Set(),
   });
-  mocks.status.forPlayer.mockReturnValue(null);
+  mocks.status.forPlayer.mockReturnValue(undefined);
   mocks.journeymen.decide.mockReturnValue(undefined);
   mocks.journeymen.lineUpLonerMasterIds.mockResolvedValue(new Set());
   configure(mocks);

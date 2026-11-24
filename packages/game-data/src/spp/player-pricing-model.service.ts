@@ -61,6 +61,6 @@ export class PlayerPricingModelService {
           isNull(advancementCosts.leagueId),
         ),
       );
-    return this.pricingModel.modelFor(rulesSetIds, costs) ?? undefined;
+    return this.pricingModel.modelFor(rulesSetIds, costs);
   }
 }

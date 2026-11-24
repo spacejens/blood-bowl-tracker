@@ -2,9 +2,7 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   AdvancementCostsService,
   CompetitionGroupsService,
-  CuratedAdvancementOrderService,
   ExternalSystemsService,
-  ManualImportBatchContentMismatchError,
   ManualImportBatchesService,
   MatchOutcomesService,
   MissingTrophyAwardsService,
@@ -30,6 +28,7 @@ import {
 } from '@blood-bowl-tracker/import-tp-live';
 import { implement } from '@orpc/server';
 
+import type { PlayerSkillsSyncRouterService } from './player-skills-sync-router.service';
 import type { UpsertHandlerService } from './upsert-handler.service';
 
 /**
@@ -372,9 +371,9 @@ export function buildPositionRulesSetSkillCategoriesRoutes(
 // playerSkills: same shape and same reasoning as positionRulesSetSkills
 // above. `runSync` maps the service's authored-data rejections — a player or
 // skill that does not exist, and a batch repeating one natural key — to
-// BAD_REQUEST. A sync flagged `checkOrderAgainstSpend` goes through
-// CuratedAdvancementOrderService, whose refusal (`CuratedAdvancementOrderError`)
-// `runSync` also maps to BAD_REQUEST.
+// BAD_REQUEST. PlayerSkillsSyncRouterService picks the service that writes
+// the batch; the curated order check's refusal
+// (`CuratedAdvancementOrderError`) is mapped to BAD_REQUEST by `runSync` too.
 //
 // `list` delegates to `listByPlayer`, whose rows also carry the skill's name
 // and its category and elite flag under the requested rules set; the
@@ -382,15 +381,11 @@ export function buildPositionRulesSetSkillCategoriesRoutes(
 export function buildPlayerSkillsRoutes(
   upsertHandler: UpsertHandlerService,
   playerSkillsService: PlayerSkillsService,
-  curatedAdvancementOrder: CuratedAdvancementOrderService,
+  playerSkillsSyncRouter: PlayerSkillsSyncRouterService,
 ) {
   return {
     sync: implement(contract.playerSkills.sync).handler(({ input, errors }) =>
-      upsertHandler.runSync(errors, () =>
-        input.checkOrderAgainstSpend === true
-          ? curatedAdvancementOrder.sync(input)
-          : playerSkillsService.sync(input),
-      ),
+      upsertHandler.runSync(errors, () => playerSkillsSyncRouter.sync(input)),
     ),
     list: implement(contract.playerSkills.list).handler(({ input }) =>
       playerSkillsService.listByPlayer(input.playerId, input.rulesSetId),
@@ -464,10 +459,12 @@ export function buildTpOfficialTeamsRoutes(
 }
 
 // manualImportBatches: tools/import-manual's ledger of applied batches. Not
-// an entity, so neither procedure goes through the upsert handler. `record`
-// maps its one domain failure -- a batch already recorded with a different
-// content hash -- to CONFLICT; anything else propagates untouched.
+// an entity, so `list` reads straight through. `record` goes through the
+// upsert handler's `runManualImportBatchRecord`, which maps its one domain
+// failure -- a batch already recorded with a different content hash -- to
+// CONFLICT; the route only flattens the created flag into the batch.
 export function buildManualImportBatchesRoutes(
+  upsertHandler: UpsertHandlerService,
   manualImportBatchesService: ManualImportBatchesService,
 ) {
   return {
@@ -476,16 +473,11 @@ export function buildManualImportBatchesRoutes(
     ),
     record: implement(contract.manualImportBatches.record).handler(
       async ({ input, errors }) => {
-        try {
-          const { batch, created } =
-            await manualImportBatchesService.record(input);
-          return { ...batch, created };
-        } catch (err) {
-          if (err instanceof ManualImportBatchContentMismatchError) {
-            throw errors.CONFLICT({ message: err.message });
-          }
-          throw err;
-        }
+        const { batch, created } =
+          await upsertHandler.runManualImportBatchRecord(errors, () =>
+            manualImportBatchesService.record(input),
+          );
+        return { ...batch, created };
       },
     ),
   };

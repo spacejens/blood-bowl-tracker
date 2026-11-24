@@ -372,7 +372,7 @@ describe('PositionDeepdiveService', () => {
         {
           title: `${stubEntityEmoji(POSITION_BUTTON_CUSTOM_ID_PREFIX)} Blitzer`,
           description: [
-            'Race(s): Human, Orc',
+            'Races: Human, Orc',
             '',
             'BB2016: MA 7 ST 3 AG 3 AV 8',
             'BB2020: MA 7 ST 3 AG 3+ PA 4+ AV 9+',
@@ -426,7 +426,7 @@ describe('PositionDeepdiveService', () => {
 
     const rendered = JSON.stringify(await service.resolve(1));
 
-    expect(rendered).toContain('Race(s): None recorded');
+    expect(rendered).toContain('Races: None recorded');
     expect(rendered).toContain(DEEPDIVE_POSITION_NO_CHARACTERISTICS_MESSAGE);
     expect(rendered).toContain('Held by 0 players');
     expect(rendered).toContain(DEEPDIVE_POSITION_NO_PLAYERS_MESSAGE);

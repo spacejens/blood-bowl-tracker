@@ -4,7 +4,7 @@ import {
   ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 
 import {
@@ -16,36 +16,28 @@ import { TpCompetitionIdResolverService } from './tp-competition-id-resolver.ser
 const TP_SYSTEM_ID = 9;
 const CANNED_RESULT: ImportResult = { success: true, imported: 0, errors: [] };
 
-async function makeService(
-  lookup: MockProxy<ReferenceLookupService> = mockReferenceLookupService(
-    new Map(),
-    TP_SYSTEM_ID,
-  ),
-) {
-  const importResults = mockImportResultService();
-  importResults.result.mockReturnValue(CANNED_RESULT);
-  const moduleRef = await Test.createTestingModule({
-    providers: [
-      TpCompetitionIdResolverService,
-      { provide: ReferenceLookupService, useValue: lookup },
-      { provide: ImportResultService, useValue: importResults },
-    ],
-  }).compile();
-  return {
-    service: moduleRef.get(TpCompetitionIdResolverService),
-    lookup,
-    importResults,
-  };
-}
-
 describe('TpCompetitionIdResolverService', () => {
-  it('resolves every imported competition to its database id in one batched call', async () => {
-    const { service, lookup, importResults } = await makeService(
-      mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
-        competitionIdsByExternalId: new Map([['100', 42]]),
-      }),
-    );
+  let service: TpCompetitionIdResolverService;
+  let lookup: MockProxy<ReferenceLookupService>;
+  let importResults: ReturnType<typeof mockImportResultService>;
 
+  beforeEach(async () => {
+    lookup = mockReferenceLookupService(new Map(), TP_SYSTEM_ID, {
+      competitionIdsByExternalId: new Map([['100', 42]]),
+    });
+    importResults = mockImportResultService();
+    importResults.result.mockReturnValue(CANNED_RESULT);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpCompetitionIdResolverService,
+        { provide: ReferenceLookupService, useValue: lookup },
+        { provide: ImportResultService, useValue: importResults },
+      ],
+    }).compile();
+    service = moduleRef.get(TpCompetitionIdResolverService);
+  });
+
+  it('resolves every imported competition to its database id in one batched call', async () => {
     const outcome = await service.resolveCompetitionIds({
       tpIds: [100],
       tpSystemId: TP_SYSTEM_ID,
@@ -63,10 +55,8 @@ describe('TpCompetitionIdResolverService', () => {
   });
 
   it('records an error and omits a competition that does not resolve', async () => {
-    const { service, importResults } = await makeService();
-
     const outcome = await service.resolveCompetitionIds({
-      tpIds: [100],
+      tpIds: [101],
       tpSystemId: TP_SYSTEM_ID,
     });
 
@@ -75,17 +65,15 @@ describe('TpCompetitionIdResolverService', () => {
       imported: 0,
       errors: [
         {
-          item: { competition: 100 },
+          item: { competition: 101 },
           message:
-            'Could not resolve competition id 100 to a database id: its match files and missing trophy awards will be skipped.',
+            'Could not resolve competition id 101 to a database id: its match files and missing trophy awards will be skipped.',
         },
       ],
     });
   });
 
   it('looks nothing up when the TP system could not be set up', async () => {
-    const { service, lookup } = await makeService();
-
     const outcome = await service.resolveCompetitionIds({
       tpIds: [100],
       tpSystemId: undefined,
@@ -96,8 +84,6 @@ describe('TpCompetitionIdResolverService', () => {
   });
 
   it('looks nothing up when no competition was imported', async () => {
-    const { service, lookup } = await makeService();
-
     await service.resolveCompetitionIds({
       tpIds: [],
       tpSystemId: TP_SYSTEM_ID,

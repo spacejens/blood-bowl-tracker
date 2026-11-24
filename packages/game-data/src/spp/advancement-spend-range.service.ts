@@ -33,7 +33,7 @@ const MAX_ADVANCEMENTS = 16;
 @Injectable()
 export class AdvancementSpendRangeService {
   /**
-   * The least and most the advancements can have cost, or null when no
+   * The least and most the advancements can have cost, or undefined when no
    * assignment fits the costs at all, meaning the recorded history does not
    * fit this cost table, or when there are more advancements than
    * {@link MAX_ADVANCEMENTS}.
@@ -41,9 +41,9 @@ export class AdvancementSpendRangeService {
   range(
     options: AdvancementOption[][],
     costs: ApplicableAdvancementCost[],
-  ): SpendRange | null {
+  ): SpendRange | undefined {
     if (!this.priceable(options.length, costs)) {
-      return null;
+      return undefined;
     }
     const choices = this.costChoices(options, costs);
     const spentMin = this.bestTotal(
@@ -54,15 +54,15 @@ export class AdvancementSpendRangeService {
       this.pickEach(choices, (fitting) => Math.max(...fitting)),
       (candidate, best) => candidate > best,
     );
-    return spentMin === null || spentMax === null
-      ? null
+    return spentMin === undefined || spentMax === undefined
+      ? undefined
       : { spentMin, spentMax };
   }
 
   /**
    * Whether some way to give the advancements the distinct numbers 1..N,
    * and each one an option priced at its number, costs exactly `spent`.
-   * False wherever `range` returns null. The same dynamic programme as
+   * False wherever `range` returns undefined. The same dynamic programme as
    * `bestTotal`, keeping every reachable total instead of the best one;
    * totals above `spent` are dropped, which is sound because every cost is
    * positive.
@@ -208,7 +208,7 @@ export class AdvancementSpendRangeService {
   private bestTotal(
     matrix: (number | null)[][],
     better: TotalComparer,
-  ): number | null {
+  ): number | undefined {
     const count = matrix.length;
     const full = (1 << count) - 1;
     const best = new Map<number, number>([[0, 0]]);
@@ -230,7 +230,7 @@ export class AdvancementSpendRangeService {
         }
       }
     }
-    return best.get(full) ?? null;
+    return best.get(full);
   }
 
   private bitCount(value: number): number {

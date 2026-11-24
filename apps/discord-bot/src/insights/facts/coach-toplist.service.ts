@@ -73,10 +73,12 @@ export class CoachToplistService {
         countCompletionsByCoach: 'Coaches by completions',
         countInterceptionsByCoach: 'Coaches by interceptions',
         countDeflectionsByCoach: 'Coaches by deflections',
-        countCasualtiesCausedByCoach: 'Coaches by casualties caused',
-        countSeriousInjuriesCausedByCoach: 'Coaches by serious injuries caused',
-        countLastingInjuriesCausedByCoach: 'Coaches by lasting injuries caused',
-        countDeathsCausedByCoach: 'Coaches by deaths caused',
+        countCasualtiesCausedByCoach: 'Coaches by casualties inflicted',
+        countSeriousInjuriesCausedByCoach:
+          'Coaches by serious injuries inflicted',
+        countLastingInjuriesCausedByCoach:
+          'Coaches by lasting injuries inflicted',
+        countDeathsCausedByCoach: 'Coaches by opponents killed',
         countCasualtiesSufferedByCoach: 'Coaches by casualties suffered',
         countSeriousInjuriesSufferedByCoach:
           'Coaches by serious injuries suffered',
@@ -325,7 +327,7 @@ export class CoachToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveGapToplist({
-      title: 'Coaches by average time between matches',
+      title: 'Coaches by average time between matches (lowest first)',
       fetchRows: (limit) =>
         this.coachesQueries.getAverageGapBetweenMatchesByCoach(scope, limit),
     });

@@ -14,8 +14,8 @@ describe('RpcRouterFactoryService playerSkills router', () => {
     harness = await createRouterHarness();
   });
 
-  it('syncs player skills straight through to the service', async () => {
-    harness.mocks.playerSkillsService.sync.mockResolvedValue({
+  it('syncs player skills through the sync router', async () => {
+    harness.mocks.playerSkillsSyncRouter.sync.mockResolvedValue({
       playerSkillIds: [51],
     });
 
@@ -23,40 +23,14 @@ describe('RpcRouterFactoryService playerSkills router', () => {
       entries: [{ playerId: 1, skillId: 7, source: 'starting' }],
     });
 
-    expect(harness.mocks.playerSkillsService.sync).toHaveBeenCalledWith({
+    expect(harness.mocks.playerSkillsSyncRouter.sync).toHaveBeenCalledWith({
       entries: [{ playerId: 1, skillId: 7, source: 'starting' }],
     });
     expect(result).toEqual({ playerSkillIds: [51] });
   });
 
-  it('sends a sync flagged checkOrderAgainstSpend to the curated order check', async () => {
-    harness.mocks.curatedAdvancementOrder.sync.mockResolvedValue({
-      playerSkillIds: [51],
-    });
-    const input = {
-      entries: [
-        {
-          playerId: 1,
-          skillId: 7,
-          source: 'advancement' as const,
-          advancementOrder: 1,
-          orderConfirmed: true,
-        },
-      ],
-      checkOrderAgainstSpend: true,
-    };
-
-    const result = await call(harness.router.playerSkills.sync, input);
-
-    expect(harness.mocks.curatedAdvancementOrder.sync).toHaveBeenCalledWith(
-      input,
-    );
-    expect(harness.mocks.playerSkillsService.sync).not.toHaveBeenCalled();
-    expect(result).toEqual({ playerSkillIds: [51] });
-  });
-
   it('reports a refused curated order as BAD_REQUEST', async () => {
-    harness.mocks.curatedAdvancementOrder.sync.mockRejectedValue(
+    harness.mocks.playerSkillsSyncRouter.sync.mockRejectedValue(
       new CuratedAdvancementOrderError('Player 1 lists no advancements'),
     );
 
@@ -73,7 +47,7 @@ describe('RpcRouterFactoryService playerSkills router', () => {
   });
 
   it('reports an entry naming a missing skill as BAD_REQUEST', async () => {
-    harness.mocks.playerSkillsService.sync.mockRejectedValue(
+    harness.mocks.playerSkillsSyncRouter.sync.mockRejectedValue(
       new SkillValidationError('Skill 7 does not exist'),
     );
 

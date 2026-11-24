@@ -1,6 +1,7 @@
 import {
   CharacteristicFormatMismatchError,
   CompetitionEnrollmentError,
+  ManualImportBatchContentMismatchError,
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
   SyncBatchValidationError,
@@ -147,6 +148,28 @@ export class UpsertHandlerService {
         err instanceof SyncBatchValidationError
       ) {
         throw errors.BAD_REQUEST({ message: err.message });
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * The error mapping for `manualImportBatches.record`, whose contract
+   * declares CONFLICT alone: a batch already recorded under a different
+   * content hash (`ManualImportBatchContentMismatchError`, the curated data
+   * of an applied batch was edited) becomes CONFLICT. Anything else
+   * propagates untouched. The service's result is returned as is; the route
+   * reshapes it.
+   */
+  async runManualImportBatchRecord<T>(
+    errors: Pick<ConflictErrors, 'CONFLICT'>,
+    run: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await run();
+    } catch (err) {
+      if (err instanceof ManualImportBatchContentMismatchError) {
+        throw errors.CONFLICT({ message: err.message });
       }
       throw err;
     }

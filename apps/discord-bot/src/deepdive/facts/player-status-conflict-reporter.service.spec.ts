@@ -2,7 +2,8 @@ import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import { MessageFlags } from 'discord.js';
-import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockInstance } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -19,6 +20,7 @@ describe('PlayerStatusConflictReporterService', () => {
   let discordClient: MockProxy<DiscordClientService>;
   let config: MockProxy<DiscordBotConfigService>;
   let errorLog: MockProxy<ErrorLogService>;
+  let loggerError: MockInstance;
 
   beforeEach(async () => {
     discordClient = mock<DiscordClientService>();
@@ -34,16 +36,16 @@ describe('PlayerStatusConflictReporterService', () => {
       ],
     }).compile();
     service = moduleRef.get(PlayerStatusConflictReporterService);
+    loggerError = vi
+      .spyOn(service['logger'], 'error')
+      .mockImplementation(() => undefined);
   });
 
-  it('logs the conflict as an error', async () => {
+  it('logs the conflict message as an error, not as a caught exception', async () => {
     await service.report(CONFLICT);
 
-    expect(errorLog.logError).toHaveBeenCalledWith(
-      service['logger'],
-      'Player status conflicts with match events',
-      expect.objectContaining({ message: REPORT }),
-    );
+    expect(loggerError).toHaveBeenCalledWith(REPORT);
+    expect(errorLog.logError).not.toHaveBeenCalled();
   });
 
   it('posts the bug report to the debug channel without mentions or previews', async () => {
@@ -62,7 +64,7 @@ describe('PlayerStatusConflictReporterService', () => {
     await service.report(CONFLICT);
 
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
-    expect(errorLog.logError).toHaveBeenCalledTimes(1);
+    expect(loggerError).toHaveBeenCalledTimes(1);
   });
 
   it('logs a failed post instead of rejecting', async () => {
@@ -79,12 +81,12 @@ describe('PlayerStatusConflictReporterService', () => {
 
   it('does nothing when the same conflict was already reported', async () => {
     await service.report(CONFLICT);
-    errorLog.logError.mockClear();
+    loggerError.mockClear();
     discordClient.sendMessage.mockClear();
 
     await service.report(CONFLICT);
 
-    expect(errorLog.logError).not.toHaveBeenCalled();
+    expect(loggerError).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).not.toHaveBeenCalled();
   });
 
