@@ -13,8 +13,6 @@ import { MatchSamplerService } from './match-sampler.service';
 import type { ReviewedMatch } from './report-builder.service';
 import { ReportBuilderService } from './report-builder.service';
 
-export type { ReviewOutcome } from '@blood-bowl-tracker/review-harness';
-
 /**
  * The match tool's one addition to the shared review run: every sampled
  * match's score and winner, looked up for the whole sample at once.

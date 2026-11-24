@@ -157,7 +157,8 @@ Exit codes: `0` with `Reviewed <N> match(es); report written to <path>.` on
 success; `1` with `Review failed: <error>` when the database is unreachable or
 the config is unusable. Open the path printed on success — each run writes
 its own timestamped file under `tools/review-match/output/`, so the most
-recent one isn't necessarily named the same as a previous run's.
+recent one isn't necessarily named the same as a previous run's. Its entrypoint runs on [review-harness](../review-harness/index.md)'s
+`runReviewCli`.
 
 The tool only reads game data. It does connect through `packages/db`'s
 `DbModule`, which applies any pending migrations on connect — against a stack

@@ -34,6 +34,7 @@ export { ReviewServiceBase } from './review-base.service';
 /** @public */
 export type { ReviewConfigServiceConstructor } from './review-config-base.service';
 export { createReviewConfigServiceBase } from './review-config-base.service';
+export { runReviewCli } from './run-review-cli';
 export { SkillFormatService } from './skill-format.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
 export { STRATIFIERS } from './stratifier';

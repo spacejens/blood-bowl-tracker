@@ -1067,6 +1067,9 @@ importers:
 
   packages/review-harness:
     dependencies:
+      '@blood-bowl-tracker/cli-shared':
+        specifier: workspace:*
+        version: link:../cli-shared
       '@blood-bowl-tracker/config-loader':
         specifier: workspace:*
         version: link:../config-loader

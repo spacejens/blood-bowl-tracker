@@ -11,8 +11,6 @@ import type { SampledPlayer } from '../shared/review.types';
 import { PlayerSamplerService } from './player-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
 
-export type { ReviewOutcome } from '@blood-bowl-tracker/review-harness';
-
 /**
  * The player report needs nothing beyond the sampled player itself, so the
  * whole run is the shared one and `prepare()` hands each player straight
