@@ -1,8 +1,8 @@
+import { DiscordRestService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { DiscordRestService } from '../discord-rest/discord-rest.service';
 import { ReadTpFeedHistoryService } from './read-tp-feed-history.service';
 import { SnowflakeOrderService } from './snowflake-order.service';
 import {
@@ -16,7 +16,7 @@ import {
 import type { TpFeedMessage } from './tp-feed-message.schema';
 
 const CHANNEL = '222';
-const DATA_DIR = '/repo/tools/production-ops-cli/data/tp-feed-222';
+const DATA_DIR = '/repo/tools/import-manual-planner-cli/data/tp-feed-222';
 const EMPTY_INDEX: TpFeedHistoryIndex = { reports: {}, unparsed: [] };
 
 /** `count` messages, newest first as Discord returns them. */

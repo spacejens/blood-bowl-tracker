@@ -1,8 +1,7 @@
-import {
-  PgClientService,
-  ProductionEnvFileService,
-} from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
+
+import { PgClientService } from './pg-client.service';
+import { ProductionEnvFileService } from './production-env-file.service';
 
 /**
  * `SET LOCAL` (not plain `SET`) scopes this to the one transaction the query

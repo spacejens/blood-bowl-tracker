@@ -65,10 +65,10 @@ export const GITIGNORED_DATA_DIRS: readonly string[] = [
  * auto-create, skipped silently when absent — these are holding directories
  * whose whole purpose is that worktree-created files survive the worktree's
  * removal, so a missing source is created rather than skipped: specs and
- * plans in `docs/plans`, and the evidence production-ops-cli saves (such as
- * the TP feed history) in `tools/production-ops-cli/data`.
+ * plans in `docs/plans`, and the evidence import-manual-planner-cli saves
+ * (such as the TP feed history) in `tools/import-manual-planner-cli/data`.
  */
 export const GITIGNORED_AUTO_CREATE_SYMLINK_DIRS: readonly string[] = [
   'docs/plans',
-  'tools/production-ops-cli/data',
+  'tools/import-manual-planner-cli/data',
 ];

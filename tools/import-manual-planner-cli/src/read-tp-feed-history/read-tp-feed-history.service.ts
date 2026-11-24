@@ -1,6 +1,6 @@
+import { DiscordRestService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
-import { DiscordRestService } from '../discord-rest/discord-rest.service';
 import { SnowflakeOrderService } from './snowflake-order.service';
 import { TpFeedHistoryIndexService } from './tp-feed-history-index.service';
 import {

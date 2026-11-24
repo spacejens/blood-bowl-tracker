@@ -1,9 +1,9 @@
-import { ProductionEnvFileService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DiscordBotTokenService } from './discord-bot-token.service';
+import { ProductionEnvFileService } from './production-env-file.service';
 
 describe('DiscordBotTokenService', () => {
   let service: DiscordBotTokenService;

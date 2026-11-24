@@ -2,7 +2,7 @@
 
 The TP downloads under `tools/import-tp/data` show players as TP listed them
 on the day of the download. `read-tp-roster-snapshots` collects what they
-show (see [production-ops-cli](../production-ops-cli/index.md#reading-the-tp-roster-snapshots)),
+show (see [import-manual-planner-cli](../import-manual-planner-cli/index.md#reading-the-tp-roster-snapshots)),
 and `generate-incomplete-player-fills --snapshots` uses it as evidence for
 incomplete players the feed does not name.
 

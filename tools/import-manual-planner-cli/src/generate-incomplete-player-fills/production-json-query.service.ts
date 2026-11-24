@@ -1,6 +1,5 @@
+import { RunProductionQueryService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { RunProductionQueryService } from '../run-production-query/run-production-query.service';
 
 /**
  * The command tags psql prints for the read-only transaction around the

@@ -3,7 +3,7 @@
 `packages/parse-tp-feed` reads the advancement reports TP's Discord
 integration posts into the TP feed channel (the `New skill/characteristic`
 notifications). The bot's [TP notification feed](../discord-bot/tp-feed.md)
-and [production-ops-cli](../production-ops-cli/index.md)'s
+and [import-manual-planner-cli](../import-manual-planner-cli/index.md)'s
 `read-tp-feed-history` both use it, so a live notification and one read back
 from the channel's history are understood the same way.
 
@@ -50,7 +50,7 @@ reports a failure in its own way.
 ## Dependency rules
 
 It depends on no other workspace package. It is used by the server-side
-`apps/discord-bot` and the client-side `tools/production-ops-cli`, so it is
+`apps/discord-bot` and the client-side `tools/import-manual-planner-cli`, so it is
 one of the deliberate two-sided packages at the
 [client/server boundary](../architecture.md#clientserver-boundary).
 

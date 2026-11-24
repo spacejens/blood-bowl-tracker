@@ -1,6 +1,5 @@
+import { DiscordRestService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
-
-import { DiscordRestService } from '../discord-rest/discord-rest.service';
 
 /**
  * The guild id is captured only to pin the link's shape — the REST call

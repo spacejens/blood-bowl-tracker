@@ -41,7 +41,7 @@ describe('TpFeedHistoryStoreService', () => {
     worktreeRoot = mkdtempSync(join(tmpdir(), 'tp-feed-history-'));
     channelDir = join(
       worktreeRoot,
-      'tools/production-ops-cli/data/tp-feed-222',
+      'tools/import-manual-planner-cli/data/tp-feed-222',
     );
     gitRoots = mock<GitRootsService>();
     gitRoots.resolve.mockResolvedValue({
