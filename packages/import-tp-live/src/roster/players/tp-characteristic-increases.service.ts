@@ -9,6 +9,7 @@ import type {
   PlayerCharacteristic,
   PlayerCharacteristicCounts,
 } from '@blood-bowl-tracker/domain-enums';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import type { PositionCharacteristics } from '@blood-bowl-tracker/game-data';
 import { PositionRulesSetsService } from '@blood-bowl-tracker/game-data';
 import {
@@ -225,42 +226,44 @@ export class TpCharacteristicIncreasesService {
   private comparisons(rulesSet: RulesSet): Comparison[] {
     const rollTarget = (format: CharacteristicFormat): boolean =>
       format === 'plus' || format === 'plus_zero_legal';
-    return [
-      {
+    const byIncrease: Record<
+      PlayerCharacteristic,
+      Omit<Comparison, 'increase'>
+    > = {
+      MA: {
         key: 'move',
-        increase: 'MA',
         reduction: 'moveReductionCount',
         format: rulesSet.moveFormat,
         lowerIsBetter: false,
       },
-      {
+      ST: {
         key: 'strength',
-        increase: 'ST',
         reduction: 'strengthReductionCount',
         format: rulesSet.strengthFormat,
         lowerIsBetter: false,
       },
-      {
+      AG: {
         key: 'agility',
-        increase: 'AG',
         reduction: 'agilityReductionCount',
         format: rulesSet.agilityFormat,
         lowerIsBetter: rollTarget(rulesSet.agilityFormat),
       },
-      {
+      PA: {
         key: 'passing',
-        increase: 'PA',
         reduction: 'passingReductionCount',
         format: rulesSet.passingFormat,
         lowerIsBetter: rollTarget(rulesSet.passingFormat),
       },
-      {
+      AV: {
         key: 'armour',
-        increase: 'AV',
         reduction: 'armourReductionCount',
         format: rulesSet.armourFormat,
         lowerIsBetter: false,
       },
-    ];
+    };
+    return PLAYER_CHARACTERISTICS.map((increase) => ({
+      increase,
+      ...byIncrease[increase],
+    }));
   }
 }
