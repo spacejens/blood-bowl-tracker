@@ -51,6 +51,8 @@ separate, so only the CLIs that need them import them.
 - **Consumed by tools, depends on no tool.** The CLI tools above depend on it,
   keeping the `tools/* → packages/*` direction intact. It depends on no other
   workspace package, and must never depend on anything under `tools/`.
+- **Client-side only.** It is used by tools, never by `apps/discord-bot` or
+  the server-side packages.
 
 ## Development
 
