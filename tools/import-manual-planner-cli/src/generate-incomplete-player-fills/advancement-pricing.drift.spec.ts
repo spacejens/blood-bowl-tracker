@@ -43,7 +43,6 @@ function serverInput(
   }));
   return {
     rulesSetId: rulesSet.rulesSetId,
-    pricingModel: null,
     costs,
     candidatesInput: {
       skills: steps.map((step, at) => ({

@@ -130,8 +130,8 @@ export type RulesSetOutcome =
 
 /** A modelled result with the pricing model of the player's era. */
 export interface ModelledUnspentSpp {
-  /** Null when the era's rules sets disagree or none has its own costs. */
-  pricingModel: PricingModel | null;
+  /** Undefined when the era's rules sets disagree or none has its own costs. */
+  pricingModel?: PricingModel | undefined;
   /** The range the history allows; the stored figure is not consulted. */
   result: UnspentSppResult;
 }
@@ -144,8 +144,8 @@ export interface ModelledUnspentSpp {
  */
 export interface RulesSetAdvancementInput {
   rulesSetId: number;
-  /** How this rules set alone prices advancements; null with no own rows. */
-  pricingModel: PricingModel | null;
+  /** How this rules set alone prices advancements; undefined with no own rows. */
+  pricingModel?: PricingModel | undefined;
   costs: ApplicableAdvancementCost[];
   candidatesInput: AdvancementCandidatesInput;
 }

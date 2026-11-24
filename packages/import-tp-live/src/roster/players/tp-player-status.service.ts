@@ -24,7 +24,7 @@ export interface TpPlayerStatusInput {
 @Injectable()
 export class TpPlayerStatusService {
   /**
-   * The status to send for one player, or `null` when TP's data does not
+   * The status to send for one player, or `undefined` when TP's data does not
    * establish one. Checked in order: dead, then left the roster (recorded as
    * retired, which also wins over a temporary retirement the player then
    * left from), then temporarily retired. A player with none of those bits
@@ -36,7 +36,10 @@ export class TpPlayerStatusService {
    * other player with none of those bits; a missing `isActive` establishes
    * nothing.
    */
-  forPlayer({ state, isActive }: TpPlayerStatusInput): PlayerStatus | null {
+  forPlayer({
+    state,
+    isActive,
+  }: TpPlayerStatusInput): PlayerStatus | undefined {
     if (this.hasBit(state, DEAD_BIT)) {
       return 'dead';
     }
@@ -49,7 +52,7 @@ export class TpPlayerStatusService {
     if (isActive === true) {
       return 'active';
     }
-    return isActive === false ? 'retired' : null;
+    return isActive === false ? 'retired' : undefined;
   }
 
   /** Whether `state` has the single-bit flag `bit` set. */

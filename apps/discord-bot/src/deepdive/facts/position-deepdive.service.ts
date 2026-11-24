@@ -225,7 +225,7 @@ export class PositionDeepdiveService {
       this.entityComponents.buildEntityComponents(entries);
 
     const description = [
-      `Race(s): ${raceNames}`,
+      `Races: ${raceNames}`,
       '',
       ...statLines,
       ...keywordLines,

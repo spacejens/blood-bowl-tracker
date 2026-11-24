@@ -17,7 +17,7 @@ describe('TpPlayerStatusService', () => {
 
   const activeInput: TpPlayerStatusInput = { state: 1, isActive: true };
 
-  it.each<[string, TpPlayerStatusInput, PlayerStatus | null]>([
+  it.each<[string, TpPlayerStatusInput, PlayerStatus | undefined]>([
     ['bit 8 as dead', { state: 8, isActive: false }, 'dead'],
     ['bit 16 as retired', { state: 16, isActive: false }, 'retired'],
     [
@@ -93,7 +93,7 @@ describe('TpPlayerStatusService', () => {
   it('reads a player with no isActive flag as unknown', () => {
     expect(
       service.forPlayer({ ...activeInput, isActive: undefined }),
-    ).toBeNull();
+    ).toBeUndefined();
   });
 
   it('reads an active player with no state as active', () => {
@@ -105,6 +105,6 @@ describe('TpPlayerStatusService', () => {
   it('reads a player with neither field as unknown', () => {
     expect(
       service.forPlayer({ state: undefined, isActive: undefined }),
-    ).toBeNull();
+    ).toBeUndefined();
   });
 });

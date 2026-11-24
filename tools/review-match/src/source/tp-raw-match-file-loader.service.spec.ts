@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ReviewMatchConfigService } from '../config/review-match-config.service';
@@ -11,9 +12,20 @@ import { TpRawMatchFileLoaderService } from './tp-raw-match-file-loader.service'
 
 describe('TpRawMatchFileLoaderService', () => {
   let dir: string;
+  let config: MockProxy<ReviewMatchConfigService>;
+  let service: TpRawMatchFileLoaderService;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), 'tp-raw-loader-'));
+    config = mock<ReviewMatchConfigService>();
+    config.getDataDir.mockReturnValue(dir);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TpRawMatchFileLoaderService,
+        { provide: ReviewMatchConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(TpRawMatchFileLoaderService);
   });
 
   afterEach(async () => {
@@ -30,28 +42,12 @@ describe('TpRawMatchFileLoaderService', () => {
     await writeFile(join(target, filename), contents, 'utf8');
   }
 
-  async function makeService(
-    dataDir = dir,
-  ): Promise<TpRawMatchFileLoaderService> {
-    const config = mock<ReviewMatchConfigService>();
-    config.getDataDir.mockReturnValue(dataDir);
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        TpRawMatchFileLoaderService,
-        { provide: ReviewMatchConfigService, useValue: config },
-      ],
-    }).compile();
-    return moduleRef.get(TpRawMatchFileLoaderService);
-  }
-
   it('finds a match file two directory levels down and parses it', async () => {
     await writeMatch(
       join('third-era', 'season-26'),
       'match_344820.json',
       '{ "matchId": 344820 }',
     );
-    const service = await makeService();
-
     await expect(service.loadMatchFile('344820')).resolves.toEqual({
       matchId: 344820,
     });
@@ -63,8 +59,6 @@ describe('TpRawMatchFileLoaderService', () => {
       'rosters_46578.json',
       '{ "id": 46578 }',
     );
-    const service = await makeService();
-
     await expect(service.loadMatchFile('46578')).resolves.toBeNull();
   });
 
@@ -74,21 +68,17 @@ describe('TpRawMatchFileLoaderService', () => {
       'match_1.json',
       '{ "matchId": 1 }',
     );
-    const service = await makeService();
-
     await expect(service.loadMatchFile('2')).resolves.toBeNull();
   });
 
   it('returns null when the data directory does not exist', async () => {
-    const service = await makeService(join(dir, 'nope'));
+    config.getDataDir.mockReturnValue(join(dir, 'nope'));
 
     await expect(service.loadMatchFile('1')).resolves.toBeNull();
   });
 
   it('throws a descriptive error when the match file is not valid JSON', async () => {
     await writeMatch(join('era', 'comp'), 'match_5.json', 'not json');
-    const service = await makeService();
-
     await expect(service.loadMatchFile('5')).rejects.toThrow(
       /Failed to parse TP match file .*match_5\.json/,
     );
@@ -99,15 +89,13 @@ describe('TpRawMatchFileLoaderService', () => {
     // ENOTDIR, not ENOENT — that error must propagate.
     const notADirectory = join(dir, 'data-dir-is-actually-a-file');
     await writeFile(notADirectory, 'not a directory', 'utf8');
-    const service = await makeService(notADirectory);
+    config.getDataDir.mockReturnValue(notADirectory);
 
     await expect(service.loadMatchFile('1')).rejects.toThrow(/ENOTDIR/);
   });
 
   it('scans the directory tree only once across calls', async () => {
     await writeMatch(join('era', 'comp'), 'match_5.json', '{ "matchId": 5 }');
-    const service = await makeService();
-
     await service.loadMatchFile('5');
     // A file added after the first call is invisible to later calls, which is
     // only true if the filename index was built once and reused.

@@ -179,7 +179,7 @@ export class CompetitionDeepdiveService {
     const descriptionLines = [
       `Type: ${this.competitionTypeLabel.label(competition.type)}`,
       `Era: ${this.dateRangeFormatter.formatNamed(competition.eraName, competition.eraStartDate, competition.eraEndDate)}`,
-      `Group: ${competition.competitionGroupName}`,
+      `Competition group: ${competition.competitionGroupName}`,
       `Dates: ${this.dateRangeFormatter.format(competition.startDate, competition.endDate)}`,
       '',
       'Participating teams:',

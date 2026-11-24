@@ -221,7 +221,7 @@ const factoryCases: FactoryCase[] = [
       { coachId: 1, name: 'Roze Madder', count: 57 },
       { coachId: 2, name: 'Grashnak', count: 23 },
     ],
-    expectedTitle: 'Coaches by casualties caused',
+    expectedTitle: 'Coaches by casualties inflicted',
   },
   {
     describeName: 'resolveSeriousInjuriesCaused',
@@ -229,7 +229,7 @@ const factoryCases: FactoryCase[] = [
     resolve: (service) =>
       service.resolveSeriousInjuriesCaused(FACT_SCOPE_ALL_TIME),
     rows: [{ coachId: 2, name: 'Grashnak', count: 14 }],
-    expectedTitle: 'Coaches by serious injuries caused',
+    expectedTitle: 'Coaches by serious injuries inflicted',
   },
   {
     describeName: 'resolveLastingInjuriesCaused',
@@ -237,14 +237,14 @@ const factoryCases: FactoryCase[] = [
     resolve: (service) =>
       service.resolveLastingInjuriesCaused(FACT_SCOPE_ALL_TIME),
     rows: [{ coachId: 3, name: 'Skabsquik', count: 6 }],
-    expectedTitle: 'Coaches by lasting injuries caused',
+    expectedTitle: 'Coaches by lasting injuries inflicted',
   },
   {
     describeName: 'resolveDeathsCaused',
     method: 'countDeathsCausedByCoach',
     resolve: (service) => service.resolveDeathsCaused(FACT_SCOPE_ALL_TIME),
     rows: [{ coachId: 1, name: 'Roze Madder', count: 4 }],
-    expectedTitle: 'Coaches by deaths caused',
+    expectedTitle: 'Coaches by opponents killed',
   },
   {
     describeName: 'resolveCasualtiesSuffered',
@@ -328,7 +328,7 @@ const handWrittenCases: HandWrittenCase[] = [
       { coachId: 2, name: 'Grashnak', count: 7 },
       { coachId: 1, name: 'Roze Madder', count: 30 },
     ],
-    expectedTitle: 'Coaches by average time between matches',
+    expectedTitle: 'Coaches by average time between matches (lowest first)',
   },
 ];
 

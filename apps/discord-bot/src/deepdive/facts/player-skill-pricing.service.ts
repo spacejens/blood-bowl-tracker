@@ -36,14 +36,14 @@ export class PlayerSkillPricingService {
       return false;
     }
     const model = await this.databaseTimeout
-      .run(this.pricingModel.pricingModelForPlayer(playerId), null)
+      .run(this.pricingModel.pricingModelForPlayer(playerId), undefined)
       .catch((error: unknown) => {
         this.errorLog.logError(
           this.logger,
           'Failed to look up the advancement pricing model',
           error,
         );
-        return null;
+        return undefined;
       });
     return model === 'kind_priced';
   }

@@ -1,18 +1,26 @@
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }));
+vi.mock('node:child_process', async () =>
+  (
+    await import('./child-process-mock.test-helpers.js')
+  ).childProcessModuleMock(),
+);
 
-import { execFileSync } from 'node:child_process';
-
+import type { ChildProcessMocks } from './child-process-mock.test-helpers';
+import {
+  installChildProcessMocks,
+  resetChildProcessMocks,
+} from './child-process-mock.test-helpers';
 import { DeploymentInfoService } from './deployment-info.service';
 import { MAX_DESCRIPTION_LENGTH } from './description-limits';
 
 describe('DeploymentInfoService', () => {
   let configService: MockProxy<ConfigService>;
   let service: DeploymentInfoService;
+  let childProcess: ChildProcessMocks;
 
   /** Builds a config mock whose `get` answers from a plain record. */
   function withEnv(env: Record<string, string>): void {
@@ -25,7 +33,7 @@ describe('DeploymentInfoService', () => {
    * `git` command fails — so an unlisted command means "this one fails".
    */
   function gitReturns(outputs: Record<string, string>): void {
-    vi.mocked(execFileSync).mockImplementation((_cmd, args) => {
+    childProcess.execFileSync.mockImplementation((_cmd, args) => {
       const argv = (args as string[]).join(' ');
       const output = outputs[argv];
       if (output === undefined) throw new Error(`git ${argv} failed`);
@@ -33,8 +41,12 @@ describe('DeploymentInfoService', () => {
     });
   }
 
+  afterEach(() => {
+    resetChildProcessMocks();
+  });
+
   beforeEach(async () => {
-    vi.mocked(execFileSync).mockReset();
+    childProcess = installChildProcessMocks();
     configService = mock<ConfigService>();
     withEnv({});
 
@@ -66,7 +78,7 @@ describe('DeploymentInfoService', () => {
       commitMessage: 'Add the thing',
       commitTimestamp: '2026-08-30T16:05:22+02:00',
     });
-    expect(execFileSync).not.toHaveBeenCalled();
+    expect(childProcess.execFileSync).not.toHaveBeenCalled();
   });
 
   it('falls back to git when the build-time env vars are absent', () => {
@@ -86,7 +98,7 @@ describe('DeploymentInfoService', () => {
   });
 
   it('omits the git-derived fields when git fails', () => {
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
@@ -100,7 +112,7 @@ describe('DeploymentInfoService', () => {
     expect(service.getDeploymentInfo().commitTimestamp).toBe(
       '2026-08-30T16:05:22+02:00',
     );
-    expect(execFileSync).not.toHaveBeenCalledWith(
+    expect(childProcess.execFileSync).not.toHaveBeenCalledWith(
       'git',
       ['log', '-1', '--format=%cI'],
       expect.anything(),
@@ -108,7 +120,7 @@ describe('DeploymentInfoService', () => {
   });
 
   it('omits the commit timestamp when neither the env var nor git answers', () => {
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
@@ -160,7 +172,7 @@ describe('DeploymentInfoService', () => {
 
   it('omits the commit message when the raw value is blank', () => {
     withEnv({ GIT_COMMIT_MESSAGE: '   \n\n', GIT_IS_MERGE_COMMIT: 'false' });
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
@@ -181,7 +193,7 @@ describe('DeploymentInfoService', () => {
     // Branch, SHA, message, and commit timestamp — on the first call only.
     // The commit message has no body line, so the merge check is never
     // reached.
-    expect(execFileSync).toHaveBeenCalledTimes(4);
+    expect(childProcess.execFileSync).toHaveBeenCalledTimes(4);
   });
 
   it('describes an active machine as an embed with one line per field', () => {
@@ -216,7 +228,7 @@ describe('DeploymentInfoService', () => {
 
   it('describes a standby machine with only the fields it has', () => {
     withEnv({ GIT_BRANCH: 'main' });
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
@@ -228,7 +240,7 @@ describe('DeploymentInfoService', () => {
   });
 
   it('omits the description when no field resolves', () => {
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
@@ -267,7 +279,7 @@ describe('DeploymentInfoService', () => {
 
   it('renders the commit time as Discord timestamp markup in epoch seconds', () => {
     withEnv({ GIT_COMMIT_TIMESTAMP: '2026-08-30T14:05:22Z' });
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
@@ -278,7 +290,7 @@ describe('DeploymentInfoService', () => {
 
   it('renders the same instant identically whatever UTC offset the committer had', () => {
     withEnv({ GIT_COMMIT_TIMESTAMP: '2026-08-30T16:05:22+02:00' });
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
@@ -289,7 +301,7 @@ describe('DeploymentInfoService', () => {
 
   it('omits the committed line when the timestamp cannot be parsed', () => {
     withEnv({ GIT_BRANCH: 'main', GIT_COMMIT_TIMESTAMP: 'not-a-date' });
-    vi.mocked(execFileSync).mockImplementation(() => {
+    childProcess.execFileSync.mockImplementation(() => {
       throw new Error('not a git repository');
     });
 

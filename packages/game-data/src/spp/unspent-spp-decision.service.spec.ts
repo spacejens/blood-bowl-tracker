@@ -35,7 +35,7 @@ function known(unspentMin: number, unspentMax: number): KnownUnspentSpp {
 }
 
 function modelled(
-  pricingModel: PricingModel | null,
+  pricingModel: PricingModel | undefined,
   result: ModelledUnspentSpp['result'],
 ): ModelledUnspentSpp {
   return { pricingModel, result };
@@ -160,7 +160,9 @@ describe('UnspentSppDecisionService.decide', () => {
   });
 
   it('stores nothing without a pricing model or a player row', async () => {
-    const { service } = await makeService([[1, modelled(null, known(9, 9))]]);
+    const { service } = await makeService([
+      [1, modelled(undefined, known(9, 9))],
+    ]);
     expect(
       await service.decide([
         { playerId: 1, sppTotal: 30, snapshot: SNAPSHOT },
@@ -189,7 +191,7 @@ describe('UnspentSppDecisionService.refreshFixedThreshold', () => {
       [2, modelled('fixed_threshold', known(4, 6))],
       [3, modelled('fixed_threshold', known(4, 4))],
       [4, modelled('kind_priced', known(9, 9))],
-      [5, modelled(null, known(9, 9))],
+      [5, modelled(undefined, known(9, 9))],
     ]);
 
     await service.refreshFixedThreshold([1, 2, 3, 4, 5]);

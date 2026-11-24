@@ -11,10 +11,11 @@ import {
   TeamsQueriesService,
   TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { DeepMockProxy } from 'vitest-mock-extended';
-import { mockDeep } from 'vitest-mock-extended';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
+import { mock, mockDeep } from 'vitest-mock-extended';
 
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
@@ -35,6 +36,7 @@ describe('OptionValueResolverService', () => {
   let starPlayers: DeepMockProxy<StarPlayersService>;
   let positions: DeepMockProxy<PositionsQueriesService>;
   let trophies: DeepMockProxy<TrophiesQueriesService>;
+  let errorLog: MockProxy<ErrorLogService>;
 
   beforeEach(async () => {
     races = mockDeep<RacesQueriesService>();
@@ -48,6 +50,7 @@ describe('OptionValueResolverService', () => {
     starPlayers = mockDeep<StarPlayersService>();
     positions = mockDeep<PositionsQueriesService>();
     trophies = mockDeep<TrophiesQueriesService>();
+    errorLog = mock<ErrorLogService>();
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -66,6 +69,7 @@ describe('OptionValueResolverService', () => {
         { provide: StarPlayersService, useValue: starPlayers },
         { provide: PositionsQueriesService, useValue: positions },
         { provide: TrophiesQueriesService, useValue: trophies },
+        { provide: ErrorLogService, useValue: errorLog },
       ],
     }).compile();
     service = moduleRef.get(OptionValueResolverService);
@@ -98,6 +102,7 @@ describe('OptionValueResolverService', () => {
     races.findById.mockResolvedValue(undefined);
 
     expect(await service.resolve('race', '17')).toBe('17');
+    expect(errorLog.logError).not.toHaveBeenCalled();
   });
 
   it('falls back to the raw value when it is not an integer id', async () => {
@@ -127,10 +132,16 @@ describe('OptionValueResolverService', () => {
     ]);
   });
 
-  it('falls back to the raw value when the lookup rejects', async () => {
-    races.findById.mockRejectedValue(new Error('db gone'));
+  it('logs a failed lookup and falls back to the raw value', async () => {
+    const failure = new Error('db gone');
+    races.findById.mockRejectedValue(failure);
 
     expect(await service.resolve('race', '17')).toBe('17');
+    expect(errorLog.logError).toHaveBeenCalledWith(
+      service['logger'],
+      'Failed to look up the race name for recorded id 17',
+      failure,
+    );
   });
 
   it('passes a null parameter value through untouched', async () => {

@@ -90,7 +90,7 @@ const cases: AverageCase[] = [
     resolve: (service, scope) =>
       service.resolveAverageCasualtiesCausedDescending(scope),
     expectedTitle:
-      'Coaches by average casualties caused per match (highest first)',
+      'Coaches by average casualties inflicted per match (highest first)',
   },
   {
     resolverName: 'resolveAverageCasualtiesCausedAscending',
@@ -99,7 +99,7 @@ const cases: AverageCase[] = [
     resolve: (service, scope) =>
       service.resolveAverageCasualtiesCausedAscending(scope),
     expectedTitle:
-      'Coaches by average casualties caused per match (lowest first)',
+      'Coaches by average casualties inflicted per match (lowest first)',
   },
   {
     resolverName: 'resolveAverageCasualtiesSufferedDescending',
@@ -126,7 +126,7 @@ const cases: AverageCase[] = [
     resolve: (service, scope) =>
       service.resolveAverageSeriousInjuriesCausedDescending(scope),
     expectedTitle:
-      'Coaches by average serious injuries caused per match (highest first)',
+      'Coaches by average serious injuries inflicted per match (highest first)',
   },
   {
     resolverName: 'resolveAverageSeriousInjuriesCausedAscending',
@@ -135,7 +135,7 @@ const cases: AverageCase[] = [
     resolve: (service, scope) =>
       service.resolveAverageSeriousInjuriesCausedAscending(scope),
     expectedTitle:
-      'Coaches by average serious injuries caused per match (lowest first)',
+      'Coaches by average serious injuries inflicted per match (lowest first)',
   },
   {
     resolverName: 'resolveAverageSeriousInjuriesSufferedDescending',
@@ -162,7 +162,7 @@ const cases: AverageCase[] = [
     resolve: (service, scope) =>
       service.resolveAverageLastingInjuriesCausedDescending(scope),
     expectedTitle:
-      'Coaches by average lasting injuries caused per match (highest first)',
+      'Coaches by average lasting injuries inflicted per match (highest first)',
   },
   {
     resolverName: 'resolveAverageLastingInjuriesCausedAscending',
@@ -171,7 +171,7 @@ const cases: AverageCase[] = [
     resolve: (service, scope) =>
       service.resolveAverageLastingInjuriesCausedAscending(scope),
     expectedTitle:
-      'Coaches by average lasting injuries caused per match (lowest first)',
+      'Coaches by average lasting injuries inflicted per match (lowest first)',
   },
   {
     resolverName: 'resolveAverageLastingInjuriesSufferedDescending',
@@ -197,7 +197,8 @@ const cases: AverageCase[] = [
     direction: 'desc',
     resolve: (service, scope) =>
       service.resolveAverageDeathsCausedDescending(scope),
-    expectedTitle: 'Coaches by average deaths caused per match (highest first)',
+    expectedTitle:
+      'Coaches by average opponents killed per match (highest first)',
   },
   {
     resolverName: 'resolveAverageDeathsCausedAscending',
@@ -205,7 +206,8 @@ const cases: AverageCase[] = [
     direction: 'asc',
     resolve: (service, scope) =>
       service.resolveAverageDeathsCausedAscending(scope),
-    expectedTitle: 'Coaches by average deaths caused per match (lowest first)',
+    expectedTitle:
+      'Coaches by average opponents killed per match (lowest first)',
   },
   {
     resolverName: 'resolveAverageDeathsSufferedDescending',

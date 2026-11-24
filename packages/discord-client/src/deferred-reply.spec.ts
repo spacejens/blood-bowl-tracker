@@ -32,11 +32,12 @@ describe('DiscordClientService deferred commands', () => {
   const flush = () => new Promise((resolve) => setImmediate(resolve));
 
   /**
-   * The subject, built with a specific configured admin role id — which has
-   * to exist before construction, so this is a per-test factory.
+   * Compiles the subject with a configured admin role id, which the service
+   * reads at construction. Called only from the `beforeEach` of the nested
+   * describes below.
    */
-  async function makeService(
-    adminRoleId?: string,
+  async function compile(
+    adminRoleId: string | undefined,
   ): Promise<DiscordClientService> {
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -111,218 +112,230 @@ describe('DiscordClientService deferred commands', () => {
     resetDiscordJsMocks();
   });
 
-  it('defers ephemerally before running the command, then edits the deferred reply with its result', async () => {
-    const service = await makeService();
-    const execute = vi.fn().mockResolvedValue('the answer');
-    await service.registerCommands([
-      { name: 'slowstuff', description: 'Slow', deferEphemeral: true, execute },
-    ]);
-    const interaction = commandInteraction();
+  describe('with no admin role configured', () => {
+    let service: DiscordClientService;
 
-    interactionHandler()(interaction);
-    await flush();
+    beforeEach(async () => {
+      service = await compile(undefined);
+    });
 
-    const deferReply = interaction.deferReply as ReturnType<typeof vi.fn>;
-    expect(deferReply).toHaveBeenCalledWith({ flags: 64 });
-    expect(deferReply.mock.invocationCallOrder[0]).toBeLessThan(
-      execute.mock.invocationCallOrder[0],
-    );
-    expect(interaction.editReply).toHaveBeenCalledWith('the answer');
-    expect(interaction.reply).not.toHaveBeenCalled();
-  });
+    it('defers ephemerally before running the command, then edits the deferred reply with its result', async () => {
+      const execute = vi.fn().mockResolvedValue('the answer');
+      await service.registerCommands([
+        {
+          name: 'slowstuff',
+          description: 'Slow',
+          deferEphemeral: true,
+          execute,
+        },
+      ]);
+      const interaction = commandInteraction();
 
-  it('drops the reply-only flags when editing a deferred reply with an embed', async () => {
-    const service = await makeService();
-    const embeds = [{ title: 'Done' }];
-    await service.registerCommands([
-      {
-        name: 'slowstuff',
-        description: 'Slow',
-        deferEphemeral: true,
-        execute: vi.fn().mockResolvedValue({ embeds, flags: 64 }),
-      },
-    ]);
-    const interaction = commandInteraction();
+      interactionHandler()(interaction);
+      await flush();
 
-    interactionHandler()(interaction);
-    await flush();
+      const deferReply = interaction.deferReply as ReturnType<typeof vi.fn>;
+      expect(deferReply).toHaveBeenCalledWith({ flags: 64 });
+      expect(deferReply.mock.invocationCallOrder[0]).toBeLessThan(
+        execute.mock.invocationCallOrder[0],
+      );
+      expect(interaction.editReply).toHaveBeenCalledWith('the answer');
+      expect(interaction.reply).not.toHaveBeenCalled();
+    });
 
-    expect(interaction.editReply).toHaveBeenCalledWith({
-      content: undefined,
-      embeds,
-      components: undefined,
+    it('drops the reply-only flags when editing a deferred reply with an embed', async () => {
+      const embeds = [{ title: 'Done' }];
+      await service.registerCommands([
+        {
+          name: 'slowstuff',
+          description: 'Slow',
+          deferEphemeral: true,
+          execute: vi.fn().mockResolvedValue({ embeds, flags: 64 }),
+        },
+      ]);
+      const interaction = commandInteraction();
+
+      interactionHandler()(interaction);
+      await flush();
+
+      expect(interaction.editReply).toHaveBeenCalledWith({
+        content: undefined,
+        embeds,
+        components: undefined,
+      });
+    });
+
+    it('edits the deferred reply with the generic failure text when the command throws, and records the failure', async () => {
+      await service.registerCommands([
+        {
+          name: 'slowstuff',
+          description: 'Slow',
+          deferEphemeral: true,
+          execute: vi.fn().mockRejectedValue(new Error('boom')),
+        },
+      ]);
+      const interaction = commandInteraction();
+
+      interactionHandler()(interaction);
+      await flush();
+
+      expect(interaction.editReply).toHaveBeenCalledWith('I am badly hurt');
+      expect(interaction.reply).not.toHaveBeenCalled();
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: 'failure' }),
+      );
+    });
+
+    it('replies directly, without deferring, to a command that does not opt in', async () => {
+      await service.registerCommands([
+        {
+          name: 'slowstuff',
+          description: 'Fast',
+          execute: vi.fn().mockResolvedValue('the answer'),
+        },
+      ]);
+      const interaction = commandInteraction();
+
+      interactionHandler()(interaction);
+      await flush();
+
+      expect(interaction.deferReply).not.toHaveBeenCalled();
+      expect(interaction.reply).toHaveBeenCalledWith('the answer');
+    });
+
+    it('falls back to a plain failure reply and still notifies listeners when deferReply itself throws', async () => {
+      const execute = vi.fn();
+      await service.registerCommands([
+        {
+          name: 'slowstuff',
+          description: 'Slow',
+          deferEphemeral: true,
+          execute,
+        },
+      ]);
+      const interaction = commandInteraction({
+        deferReply: vi.fn().mockRejectedValue(new Error('expired interaction')),
+      });
+
+      interactionHandler()(interaction);
+      await flush();
+
+      expect(execute).not.toHaveBeenCalled();
+      expect(interaction.editReply).not.toHaveBeenCalled();
+      expect(interaction.reply).toHaveBeenCalledWith('I am badly hurt');
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: 'failure' }),
+      );
+    });
+
+    it('still notifies listeners when both deferReply and the fallback failure reply throw', async () => {
+      const execute = vi.fn();
+      await service.registerCommands([
+        {
+          name: 'slowstuff',
+          description: 'Slow',
+          deferEphemeral: true,
+          execute,
+        },
+      ]);
+      const interaction = commandInteraction({
+        deferReply: vi.fn().mockRejectedValue(new Error('expired interaction')),
+        reply: vi.fn().mockRejectedValue(new Error('also expired')),
+      });
+
+      await expect(
+        (async () => {
+          interactionHandler()(interaction);
+          await flush();
+        })(),
+      ).resolves.not.toThrow();
+
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({ outcome: 'failure' }),
+      );
+    });
+
+    it('edits an already-deferred button reply instead of sending a plain reply', async () => {
+      const handler = vi.fn().mockResolvedValue('era details');
+      service.registerButtonHandler('deepdive:era:', handler);
+      const reply = vi.fn().mockResolvedValue(undefined);
+      const editReply = vi.fn().mockResolvedValue(undefined);
+      const interaction = {
+        isAutocomplete: () => false,
+        isButton: () => true,
+        isStringSelectMenu: () => false,
+        isChatInputCommand: () => false,
+        customId: 'deepdive:era:7',
+        user: { tag: 'testuser#0001', id: '123' },
+        channelId: '456',
+        channel: { name: 'test-channel' },
+        deferred: true,
+        replied: false,
+        reply,
+        editReply,
+      };
+      interactionHandler()(interaction);
+      await flush();
+      expect(editReply).toHaveBeenCalledWith('era details');
+      expect(reply).not.toHaveBeenCalled();
+    });
+
+    it('edits an already-deferred button reply with the failure message when the handler throws', async () => {
+      service.registerButtonHandler(
+        'deepdive:era:',
+        vi.fn().mockRejectedValue(new Error('boom')),
+      );
+      const reply = vi.fn().mockResolvedValue(undefined);
+      const editReply = vi.fn().mockResolvedValue(undefined);
+      interactionHandler()({
+        isAutocomplete: () => false,
+        isButton: () => true,
+        isStringSelectMenu: () => false,
+        isChatInputCommand: () => false,
+        customId: 'deepdive:era:7',
+        user: { tag: 'u#1', id: '1' },
+        channelId: '2',
+        channel: { name: 'c' },
+        deferred: true,
+        replied: false,
+        reply,
+        editReply,
+      });
+      await flush();
+      expect(editReply).toHaveBeenCalledWith('I am badly hurt');
+      expect(reply).not.toHaveBeenCalled();
     });
   });
 
-  it('edits the deferred reply with the generic failure text when the command throws, and records the failure', async () => {
-    const service = await makeService();
-    await service.registerCommands([
-      {
-        name: 'slowstuff',
-        description: 'Slow',
-        deferEphemeral: true,
-        execute: vi.fn().mockRejectedValue(new Error('boom')),
-      },
-    ]);
-    const interaction = commandInteraction();
+  describe('with an admin role configured', () => {
+    let service: DiscordClientService;
 
-    interactionHandler()(interaction);
-    await flush();
-
-    expect(interaction.editReply).toHaveBeenCalledWith('I am badly hurt');
-    expect(interaction.reply).not.toHaveBeenCalled();
-    expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'failure' }),
-    );
-  });
-
-  it('replies directly, without deferring, to a command that does not opt in', async () => {
-    const service = await makeService();
-    await service.registerCommands([
-      {
-        name: 'slowstuff',
-        description: 'Fast',
-        execute: vi.fn().mockResolvedValue('the answer'),
-      },
-    ]);
-    const interaction = commandInteraction();
-
-    interactionHandler()(interaction);
-    await flush();
-
-    expect(interaction.deferReply).not.toHaveBeenCalled();
-    expect(interaction.reply).toHaveBeenCalledWith('the answer');
-  });
-
-  it('falls back to a plain failure reply and still notifies listeners when deferReply itself throws', async () => {
-    const service = await makeService();
-    const execute = vi.fn();
-    await service.registerCommands([
-      {
-        name: 'slowstuff',
-        description: 'Slow',
-        deferEphemeral: true,
-        execute,
-      },
-    ]);
-    const interaction = commandInteraction({
-      deferReply: vi.fn().mockRejectedValue(new Error('expired interaction')),
+    beforeEach(async () => {
+      service = await compile('admin-role-1');
     });
 
-    interactionHandler()(interaction);
-    await flush();
+    it('refuses a denied deferred command with a plain reply, never deferring', async () => {
+      const execute = vi.fn();
+      await service.registerCommands([
+        {
+          name: 'slowstuff',
+          description: 'Slow',
+          deferEphemeral: true,
+          restrictedRole: 'admin',
+          execute,
+        },
+      ]);
+      const interaction = commandInteraction();
 
-    expect(execute).not.toHaveBeenCalled();
-    expect(interaction.editReply).not.toHaveBeenCalled();
-    expect(interaction.reply).toHaveBeenCalledWith('I am badly hurt');
-    expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'failure' }),
-    );
-  });
+      interactionHandler()(interaction);
+      await flush();
 
-  it('still notifies listeners when both deferReply and the fallback failure reply throw', async () => {
-    const service = await makeService();
-    const execute = vi.fn();
-    await service.registerCommands([
-      {
-        name: 'slowstuff',
-        description: 'Slow',
-        deferEphemeral: true,
-        execute,
-      },
-    ]);
-    const interaction = commandInteraction({
-      deferReply: vi.fn().mockRejectedValue(new Error('expired interaction')),
-      reply: vi.fn().mockRejectedValue(new Error('also expired')),
-    });
-
-    await expect(
-      (async () => {
-        interactionHandler()(interaction);
-        await flush();
-      })(),
-    ).resolves.not.toThrow();
-
-    expect(listener).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'failure' }),
-    );
-  });
-
-  it('edits an already-deferred button reply instead of sending a plain reply', async () => {
-    const service = await makeService();
-    const handler = vi.fn().mockResolvedValue('era details');
-    service.registerButtonHandler('deepdive:era:', handler);
-    const reply = vi.fn().mockResolvedValue(undefined);
-    const editReply = vi.fn().mockResolvedValue(undefined);
-    const interaction = {
-      isAutocomplete: () => false,
-      isButton: () => true,
-      isStringSelectMenu: () => false,
-      isChatInputCommand: () => false,
-      customId: 'deepdive:era:7',
-      user: { tag: 'testuser#0001', id: '123' },
-      channelId: '456',
-      channel: { name: 'test-channel' },
-      deferred: true,
-      replied: false,
-      reply,
-      editReply,
-    };
-    interactionHandler()(interaction);
-    await flush();
-    expect(editReply).toHaveBeenCalledWith('era details');
-    expect(reply).not.toHaveBeenCalled();
-  });
-
-  it('edits an already-deferred button reply with the failure message when the handler throws', async () => {
-    const service = await makeService();
-    service.registerButtonHandler(
-      'deepdive:era:',
-      vi.fn().mockRejectedValue(new Error('boom')),
-    );
-    const reply = vi.fn().mockResolvedValue(undefined);
-    const editReply = vi.fn().mockResolvedValue(undefined);
-    interactionHandler()({
-      isAutocomplete: () => false,
-      isButton: () => true,
-      isStringSelectMenu: () => false,
-      isChatInputCommand: () => false,
-      customId: 'deepdive:era:7',
-      user: { tag: 'u#1', id: '1' },
-      channelId: '2',
-      channel: { name: 'c' },
-      deferred: true,
-      replied: false,
-      reply,
-      editReply,
-    });
-    await flush();
-    expect(editReply).toHaveBeenCalledWith('I am badly hurt');
-    expect(reply).not.toHaveBeenCalled();
-  });
-
-  it('refuses a denied deferred command with a plain reply, never deferring', async () => {
-    const service = await makeService('admin-role-1');
-    const execute = vi.fn();
-    await service.registerCommands([
-      {
-        name: 'slowstuff',
-        description: 'Slow',
-        deferEphemeral: true,
-        restrictedRole: 'admin',
-        execute,
-      },
-    ]);
-    const interaction = commandInteraction();
-
-    interactionHandler()(interaction);
-    await flush();
-
-    expect(interaction.deferReply).not.toHaveBeenCalled();
-    expect(execute).not.toHaveBeenCalled();
-    expect(interaction.reply).toHaveBeenCalledWith({
-      content: "You don't have permission to use this command.",
-      flags: 64,
+      expect(interaction.deferReply).not.toHaveBeenCalled();
+      expect(execute).not.toHaveBeenCalled();
+      expect(interaction.reply).toHaveBeenCalledWith({
+        content: "You don't have permission to use this command.",
+        flags: 64,
+      });
     });
   });
 });
