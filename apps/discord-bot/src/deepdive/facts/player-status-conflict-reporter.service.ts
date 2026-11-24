@@ -46,11 +46,7 @@ export class PlayerStatusConflictReporterService {
       return;
     }
     const content = `Bug: player ${conflict.id} (${conflict.name}) is killed in match events, but their stored status is ${conflict.status}`;
-    this.errorLog.logError(
-      this.logger,
-      'Player status conflicts with match events',
-      new Error(content),
-    );
+    this.logger.error(content);
     this.reported.add(key);
     const channelId = this.config.getTpFeedDebugDiscordChannelId();
     if (!channelId) {

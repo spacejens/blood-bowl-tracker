@@ -53,8 +53,9 @@ matching interactions, newest first. Each row carries, in order:
   name instead of its raw recorded id: `race: Orc`, not `race: 17`. The
   lookup is best-effort: a parameter with no entity behind it, a value that
   is not an id, and an entity deleted since the interaction was recorded
-  all fall back to the raw recorded value. A parameter recorded with no
-  value shows as `key: <empty>`; a repeated key (a multi-select's several
+  all fall back to the raw recorded value. A lookup that fails (a database
+  error, say) falls back the same way, and the bot logs the failure. A
+  parameter recorded with no value shows as `key: <empty>`; a repeated key (a multi-select's several
   values) is repeated rather than grouped. An interaction with no
   parameters gets no parentheses at all.
 - The outcome, as a tick for a success or a cross for a failure, followed

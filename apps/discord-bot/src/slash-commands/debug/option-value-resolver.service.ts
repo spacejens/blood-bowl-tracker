@@ -13,7 +13,8 @@ import {
   TeamsQueriesService,
   TrophiesQueriesService,
 } from '@blood-bowl-tracker/game-data-queries';
-import { Injectable } from '@nestjs/common';
+import { ErrorLogService } from '@blood-bowl-tracker/logging';
+import { Injectable, Logger } from '@nestjs/common';
 
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
@@ -54,7 +55,8 @@ const ENTITY_ID_PARAMETER_KEY = {
  * prefix (a plain `category`, `date` or `outcome`, a select menu's own `id`
  * parameter, or a non-entity prefix like `debug:retrigger:`/`onthisdate:`), a
  * value that is not an integer id, or an entity deleted since the interaction
- * was recorded all fall back to the raw recorded value. Nothing here may break
+ * was recorded all fall back to the raw recorded value. A lookup that fails falls back the
+ * same way, and the failure is logged. Nothing here may break
  * the listing over stale data.
  *
  * Does real I/O through `packages/game-data`, so specs of its consumers must
@@ -62,6 +64,8 @@ const ENTITY_ID_PARAMETER_KEY = {
  */
 @Injectable()
 export class OptionValueResolverService {
+  private readonly logger = new Logger(OptionValueResolverService.name);
+
   private readonly lookups: Map<string, NameLookup>;
   private readonly componentLookups: Map<string, NameLookup>;
 
@@ -77,6 +81,7 @@ export class OptionValueResolverService {
     private readonly starPlayers: StarPlayersService,
     private readonly positionsQueries: PositionsQueriesService,
     private readonly trophiesQueries: TrophiesQueriesService,
+    private readonly errorLog: ErrorLogService,
   ) {
     const raceLookup: NameLookup = async (id) =>
       (await this.racesQueries.findById(id))?.name;
@@ -151,7 +156,12 @@ export class OptionValueResolverService {
     }
     try {
       return (await lookup(id)) ?? rawValue;
-    } catch {
+    } catch (error) {
+      this.errorLog.logError(
+        this.logger,
+        `Failed to look up the name for recorded id ${id}`,
+        error,
+      );
       return rawValue;
     }
   }
