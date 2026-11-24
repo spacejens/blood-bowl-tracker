@@ -68,7 +68,6 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
    ```bash
    grep -E '^IMPORT_(BBL|TP|MANUAL)_API_TOKEN=' apps/discord-bot/.env
    ```
-   If `grep -E '^API_TOKEN_IMPORT_' apps/discord-bot/.env` also matches, the file still uses the old names: tell the developer to rename them to `IMPORT_*_API_TOKEN`, because the api-server ignores the old names and every import would fail with `401`.
    A `.env` missing one of these, or still carrying its placeholder value, does not fail at startup — the container comes up healthy and every `/rpc` call from the matching importer tool is rejected with `401` at request time instead. If any is missing or still a placeholder, tell the developer before proceeding — they need to set a value there and the matching `connection.apiToken` in that tool's config (see the importer sections below).
 2. `docker-compose.yml` fixes both container names (`postgres`, `discord-bot`) rather than letting Compose namespace them per project — a stopped container left over from a previous run (in this checkout or any other clone/worktree of this repo) will collide on the name and make step 3 fail with "Conflict. The container name ... is already in use". Check for and clear that first:
    ```bash
