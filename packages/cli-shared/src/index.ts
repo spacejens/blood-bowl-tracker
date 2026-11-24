@@ -20,6 +20,7 @@ export {
 } from './process-runner.service';
 export { ProductionEnvFileService } from './production-env-file.service';
 export { ProductionQueryModule } from './production-query.module';
+export { runApp } from './run-app';
 export { runCli } from './run-cli';
 export { RunProductionQueryService } from './run-production-query.service';
 export type { WriteFileResult } from './write-file.service';
