@@ -3,6 +3,7 @@ import type {
   CharacteristicFormat,
   PlayerCharacteristic,
 } from '@blood-bowl-tracker/domain-enums';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type { PositionCharacteristicsContext } from '../position-rules-sets/position-rules-sets.service';
@@ -35,43 +36,45 @@ interface Comparison {
   rollTarget: boolean;
 }
 
-const COMPARISONS: readonly Comparison[] = [
-  {
+const COMPARISON_BY_INCREASE: Readonly<
+  Record<PlayerCharacteristic, Omit<Comparison, 'increase'>>
+> = {
+  MA: {
     key: 'move',
-    increase: 'MA',
     counter: 'moveReductionCount',
     format: 'moveFormat',
     rollTarget: false,
   },
-  {
+  ST: {
     key: 'strength',
-    increase: 'ST',
     counter: 'strengthReductionCount',
     format: 'strengthFormat',
     rollTarget: false,
   },
-  {
+  AG: {
     key: 'agility',
-    increase: 'AG',
     counter: 'agilityReductionCount',
     format: 'agilityFormat',
     rollTarget: true,
   },
-  {
+  PA: {
     key: 'passing',
-    increase: 'PA',
     counter: 'passingReductionCount',
     format: 'passingFormat',
     rollTarget: true,
   },
-  {
+  AV: {
     key: 'armour',
-    increase: 'AV',
     counter: 'armourReductionCount',
     format: 'armourFormat',
     rollTarget: false,
   },
-];
+};
+
+/** One comparison per characteristic, in PLAYER_CHARACTERISTICS order. */
+const COMPARISONS: readonly Comparison[] = PLAYER_CHARACTERISTICS.map(
+  (increase) => ({ increase, ...COMPARISON_BY_INCREASE[increase] }),
+);
 
 /**
  * Derives a player's five lasting stat-reduction counts from his current

@@ -63,6 +63,7 @@ export {
   NAF_EXTERNAL_SYSTEM_NAME,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
 // The import rules packages/import-tp-live shares, kept visible here under

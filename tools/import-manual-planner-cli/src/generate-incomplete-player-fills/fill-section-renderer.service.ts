@@ -1,3 +1,7 @@
+import {
+  NAME_EXTERNAL_SYSTEM,
+  TP_EXTERNAL_SYSTEM,
+} from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 
@@ -33,10 +37,7 @@ export class FillSectionRendererService {
   ): string {
     const body = JSON5.stringify(
       {
-        externalSystems: [
-          { name: 'Name', category: 'bookkeeping' },
-          { name: 'tourplay.net', category: 'imported_data_source' },
-        ],
+        externalSystems: [NAME_EXTERNAL_SYSTEM, TP_EXTERNAL_SYSTEM],
         incompletePlayerFills: entries,
         lastingInjuryRepairs: repairs,
       },

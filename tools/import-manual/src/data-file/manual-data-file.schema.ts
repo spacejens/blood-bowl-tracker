@@ -4,6 +4,7 @@ import {
   ExternalSystemCategorySchema,
   KeywordKindSchema,
   PlayerCharacteristicSchema,
+  PlayerSkillSourceSchema,
   SkillCategorySchema,
   SppEarningActionTypeSchema,
   TrophyAwardRuleEventTypeSchema,
@@ -472,7 +473,7 @@ const IncompletePlayerFillAdvancementSchema = z.union([
     .object({
       skill: ExternalRefSchema,
       attributeValue: z.string().min(1).optional(),
-      source: z.enum(['chosen', 'random']).optional(),
+      source: PlayerSkillSourceSchema.extract(['chosen', 'random']).optional(),
       freeExtra: z.boolean().optional(),
     })
     .strict(),

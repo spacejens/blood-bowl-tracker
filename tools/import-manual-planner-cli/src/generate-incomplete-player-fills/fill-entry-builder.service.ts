@@ -1,4 +1,8 @@
-import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
+import {
+  NAME_EXTERNAL_SYSTEM_NAME,
+  type PlayerStatus,
+  TP_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type {
@@ -41,7 +45,7 @@ export class FillEntryBuilderService {
   build(parts: EntryParts): FillEntry {
     const { candidate, line, profile } = parts;
     return {
-      player: { system: 'tourplay.net', id: candidate.tpId },
+      player: { system: TP_EXTERNAL_SYSTEM_NAME, id: candidate.tpId },
       ...(candidate.isJourneyman ? { journeyman: true as const } : {}),
       status: parts.status,
       characteristics: {
@@ -55,9 +59,9 @@ export class FillEntryBuilderService {
       unspentSpp: parts.unspentSpp,
       startingSkills: profile.skills.map((skill) =>
         skill.attributeValue === null
-          ? { system: 'Name', id: skill.nameId }
+          ? { system: NAME_EXTERNAL_SYSTEM_NAME, id: skill.nameId }
           : {
-              skill: { system: 'Name', id: skill.nameId },
+              skill: { system: NAME_EXTERNAL_SYSTEM_NAME, id: skill.nameId },
               attributeValue: skill.attributeValue,
             },
       ),

@@ -1,7 +1,13 @@
 import {
   BIG_GUY_KEYWORD_NAME,
   CONSEQUENCE_TYPES,
+  NAME_EXTERNAL_SYSTEM_NAME,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
+
+/** The TP and Name external-system names as SQL string literals. */
+const TP_SYSTEM = `'${TP_EXTERNAL_SYSTEM_NAME}'`;
+const NAME_SYSTEM = `'${NAME_EXTERNAL_SYSTEM_NAME}'`;
 
 /**
  * The SQL the fill generator runs against production. Every statement is a
@@ -41,7 +47,7 @@ const CANDIDATES_CTE = `WITH candidates AS (
   JOIN game_data.positions pos ON pos.id = p.position_id
   JOIN game_data.players_external_ids pe ON pe.player_id = p.id
   JOIN game_data.external_systems es ON es.id = pe.external_system_id
-  WHERE es.name = 'tourplay.net'
+  WHERE es.name = ${TP_SYSTEM}
     AND pos.is_star_player = false
     AND (${INCOMPLETE_PLAYER_PREDICATE})
   ORDER BY p.id, pe.external_id
@@ -72,7 +78,7 @@ team_players AS (
   JOIN game_data.positions pos ON pos.id = p.position_id
   JOIN game_data.players_external_ids pe ON pe.player_id = p.id
   JOIN game_data.external_systems es ON es.id = pe.external_system_id
-  WHERE es.name = 'tourplay.net'
+  WHERE es.name = ${TP_SYSTEM}
     AND pos.is_star_player = false
     AND te.team_id IN (SELECT team_id FROM candidates)
   ORDER BY p.id
@@ -165,7 +171,7 @@ WHERE c.end_date IS NULL
     SELECT 1
     FROM game_data.competitions_external_ids ce
     JOIN game_data.external_systems es ON es.id = ce.external_system_id
-    WHERE ce.competition_id = c.id AND es.name = 'tourplay.net'
+    WHERE ce.competition_id = c.id AND es.name = ${TP_SYSTEM}
   )`;
 
 export const POSITION_RULES_SETS_SQL = `${CANDIDATES_CTE}
@@ -194,7 +200,7 @@ JOIN game_data.era_rules_sets ers ON ers.rules_set_id = prs.rules_set_id
 LEFT JOIN (
   game_data.skills_external_ids se
   JOIN game_data.external_systems ses
-    ON ses.id = se.external_system_id AND ses.name = 'Name'
+    ON ses.id = se.external_system_id AND ses.name = ${NAME_SYSTEM}
 ) ON se.skill_id = prss.skill_id
 WHERE (prs.position_id, ers.era_id) IN (
   SELECT position_id, era_id FROM candidates
@@ -243,7 +249,7 @@ export const TEAM_ROSTERS_SQL = `${CANDIDATES_CTE}
 SELECT DISTINCT tei.team_id AS "teamId", tei.external_id AS "rosterId"
 FROM game_data.teams_external_ids tei
 JOIN game_data.external_systems es ON es.id = tei.external_system_id
-WHERE es.name = 'tourplay.net'
+WHERE es.name = ${TP_SYSTEM}
   AND tei.team_id IN (SELECT team_id FROM candidates)`;
 
 /** Every `Name`-system id of every skill, with the skill's stored name. */
@@ -252,7 +258,7 @@ export const SKILL_NAMES_SQL = `SELECT se.skill_id AS "skillId",
 FROM game_data.skills_external_ids se
 JOIN game_data.external_systems es ON es.id = se.external_system_id
 JOIN game_data.skills s ON s.id = se.skill_id
-WHERE es.name = 'Name'`;
+WHERE es.name = ${NAME_SYSTEM}`;
 
 const TEAM_PLAYER_RULES_SET_IDS = `SELECT ers.rules_set_id
   FROM game_data.era_rules_sets ers
@@ -367,7 +373,7 @@ const LINE_COLUMNS = (alias: string): string =>
  * PositionRulesSetsService.findCharacteristicsContext in packages/game-data.
  */
 export const LASTING_INJURY_REPAIRS_SQL = `SELECT DISTINCT ON (p.id)
-  json_build_object('system', 'tourplay.net', 'id', pe.external_id)
+  json_build_object('system', ${TP_SYSTEM}, 'id', pe.external_id)
     AS "player",
   json_build_object(${LINE_COLUMNS('p')}) AS "line",
   coalesce((
@@ -399,7 +405,7 @@ JOIN game_data.team_eras te ON te.id = p.team_era_id
 JOIN game_data.positions pos ON pos.id = p.position_id
 JOIN game_data.players_external_ids pe ON pe.player_id = p.id
 JOIN game_data.external_systems es ON es.id = pe.external_system_id
-WHERE es.name = 'tourplay.net'
+WHERE es.name = ${TP_SYSTEM}
   AND pos.is_star_player = false
   AND NOT (${INCOMPLETE_PLAYER_PREDICATE})
   AND ${REDUCTION_COUNT_COLUMNS.map((column) => `p.${column} = 0`).join('\n  AND ')}
@@ -419,7 +425,7 @@ export const TP_SKILL_IDS_SQL = `SELECT se.skill_id AS "skillId",
   se.external_id AS "masterId"
 FROM game_data.skills_external_ids se
 JOIN game_data.external_systems es ON es.id = se.external_system_id
-WHERE es.name = 'tourplay.net'`;
+WHERE es.name = ${TP_SYSTEM}`;
 
 /** Every `tourplay.net` id of a candidate's position: the lineUpMasterIds TP lists it by. */
 export const TP_POSITION_IDS_SQL = `${CANDIDATES_CTE}
@@ -427,7 +433,7 @@ SELECT DISTINCT pe.position_id AS "positionId",
   pe.external_id AS "tpPositionId"
 FROM game_data.positions_external_ids pe
 JOIN game_data.external_systems es ON es.id = pe.external_system_id
-WHERE es.name = 'tourplay.net'
+WHERE es.name = ${TP_SYSTEM}
   AND pe.position_id IN (SELECT position_id FROM candidates)`;
 
 /**

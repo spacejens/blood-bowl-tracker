@@ -275,7 +275,8 @@ The same concept is shown the same way in every reply:
   and a single `2024-03-16` when both ends fall on the same day.
 - **Points in time** (the startup message's commit time, TP back-off
   deadlines) use Discord's timestamp markup, `<t:N:f>` with `N` in epoch
-  seconds, so each reader sees them in their own time zone.
+  seconds, built with discord.js `time()` and `TimestampStyles`, so each
+  reader sees them in their own time zone.
 - **Bold** marks section headings in the text-style debug and admin replies
   (`/importtp`, `/debugfilterusage`) only. Usernames are never bold, and
   deepdive and list embeds stay plain.

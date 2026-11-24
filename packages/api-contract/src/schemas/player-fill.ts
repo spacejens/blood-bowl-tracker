@@ -1,7 +1,10 @@
 import { PLAYER_STATUSES } from '@blood-bowl-tracker/domain-enums';
 import { z } from 'zod';
 
-import { PlayerCharacteristicSchema } from './player-skill';
+import {
+  PlayerCharacteristicSchema,
+  PlayerSkillSourceSchema,
+} from './player-skill';
 
 /**
  * The player's complete current characteristic line. MA, ST, AG and AV are
@@ -33,7 +36,11 @@ export const FillAdvancementSchema = z.discriminatedUnion('kind', [
     kind: z.literal('skill'),
     skillId: z.number().int(),
     attributeValue: z.string().min(1).nullable(),
-    source: z.enum(['advancement', 'chosen', 'random']),
+    source: PlayerSkillSourceSchema.extract([
+      'advancement',
+      'chosen',
+      'random',
+    ]),
     isFreeExtra: z.boolean(),
   }),
   z.object({

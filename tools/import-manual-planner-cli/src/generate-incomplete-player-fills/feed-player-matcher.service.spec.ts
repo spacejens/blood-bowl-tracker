@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
+import { SnowflakeOrderService } from '../read-tp-feed-history/snowflake-order.service';
 import type { TpFeedHistoryReports } from '../read-tp-feed-history/tp-feed-history-index.service';
 import type { FeedMatchInput } from './feed-player-matcher.service';
 import { FeedPlayerMatcherService } from './feed-player-matcher.service';
@@ -64,6 +65,9 @@ describe('FeedPlayerMatcherService', () => {
         // Pure and dependency-free, so passed real: the owners asserted
         // below carry the rules sets it builds.
         PricingRulesSetsService,
+        // Pure and dependency-free, so passed real: the posting order asserted
+        // below is its order.
+        SnowflakeOrderService,
       ],
     }).compile();
     service = moduleRef.get(FeedPlayerMatcherService);

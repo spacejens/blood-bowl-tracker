@@ -5,7 +5,10 @@ enum's member list — action types, weather types, characteristic formats,
 match categories and the rest — as plain `as const` string arrays, together
 with each list's value type (`(typeof X)[number]`). Every package imports these
 instead of re-declaring them. It also holds the well-known external-system
-names: Name, NAF, BBL's `tloeg.bbleague.se` and TP's `tourplay.net`.
+names: Name, NAF, BBL's `tloeg.bbleague.se` and TP's `tourplay.net`. The Name
+and TP external-system rows (`NAME_EXTERNAL_SYSTEM`, `TP_EXTERNAL_SYSTEM`: name
+plus category) live here too, so a batch file that registers them does not
+restate the category.
 
 ## Why it has no dependencies
 

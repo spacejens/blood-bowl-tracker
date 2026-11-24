@@ -1,10 +1,13 @@
 import type {
   AdvancementKind,
   CharacteristicFormat,
+  NAME_EXTERNAL_SYSTEM_NAME,
   PlayerCharacteristic,
+  PlayerSkillSource,
   PlayerStatus,
   SkillAccess,
   SkillCategory,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
 
 import type {
@@ -12,11 +15,13 @@ import type {
   TpFeedHistoryReports,
 } from '../read-tp-feed-history/tp-feed-history-index.service';
 import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
+import type { CharacteristicKey } from './characteristic-keys';
 import type { TpPositionIdRow, TpSkillIdRow } from './snapshot-fill.types';
 
-/** The five characteristics, by the keys a fill entry uses. */
-export const CHARACTERISTIC_KEYS = ['ma', 'st', 'ag', 'pa', 'av'] as const;
-export type CharacteristicKey = (typeof CHARACTERISTIC_KEYS)[number];
+export {
+  CHARACTERISTIC_KEYS,
+  type CharacteristicKey,
+} from './characteristic-keys';
 
 /** A characteristic line; `pa` is null exactly when the rules set has no Passing. */
 export interface CharacteristicLine {
@@ -190,7 +195,7 @@ export const SKIP_REASONS = [
 export type SkipReason = (typeof SKIP_REASONS)[number];
 
 export interface NameRef {
-  system: 'Name';
+  system: typeof NAME_EXTERNAL_SYSTEM_NAME;
   id: string;
 }
 
@@ -204,7 +209,7 @@ export type FillAdvancement =
 
 /** One `incompletePlayerFills` entry, as the batch file holds it. */
 export interface FillEntry {
-  player: { system: 'tourplay.net'; id: string };
+  player: { system: typeof TP_EXTERNAL_SYSTEM_NAME; id: string };
   /** A journeyman whose stored marker is set; his Loner is left to the server. */
   journeyman?: true;
   status: PlayerStatus;
@@ -223,7 +228,7 @@ export interface FillEntry {
 
 /** One `lastingInjuryRepairs` entry, as the batch file holds it. */
 export interface LastingInjuryRepairEntry {
-  player: { system: 'tourplay.net'; id: string };
+  player: { system: typeof TP_EXTERNAL_SYSTEM_NAME; id: string };
 }
 
 /**
@@ -422,7 +427,7 @@ export interface FeedMatchResult {
   summary: FeedSummary;
 }
 
-export type FeedSelection = 'chosen' | 'random';
+export type FeedSelection = Extract<PlayerSkillSource, 'chosen' | 'random'>;
 
 /** One feed report, its skill resolved to a stored skill. */
 export type ResolvedStep =
@@ -433,7 +438,7 @@ export type ResolvedStep =
       nameId: string;
       attributeValue: string | null;
       selection: FeedSelection;
-      category: 'primary' | 'secondary';
+      category: SkillAccess;
       reportedCost: number;
     }
   | {

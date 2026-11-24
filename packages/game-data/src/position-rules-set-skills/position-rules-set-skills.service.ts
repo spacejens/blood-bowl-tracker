@@ -1,4 +1,5 @@
 import type {
+  PositionRulesSetSkillRef,
   SyncPositionRulesSetSkills,
   SyncPositionRulesSetSkillsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -20,13 +21,10 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { SkillValidationError } from '../shared/skill-validation-error';
 
-/** One starting skill of a position under one rules set, named for display. */
-export interface PositionStartingSkill {
-  rulesSetId: number;
+/** One starting skill of a position under one rules set: the contract's row plus display fields. */
+export interface PositionStartingSkill extends PositionRulesSetSkillRef {
   rulesSetName: string;
-  skillId: number;
   skillName: string;
-  attributeValue: string | null;
   /**
    * The skill's category *under this row's own rules set*. A rules set can
    * move a skill between categories, which is why `skill_rules_sets` is

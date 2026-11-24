@@ -65,3 +65,9 @@ export const BBL_EXTERNAL_SYSTEM_NAME = 'tloeg.bbleague.se';
  * definition, so a lookup by name cannot miss on a differently spelled system.
  */
 export const TP_EXTERNAL_SYSTEM_NAME = 'tourplay.net';
+
+/** TP's external-system row: its name, and the category every TP record is imported under. */
+export const TP_EXTERNAL_SYSTEM = {
+  name: TP_EXTERNAL_SYSTEM_NAME,
+  category: 'imported_data_source',
+} as const;

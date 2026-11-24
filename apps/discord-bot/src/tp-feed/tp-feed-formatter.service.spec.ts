@@ -295,6 +295,12 @@ describe('TpFeedFormatterService', () => {
     );
   });
 
+  it('rounds a blocked-until time with milliseconds up to the next second', () => {
+    expect(
+      service.formatBlocked(new Date('2026-09-29T12:05:00.001Z')),
+    ).toContain('<t:1790683501:f>');
+  });
+
   it('formats the notice that TP imports resumed', () => {
     expect(service.formatResumed()).toBe(
       'TP is accepting requests again — TP imports have resumed',

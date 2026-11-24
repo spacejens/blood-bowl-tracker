@@ -4,6 +4,8 @@ import type { ExternalSystemCategory } from './external-systems';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
   EXTERNAL_SYSTEM_CATEGORIES,
+  NAME_EXTERNAL_SYSTEM,
+  TP_EXTERNAL_SYSTEM,
   TP_EXTERNAL_SYSTEM_NAME,
 } from './external-systems';
 
@@ -36,5 +38,21 @@ describe('EXTERNAL_SYSTEM_CATEGORIES', () => {
     expectTypeOf<ExternalSystemCategory>().toEqualTypeOf<
       'bookkeeping' | 'imported_data_source' | 'referenced_not_imported'
     >();
+  });
+});
+
+describe('well-known external-system rows', () => {
+  it('registers Name as bookkeeping', () => {
+    expect(NAME_EXTERNAL_SYSTEM).toEqual({
+      name: 'Name',
+      category: 'bookkeeping',
+    });
+  });
+
+  it('registers TP as an imported data source under its site name', () => {
+    expect(TP_EXTERNAL_SYSTEM).toEqual({
+      name: TP_EXTERNAL_SYSTEM_NAME,
+      category: 'imported_data_source',
+    });
   });
 });

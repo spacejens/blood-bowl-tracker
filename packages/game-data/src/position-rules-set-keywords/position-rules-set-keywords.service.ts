@@ -1,4 +1,5 @@
 import type {
+  PositionRulesSetKeywordRef,
   SyncPositionRulesSetKeywords,
   SyncPositionRulesSetKeywordsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -15,18 +16,13 @@ import {
   rulesSets,
   sql,
 } from '@blood-bowl-tracker/db';
-import type { KeywordKind } from '@blood-bowl-tracker/domain-enums';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { KeywordValidationError } from '../shared/keyword-validation-error';
 
-/** One BB2025 keyword a position carries under one rules set, named. */
-export interface PositionKeyword {
-  rulesSetId: number;
+/** One BB2025 keyword a position carries under one rules set: the contract's row plus the rules set's name. */
+export interface PositionKeyword extends PositionRulesSetKeywordRef {
   rulesSetName: string;
-  keywordId: number;
-  keywordName: string;
-  kind: KeywordKind;
 }
 
 /** One entry with its `position_rules_sets` row already resolved. */

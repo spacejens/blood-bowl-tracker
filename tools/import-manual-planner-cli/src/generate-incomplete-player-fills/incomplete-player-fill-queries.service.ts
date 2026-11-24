@@ -4,6 +4,7 @@ import {
   PLAYER_STATUSES,
   SKILL_ACCESS_LEVELS,
   SKILL_CATEGORIES,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -218,7 +219,7 @@ const LineSchema = z.object({
 
 const LastingInjuryRepairCandidateRowSchema = z.object({
   player: z.object({
-    system: z.literal('tourplay.net'),
+    system: z.literal(TP_EXTERNAL_SYSTEM_NAME),
     id: z.string().min(1),
   }),
   line: LineSchema,

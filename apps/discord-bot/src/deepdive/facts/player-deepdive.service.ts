@@ -1,4 +1,5 @@
 import type { CharacteristicFormat } from '@blood-bowl-tracker/domain-enums';
+import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
 import type {
   PlayerCharacteristicAdvancementRow,
   PlayerSkillRow,
@@ -74,6 +75,7 @@ import { PlayerSkillsSectionService } from './player-skills-section.service';
 import { PlayerSppSectionService } from './player-spp-section.service';
 import { PlayerStatusConflictReporterService } from './player-status-conflict-reporter.service';
 import { PlayerStatusLineService } from './player-status-line.service';
+import { REDUCTION_FIELDS } from './reduction-fields';
 
 /**
  * Most honors listed in one player embed. Deliberately its own constant rather
@@ -100,18 +102,6 @@ const MAX_PLAYER_KILLS = 30;
  */
 const INCREASED = '▲'; // the raw value is higher than the baseline
 const DECREASED = '▼'; // the raw value is lower than the baseline
-
-/**
- * Each characteristic's reduction counter and the label the line writes it
- * under, in the order the line lists them.
- */
-const REDUCTION_FIELDS = [
-  ['MA', 'moveReductionCount'],
-  ['ST', 'strengthReductionCount'],
-  ['AG', 'agilityReductionCount'],
-  ['PA', 'passingReductionCount'],
-  ['AV', 'armourReductionCount'],
-] as const;
 
 // Shown in brackets after a journeyman's position.
 const JOURNEYMAN_BADGE = 'Journeyman';
@@ -683,8 +673,8 @@ export class PlayerDeepdiveService {
         ),
       );
     }
-    for (const [label, field] of REDUCTION_FIELDS) {
-      const count = player[field];
+    for (const label of PLAYER_CHARACTERISTICS) {
+      const count = player[REDUCTION_FIELDS[label]];
       if (count > 0) {
         parts.push(`${label} -${count}`);
       }

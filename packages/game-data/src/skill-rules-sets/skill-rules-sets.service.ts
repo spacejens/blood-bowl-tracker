@@ -1,4 +1,5 @@
 import type {
+  SkillRulesSetCategory,
   SyncSkillRulesSets,
   SyncSkillRulesSetsResult,
 } from '@blood-bowl-tracker/api-contract';
@@ -17,12 +18,9 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { SkillValidationError } from '../shared/skill-validation-error';
 
-/** One rules set's category for a given skill, named for display. */
-export interface SkillCategoryByRulesSet {
-  rulesSetId: number;
+/** One rules set's category for a given skill: the contract's row plus the rules set's name. */
+export interface SkillCategoryByRulesSet extends SkillRulesSetCategory {
   rulesSetName: string;
-  category: SkillCategory;
-  isElite: boolean;
 }
 
 /** One skill's category under a given rules set, named for display. */

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { time, TimestampStyles } from 'discord.js';
 
 import { ErrorListFitService } from '../tp-import/error-list-fit.service';
 import type { TpFeedEvent, TpFeedImportFailure } from './tp-feed-event';
@@ -27,7 +28,7 @@ export class TpFeedFormatterService {
    */
   formatBlocked(retryAt: Date): string {
     const at = Math.ceil(retryAt.getTime() / 1000);
-    return `TP is blocking requests (HTTP 403) — TP imports are paused until <t:${at}:f> (<t:${at}:R>), then retried`;
+    return `TP is blocking requests (HTTP 403) — TP imports are paused until ${time(at, TimestampStyles.LongDateShortTime)} (${time(at, TimestampStyles.RelativeTime)}), then retried`;
   }
 
   /** The notice that TP accepted a request again after a block. */

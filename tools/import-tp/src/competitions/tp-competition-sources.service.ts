@@ -3,6 +3,7 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   ReferenceLookupService,
+  TP_EXTERNAL_SYSTEM,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
@@ -94,7 +95,7 @@ export class TpCompetitionSourcesService {
     });
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
+      TP_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
