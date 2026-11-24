@@ -35,5 +35,5 @@ export const resolveImportTpConfigPath = paths.resolvePath;
 export class ImportTpConfigService extends createImportConfigServiceBase({
   pathToken: IMPORT_TP_CONFIG_PATH,
   fileBaseName: 'import-tp-config',
-  apiTokenEnvVar: 'API_TOKEN_IMPORT_TP',
+  apiTokenEnvVar: 'IMPORT_TP_API_TOKEN',
 }) {}

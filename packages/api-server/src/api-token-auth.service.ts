@@ -11,9 +11,9 @@ const BEARER_PREFIX = 'Bearer ';
  * means adding a fourth entry here plus the matching env var.
  */
 const CALLERS: ReadonlyArray<{ callerName: string; envVar: string }> = [
-  { callerName: 'import-bbl', envVar: 'API_TOKEN_IMPORT_BBL' },
-  { callerName: 'import-tp', envVar: 'API_TOKEN_IMPORT_TP' },
-  { callerName: 'import-manual', envVar: 'API_TOKEN_IMPORT_MANUAL' },
+  { callerName: 'import-bbl', envVar: 'IMPORT_BBL_API_TOKEN' },
+  { callerName: 'import-tp', envVar: 'IMPORT_TP_API_TOKEN' },
+  { callerName: 'import-manual', envVar: 'IMPORT_MANUAL_API_TOKEN' },
 ];
 
 /** Outcome of validating an `Authorization` header against the known tokens. */

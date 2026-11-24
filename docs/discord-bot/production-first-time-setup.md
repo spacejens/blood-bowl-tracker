@@ -36,7 +36,7 @@ Done once, by a developer with accounts on both providers:
    the second machine does.
 5. Create `apps/discord-bot/.env.production` and fill in every variable:
    the production `DISCORD_BOT_TOKEN`, the production channel ids, the
-   `RANDOM_INSIGHTS_*` tunables, the `API_TOKEN_IMPORT_*` tokens, and
+   `RANDOM_INSIGHTS_*` tunables, the `IMPORT_*_API_TOKEN` tokens, and
    `DATABASE_URL` set to the Neon string from step 2. The production
    application must also have **Message Content Intent** enabled in the
    Developer Portal (Bot tab > Privileged Gateway Intents) — the bot declares

@@ -43,8 +43,8 @@ export async function startImporterStack(
   databaseUrl: string,
 ): Promise<ImporterStack> {
   // ApiTokenAuthService reads the importer tokens from the environment.
-  previousApiToken = process.env.API_TOKEN_IMPORT_MANUAL;
-  process.env.API_TOKEN_IMPORT_MANUAL = E2E_API_TOKEN;
+  previousApiToken = process.env.IMPORT_MANUAL_API_TOKEN;
+  process.env.IMPORT_MANUAL_API_TOKEN = E2E_API_TOKEN;
   const serverModule = await Test.createTestingModule({
     imports: [
       DbModule.forRootAsync({ useFactory: () => databaseUrl }),
@@ -82,9 +82,9 @@ export async function stopImporterStack(stack: ImporterStack): Promise<void> {
   await stack.server.close();
   await closeTestDb(stack.db);
   if (previousApiToken === undefined) {
-    delete process.env.API_TOKEN_IMPORT_MANUAL;
+    delete process.env.IMPORT_MANUAL_API_TOKEN;
   } else {
-    process.env.API_TOKEN_IMPORT_MANUAL = previousApiToken;
+    process.env.IMPORT_MANUAL_API_TOKEN = previousApiToken;
   }
 }
 

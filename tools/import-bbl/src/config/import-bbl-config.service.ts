@@ -35,5 +35,5 @@ export const resolveImportBblConfigPath = paths.resolvePath;
 export class ImportBblConfigService extends createImportConfigServiceBase({
   pathToken: IMPORT_BBL_CONFIG_PATH,
   fileBaseName: 'import-bbl-config',
-  apiTokenEnvVar: 'API_TOKEN_IMPORT_BBL',
+  apiTokenEnvVar: 'IMPORT_BBL_API_TOKEN',
 }) {}

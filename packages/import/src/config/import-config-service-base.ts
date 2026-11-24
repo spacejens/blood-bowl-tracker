@@ -17,7 +17,7 @@ export interface ImportConfigServiceConfig {
   fileBaseName: string;
   /**
    * The api-server env var this tool's token must match, e.g.
-   * `API_TOKEN_IMPORT_BBL`, named in the missing-token error message.
+   * `IMPORT_BBL_API_TOKEN`, named in the missing-token error message.
    */
   apiTokenEnvVar: string;
 }

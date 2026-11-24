@@ -14,7 +14,7 @@ const TEST_CONFIG_PATH = Symbol('TEST_CONFIG_PATH');
 class TestImportConfigService extends createImportConfigServiceBase({
   pathToken: TEST_CONFIG_PATH,
   fileBaseName: 'import-test-config',
-  apiTokenEnvVar: 'API_TOKEN_IMPORT_TEST',
+  apiTokenEnvVar: 'IMPORT_TEST_API_TOKEN',
 }) {}
 
 describe('createImportConfigServiceBase', () => {
@@ -106,7 +106,7 @@ describe('createImportConfigServiceBase', () => {
     expect(() => service.getApiToken()).toThrow(
       'connection.apiToken is not set in import-test-config.json5. Set it to ' +
         'the bearer token this tool authenticates with; it must match the ' +
-        'API_TOKEN_IMPORT_TEST value in apps/discord-bot/.env.',
+        'IMPORT_TEST_API_TOKEN value in apps/discord-bot/.env.',
     );
   });
 

@@ -13,9 +13,9 @@ describe('ApiTokenAuthService', () => {
   let service: ApiTokenAuthService;
 
   const tokens: Record<string, string | undefined> = {
-    API_TOKEN_IMPORT_BBL: 'bbl-secret',
-    API_TOKEN_IMPORT_TP: 'tp-secret',
-    API_TOKEN_IMPORT_MANUAL: 'manual-secret',
+    IMPORT_BBL_API_TOKEN: 'bbl-secret',
+    IMPORT_TP_API_TOKEN: 'tp-secret',
+    IMPORT_MANUAL_API_TOKEN: 'manual-secret',
   };
 
   /**
@@ -43,9 +43,9 @@ describe('ApiTokenAuthService', () => {
     });
 
     it.each([
-      ['API_TOKEN_IMPORT_BBL', 'bbl-secret', 'import-bbl'],
-      ['API_TOKEN_IMPORT_TP', 'tp-secret', 'import-tp'],
-      ['API_TOKEN_IMPORT_MANUAL', 'manual-secret', 'import-manual'],
+      ['IMPORT_BBL_API_TOKEN', 'bbl-secret', 'import-bbl'],
+      ['IMPORT_TP_API_TOKEN', 'tp-secret', 'import-tp'],
+      ['IMPORT_MANUAL_API_TOKEN', 'manual-secret', 'import-manual'],
     ])(
       'authenticates the token from %s as caller %s',
       (_envVar, token, callerName) => {
@@ -115,7 +115,7 @@ describe('ApiTokenAuthService', () => {
 
   describe('with one token configured to an empty string', () => {
     beforeEach(async () => {
-      service = await compile({ ...tokens, API_TOKEN_IMPORT_BBL: '' });
+      service = await compile({ ...tokens, IMPORT_BBL_API_TOKEN: '' });
     });
 
     it('ignores the empty one', () => {

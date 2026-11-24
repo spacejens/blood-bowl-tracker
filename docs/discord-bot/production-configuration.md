@@ -9,7 +9,7 @@ files — plus `DATABASE_URL`.
 
 Its values are an independent set, not a copy of your local `.env`: the
 Discord token and channel ids point at the real production Discord
-application and server, the `API_TOKEN_IMPORT_*` values are separate
+application and server, the `IMPORT_*_API_TOKEN` values are separate
 production secrets, and the `RANDOM_INSIGHTS_*` tunables are set for a live
 audience rather than for development.
 

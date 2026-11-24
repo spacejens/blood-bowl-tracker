@@ -31,7 +31,7 @@ Top-level keys:
     `http://localhost:3000` if unset.
   - `apiToken` — **required.** The bearer token this tool authenticates with;
     the api-server rejects unauthenticated requests with `401`. Must match the
-    `API_TOKEN_IMPORT_TP` value in `apps/discord-bot/.env` (see
+    `IMPORT_TP_API_TOKEN` value in `apps/discord-bot/.env` (see
     [RPC conventions](../api/rpc-conventions.md)). Treat it like a password —
     `import-tp-config.json5` is git-ignored, so it is never committed.
 - `dataDir` — path to the folder that directly contains one subdirectory per

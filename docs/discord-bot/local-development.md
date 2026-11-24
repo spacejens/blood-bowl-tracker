@@ -77,7 +77,7 @@ but with the dev application's and dev server's values:
   `webhookId` and the parser ignores it, the same as it would in production.
 
 The remaining variables (`RANDOM_INSIGHTS_CRON`, the
-`RANDOM_INSIGHTS_*_PROBABILITY` tunables, the `API_TOKEN_IMPORT_*` tokens,
+`RANDOM_INSIGHTS_*_PROBABILITY` tunables, the `IMPORT_*_API_TOKEN` tokens,
 and the TP settings including the mandatory `TP_SCRAPING_ENABLED` switch)
 have nothing to do with bot identity and are set as usual for local
 development.
