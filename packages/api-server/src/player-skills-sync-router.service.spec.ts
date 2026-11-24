@@ -53,9 +53,12 @@ describe('PlayerSkillsSyncRouterService', () => {
   it('sends a batch flagged checkOrderAgainstSpend: false straight through too', async () => {
     playerSkills.sync.mockResolvedValue({ playerSkillIds: [51] });
 
-    await service.sync({ entries, checkOrderAgainstSpend: false });
+    const input = { entries, checkOrderAgainstSpend: false };
 
-    expect(playerSkills.sync).toHaveBeenCalled();
+    await expect(service.sync(input)).resolves.toEqual({
+      playerSkillIds: [51],
+    });
+    expect(playerSkills.sync).toHaveBeenCalledWith(input);
     expect(curatedAdvancementOrder.sync).not.toHaveBeenCalled();
   });
 

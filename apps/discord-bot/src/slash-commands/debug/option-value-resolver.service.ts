@@ -55,8 +55,8 @@ const ENTITY_ID_PARAMETER_KEY = {
  * prefix (a plain `category`, `date` or `outcome`, a select menu's own `id`
  * parameter, or a non-entity prefix like `debug:retrigger:`/`onthisdate:`), a
  * value that is not an integer id, or an entity deleted since the interaction
- * was recorded all fall back to the raw recorded value. A lookup that fails falls back the
- * same way, and the failure is logged. Nothing here may break
+ * was recorded all fall back to the raw recorded value. A lookup that fails
+ * falls back the same way, and the failure is logged. Nothing here may break
  * the listing over stale data.
  *
  * Does real I/O through `packages/game-data`, so specs of its consumers must
@@ -140,10 +140,11 @@ export class OptionValueResolverService {
   }
 
   async resolve(key: string, rawValue: string): Promise<string> {
-    return this.resolveViaLookup(this.lookups.get(key), rawValue);
+    return this.resolveViaLookup(key, this.lookups.get(key), rawValue);
   }
 
   private async resolveViaLookup(
+    key: string,
     lookup: NameLookup | undefined,
     rawValue: string,
   ): Promise<string> {
@@ -159,7 +160,7 @@ export class OptionValueResolverService {
     } catch (error) {
       this.errorLog.logError(
         this.logger,
-        `Failed to look up the name for recorded id ${id}`,
+        `Failed to look up the ${key} name for recorded id ${id}`,
         error,
       );
       return rawValue;
@@ -210,7 +211,7 @@ export class OptionValueResolverService {
         value:
           parameter.value === null || parameter.key !== entityIdKey
             ? parameter.value
-            : await this.resolveViaLookup(lookup, parameter.value),
+            : await this.resolveViaLookup(prefix, lookup, parameter.value),
       })),
     );
   }

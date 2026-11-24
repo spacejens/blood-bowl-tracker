@@ -46,8 +46,8 @@ import { RpcRouterFactoryService } from './rpc-router-factory.service';
 import { UpsertHandlerService } from './upsert-handler.service';
 
 /**
- * Builds the real router with every `game-data` service, and `PlayerSkillsSyncRouterService` (which
- * calls two of them), mocked, and the real
+ * Builds the real router with every `game-data` service and
+ * `PlayerSkillsSyncRouterService` mocked, and the real
  * `UpsertHandlerService`. That service is pure and dependency-free — it has
  * no constructor, no injected collaborators and no I/O, only exception
  * classification — so passing the real instance carries none of the coupling

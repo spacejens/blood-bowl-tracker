@@ -139,7 +139,7 @@ describe('OptionValueResolverService', () => {
     expect(await service.resolve('race', '17')).toBe('17');
     expect(errorLog.logError).toHaveBeenCalledWith(
       service['logger'],
-      'Failed to look up the name for recorded id 17',
+      'Failed to look up the race name for recorded id 17',
       failure,
     );
   });
