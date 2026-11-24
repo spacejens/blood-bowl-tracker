@@ -1,10 +1,12 @@
 import type {
   AdvancementKind,
   CharacteristicFormat,
+  NAME_EXTERNAL_SYSTEM_NAME,
   PlayerCharacteristic,
   PlayerStatus,
   SkillAccess,
   SkillCategory,
+  TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
 
 import type {
@@ -190,7 +192,7 @@ export const SKIP_REASONS = [
 export type SkipReason = (typeof SKIP_REASONS)[number];
 
 export interface NameRef {
-  system: 'Name';
+  system: typeof NAME_EXTERNAL_SYSTEM_NAME;
   id: string;
 }
 
@@ -204,7 +206,7 @@ export type FillAdvancement =
 
 /** One `incompletePlayerFills` entry, as the batch file holds it. */
 export interface FillEntry {
-  player: { system: 'tourplay.net'; id: string };
+  player: { system: typeof TP_EXTERNAL_SYSTEM_NAME; id: string };
   /** A journeyman whose stored marker is set; his Loner is left to the server. */
   journeyman?: true;
   status: PlayerStatus;
@@ -223,7 +225,7 @@ export interface FillEntry {
 
 /** One `lastingInjuryRepairs` entry, as the batch file holds it. */
 export interface LastingInjuryRepairEntry {
-  player: { system: 'tourplay.net'; id: string };
+  player: { system: typeof TP_EXTERNAL_SYSTEM_NAME; id: string };
 }
 
 /**

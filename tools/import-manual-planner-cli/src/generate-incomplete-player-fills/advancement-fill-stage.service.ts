@@ -2,6 +2,7 @@ import type {
   PlayerCharacteristic,
   PlayerStatus,
 } from '@blood-bowl-tracker/domain-enums';
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
@@ -291,7 +292,7 @@ export class AdvancementFillStageService {
       return { characteristic: CHARACTERISTIC_NAMES[step.characteristic] };
     }
     return {
-      skill: { system: 'Name', id: step.nameId },
+      skill: { system: NAME_EXTERNAL_SYSTEM_NAME, id: step.nameId },
       ...(step.attributeValue === null
         ? {}
         : { attributeValue: step.attributeValue }),

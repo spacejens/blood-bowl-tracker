@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, posix, sep } from 'node:path';
 
 import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
+import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 import { z } from 'zod';
@@ -96,7 +97,7 @@ export class ManualBatchFillsStoreService {
         );
       }
       for (const entry of parsed.data.incompletePlayerFills ?? []) {
-        if (entry.player.system === 'tourplay.net') {
+        if (entry.player.system === TP_EXTERNAL_SYSTEM_NAME) {
           ids.push(entry.player.id);
         }
       }

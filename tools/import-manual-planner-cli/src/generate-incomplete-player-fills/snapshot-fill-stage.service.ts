@@ -1,3 +1,4 @@
+import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
@@ -329,7 +330,7 @@ export class SnapshotFillStageService {
         unspentSpp,
         status: input.status,
         advancements: steps.map((step) => ({
-          skill: { system: 'Name', id: step.nameId },
+          skill: { system: NAME_EXTERNAL_SYSTEM_NAME, id: step.nameId },
           source: step.selection,
         })),
       }),
