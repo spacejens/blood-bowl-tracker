@@ -172,8 +172,9 @@ worktree's removal. In a worktree created before this directory existed, run
 `sync-gitignored` never replaces something already present, so a real
 `tools/import-manual-planner-cli/data` directory in a worktree is left
 unlinked, and what it holds is removed with the worktree. Move its contents
-into the main checkout's `tools/import-manual-planner-cli/data/` before
-running `sync-gitignored`, or run the collectors again in the main checkout.
+into the main checkout's `tools/import-manual-planner-cli/data/`, remove the
+emptied worktree directory, and only then run `sync-gitignored`, or run the
+collectors again in the main checkout.
 
 ## Reading the TP roster snapshots
 
