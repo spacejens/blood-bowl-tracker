@@ -1,14 +1,16 @@
+import {
+  AdvancementKindCandidatesService,
+  AdvancementSpendRangeService,
+  MAX_DEDUCED,
+} from '@blood-bowl-tracker/game-rules';
 import { Injectable } from '@nestjs/common';
 
-import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
-import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import type {
   AdvancementCandidatesInput,
   RulesSetAdvancementInput,
 } from './unspent-spp.types';
 
-/** The most new advancements whose orders are searched: 6! = 720 assignments. */
-export const MAX_DEDUCED = 6;
+export { MAX_DEDUCED };
 
 /** One way to give the new rows their numbers: row id -> advancement number. */
 type Assignment = Map<number, number>;

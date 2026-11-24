@@ -1,5 +1,6 @@
 import type { PlayerSkillEntry } from '@blood-bowl-tracker/api-contract';
 import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
+import { FREE_EXTRA_SKILL_NAMES } from '@blood-bowl-tracker/game-rules';
 import { Injectable } from '@nestjs/common';
 
 import { CharacteristicAdvancementPlannerService } from './characteristic-advancement-planner.service';
@@ -15,16 +16,7 @@ import type {
   SkillWrites,
 } from './player-advancement-sync.types';
 
-/**
- * The curated names of the skills a player only ever gains as free extras:
- * BB2025 grants Hatred on top of a player's advancements, never as one, and
- * a Loner can be gained without spending SPP; a journeyman's own Loner is a
- * starting skill JourneymanLonerService keeps, not a gained one. The source
- * is trusted to add a gained Loner only where it applies. The name alone is
- * each skill's identity: their variants (Hatred's target, Loner's roll) live
- * in `attribute_value`.
- */
-export const FREE_EXTRA_SKILL_NAMES: readonly string[] = ['Hatred', 'Loner'];
+export { FREE_EXTRA_SKILL_NAMES };
 
 /**
  * Decides which advancement rows a `PlayerSkillsService.sync` batch writes,

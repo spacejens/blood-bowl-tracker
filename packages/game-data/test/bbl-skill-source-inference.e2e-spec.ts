@@ -30,6 +30,8 @@ import type {
   AdvancementKind,
   PlayerSkillSource,
 } from '@blood-bowl-tracker/domain-enums';
+import { AdvancementKindCandidatesService } from '@blood-bowl-tracker/game-rules';
+import { AdvancementSpendRangeService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -38,9 +40,7 @@ import { CharacteristicAdvancementPlannerService } from '../src/player-skills/ch
 import { PaidAdvancementSlotsService } from '../src/player-skills/paid-advancement-slots.service';
 import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
-import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
-import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
 import { BblSkillSourceInferenceService } from '../src/spp/bbl-skill-source-inference.service';
 import { ConfirmedAdvancementOrderRecheckService } from '../src/spp/confirmed-advancement-order-recheck.service';
 import { SppAdjustmentsService } from '../src/spp/spp-adjustments.service';

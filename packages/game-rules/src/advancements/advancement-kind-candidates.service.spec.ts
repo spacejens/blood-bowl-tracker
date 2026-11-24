@@ -2,13 +2,13 @@ import type { AdvancementKind } from '@blood-bowl-tracker/domain-enums';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
 import type {
   AdvancementCandidatesInput,
   AdvancementOption,
   ApplicableAdvancementCost,
   PlayerSkillEntry,
-} from './unspent-spp.types';
+} from './advancement.types';
+import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
 
 let nextId = 1;
 

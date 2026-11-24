@@ -1,13 +1,12 @@
+import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
 import { Module } from '@nestjs/common';
 
 import { PlayerSkillsModule } from '../player-skills/player-skills.module';
 import { MatchScopeFilterModule } from '../shared/match-scope-filter.module';
 import { AdvancementCostsService } from './advancement-costs.service';
-import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
 import { AdvancementOrderDeductionService } from './advancement-order-deduction.service';
 import { AdvancementOrderSpendCheckService } from './advancement-order-spend-check.service';
 import { AdvancementPricingModelService } from './advancement-pricing-model.service';
-import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
 import { ConfirmedAdvancementOrderRecheckService } from './confirmed-advancement-order-recheck.service';
 import { PlayerPricingModelService } from './player-pricing-model.service';
@@ -23,14 +22,12 @@ import { UnspentSppCombinationService } from './unspent-spp-combination.service'
 import { UnspentSppDecisionService } from './unspent-spp-decision.service';
 
 @Module({
-  imports: [MatchScopeFilterModule, PlayerSkillsModule],
+  imports: [GameRulesModule, MatchScopeFilterModule, PlayerSkillsModule],
   providers: [
     AdvancementCostsService,
-    AdvancementKindCandidatesService,
     AdvancementOrderDeductionService,
     AdvancementOrderSpendCheckService,
     AdvancementPricingModelService,
-    AdvancementSpendRangeService,
     BblSkillSourceInferenceService,
     ConfirmedAdvancementOrderRecheckService,
     PlayerPricingModelService,
@@ -46,12 +43,11 @@ import { UnspentSppDecisionService } from './unspent-spp-decision.service';
     UnspentSppService,
   ],
   exports: [
+    GameRulesModule,
     AdvancementCostsService,
-    AdvancementKindCandidatesService,
     AdvancementOrderDeductionService,
     AdvancementOrderSpendCheckService,
     AdvancementPricingModelService,
-    AdvancementSpendRangeService,
     BblSkillSourceInferenceService,
     PlayerPricingModelService,
     SppAdjustmentsService,

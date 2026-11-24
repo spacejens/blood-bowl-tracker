@@ -1,0 +1,51 @@
+# game-rules
+
+`packages/game-rules` holds the pure Blood Bowl rules that both sides of the
+API must apply the same way.
+
+## Purpose
+
+Some rules are needed both server-side, in `packages/game-data`, and
+client-side, in tools such as `tools/import-manual-planner-cli`. Keeping one
+implementation here means a rule change reaches both together.
+
+## What it owns
+
+- **Advancement candidates** — `AdvancementKindCandidatesService` works out
+  which kinds of advancement a player's gained skills and characteristic
+  increases could have been, given the position's skill access and the cost
+  rows that apply under one rules set.
+- **Spend range** — `AdvancementSpendRangeService` turns those candidates and
+  the cost rows into the least and most SPP the advancements can have cost,
+  and answers whether an exact spend is possible.
+- **Limits** — `MAX_DEDUCED`, the most new advancements whose orders are
+  searched, and `FREE_EXTRA_SKILL_NAMES`, the skills gained as free extras
+  that never take an advancement number.
+- **Types** — the inputs and outputs of those services, such as
+  `AdvancementCandidatesInput` and `SpendRange`.
+
+The package exports `GameRulesModule`, which provides and exports every
+service. `packages/game-data` imports it through its `SppModule` and
+re-exports the services, so its consumers keep their imports.
+
+## Why it is shared
+
+The planner tool used to carry its own copy of this pricing logic, and a drift
+spec kept the copy in step with `packages/game-data`. One shared package
+removes the copy and the spec.
+
+## Dependencies
+
+Only `packages/domain-enums`, plus NestJS for the `@Injectable()` services. The
+package does no I/O and touches no database, so both sides of the
+client/server boundary can use it.
+
+## Development
+
+```bash
+pnpm --filter @blood-bowl-tracker/game-rules run verify
+pnpm --filter @blood-bowl-tracker/game-data run verify
+```
+
+Specs build each service through `Test.createTestingModule`, like every other
+service in the repo.

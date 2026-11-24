@@ -21,11 +21,11 @@ import type {
   SkillAccess,
   SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
+import { AdvancementKindCandidatesService } from '@blood-bowl-tracker/game-rules';
+import { AdvancementSpendRangeService } from '@blood-bowl-tracker/game-rules';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
 import { AdvancementPricingModelService } from './advancement-pricing-model.service';
-import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import { StoredUnspentSppSettlementService } from './stored-unspent-spp-settlement.service';
 import type {
   ApplicableAdvancementCost,
