@@ -235,7 +235,7 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    ```
    followed by setting the `dataDir` field in that file to the path the developer gave, replacing the existing `dataDir:` value (a single flat quoted string, e.g. `dataDir: 'data/tloeg.bbleague.se',`).
 
-   The BBL and TP configs hold only era names and source-specific mapping: the league, era and rules-set catalog comes from batch 001, so batch 001 must be applied before a standalone BBL or TP import (the full import does that). A stale `identity.rulesSets` or `dates.startDate`/`dates.endDate` key left in an existing config is ignored, not an error.
+   The BBL and TP configs hold only era names and source-specific mapping: the league, era and rules-set catalog comes from batch 001, so batch 001 must be applied before a standalone BBL or TP import (the full import does that).
 
    Also confirm `connection.apiToken` is not still the `import-bbl-config.example.json5` placeholder (`your-import-bbl-token-here`) and matches `IMPORT_BBL_API_TOKEN` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — an unchanged or mismatched value is syntactically valid and only surfaces as a `401` from the api-server at request time, not a config error.
 2. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:

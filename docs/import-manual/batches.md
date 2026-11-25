@@ -296,8 +296,7 @@ WHERE name = '<batch name>' AND content_hash = '<old hash>';
 ```
 
 The update must land before the next `apply` against that database, or the
-run fails on the changed batch. A database restored from a backup taken before
-the update brings the old hash with it and needs the same update.
+run fails on the changed batch.
 
 Editing comments or formatting in an applied batch is harmless: the recorded
 content hash is computed over the parsed content (SHA-256 of its canonical

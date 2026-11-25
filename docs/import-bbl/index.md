@@ -56,8 +56,7 @@ under the `tloeg.bbleague.se` external system (`BBL_EXTERNAL_SYSTEM_NAME` in
 
 `eras` — a JSON array describing the eras a league played through. Each
 entry is grouped into six parts. An era's dates and rules sets are curated
-in batch 001, not set here; a config that still carries `rulesSets`,
-`startDate` or `endDate` keeps loading, with those keys ignored.
+in batch 001, not set here.
 
 - `identity` — `name`, which the eras step finds the curated era by.
 - `dates` — `autoAssignByDate` (required boolean). When it is `false`, the

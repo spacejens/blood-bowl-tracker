@@ -140,8 +140,7 @@ other.
 - **LeagueConfigService** — reads the `league.name` config key.
 - **EraDataConfigService** — reads the `league.eras` array into flat
   `{ name, dataSubdir }` entries, validating each field and enforcing unique
-  era names and data subdirectories. Stale `identity.rulesSets` and `dates`
-  keys are stripped, not rejected.
+  era names and data subdirectories.
 - **SourceModule** — the reusable traversal core. `SourceConfigService`
   resolves `dataDir` against the current working directory; `TpSourceReader`
   walks the configured eras through

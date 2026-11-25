@@ -59,9 +59,7 @@ To run an import against production:
    its league name (`tLoEG`). The league, era and rules-set catalog (names,
    dates, rules sets) is curated in `tools/import-manual`'s batch 001, so
    every era and league name in these configs must be one that batch
-   curates, and batch 001 must be applied before BBL or TP runs. An older
-   config that still has `identity.rulesSets`, `dates.startDate` or
-   `dates.endDate` keys still loads; those keys are ignored.
+   curates, and batch 001 must be applied before BBL or TP runs.
 
 2. Build the tools:
 
