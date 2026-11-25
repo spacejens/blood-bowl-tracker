@@ -157,14 +157,15 @@ Run this section only if "Restore a database backup" was selected in step 0 abov
    node tools/backup-cli/dist/main.js restore <backup-key>
    ```
    It downloads the backup, clears the database `localDatabase.url` names (default: the docker-compose database), restores, and prints `{ "key", "restoredMigrations", "tableRowCounts" }`. It needs `pg_restore` and `psql` on `PATH` at the production server's major version or newer; if they are missing or too old, say so (on macOS, Homebrew's `libpq` or `postgresql@<major>` provides them). On failure it prints `{"error": ...}` on stderr and exits `1`: a download or credential error leaves the database untouched, while an error saying the database "is now empty" means the wipe succeeded and the restore did not — tell the developer to re-run this action. An error starting "Restored <key> into ..., but reading the restored database back failed" is different: the data is restored and only the summary could not be read, so still run step 7 (the bot needs its restart to apply pending migrations), then report that error in step 8 without the counts. For any other failure, skip step 7, report the error, and continue with the other selected sections.
-7. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
+7. A backup taken before production's `001-initial-seed` ledger hash was updated (see "Changing curated data" in `docs/import-manual/batches.md`) carries the old hash, so a later plain `apply` would fail on the changed batch. If the restored ledger still holds the old hash, run the same `UPDATE` from that section against the local database; it must report `UPDATE 1`. Do this before "Run the manual import (remaining batches)".
+8. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
    ```bash
    docker compose restart discord-bot
    docker compose ps
    docker compose logs --tail 200 discord-bot
    ```
    Poll `docker compose ps` until `discord-bot` is `Up`, as in "Deploy the stack" step 4. In the logs from the restart, expect `Running migrations...`, one `Applying: <name>` line per migration newer than the backup, `Migrations complete.`, then the same leader-lock and startup-message lines as "Deploy the stack" step 5. A failed migration means the branch's migrations do not apply cleanly to production-shaped data — report it prominently.
-8. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
+9. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
 
 ### Run the full import
 
@@ -234,6 +235,8 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    ```
    followed by setting the `dataDir` field in that file to the path the developer gave, replacing the existing `dataDir:` value (a single flat quoted string, e.g. `dataDir: 'data/tloeg.bbleague.se',`).
 
+   The BBL and TP configs hold only era names and source-specific mapping: the league, era and rules-set catalog comes from batch 001, so batch 001 must be applied before a standalone BBL or TP import (the full import does that). A stale `identity.rulesSets` or `dates.startDate`/`dates.endDate` key left in an existing config is ignored, not an error.
+
    Also confirm `connection.apiToken` is not still the `import-bbl-config.example.json5` placeholder (`your-import-bbl-token-here`) and matches `IMPORT_BBL_API_TOKEN` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — an unchanged or mismatched value is syntactically valid and only surfaces as a `401` from the api-server at request time, not a config error.
 2. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
@@ -250,7 +253,7 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
    ```bash
    cat tools/import-tp/import-tp-config.json5 2>/dev/null
    ```
-   If the file doesn't exist, or its `eras` array still has the `import-tp-config.example.json5` placeholder entry (`{ name: '<era name>', dataSubdir: '<era-slug>' }`), the tool will fail validation. In that case, list the actual era subdirectories present under `tools/import-tp/data/` (`ls tools/import-tp/data/`) and ask the developer to confirm the display name for each era slug found, per `docs/import-tp/index.md`. Then write the result into `import-tp-config.json5`:
+   If the file doesn't exist, or its `eras` array still has the `import-tp-config.example.json5` placeholder entry (`{ name: '<era name>', dataSubdir: '<era-slug>' }`), the tool will fail validation. In that case, list the actual era subdirectories present under `tools/import-tp/data/` (`ls tools/import-tp/data/`) and ask the developer which curated era (from `tools/import-manual/data/batches/001-initial-seed/eras.json5`) each era slug found belongs to, per `docs/import-tp/index.md`: each era's `name` must be exactly a curated TP era name (Third era, Second Dungeon Bowl era, Fourth era), and `league.name` must be a curated league (`tLoEG`), not the `<league name>` placeholder. Then write the result into `import-tp-config.json5`:
    ```bash
    if [ ! -f tools/import-tp/import-tp-config.json5 ]; then
      cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.json5
