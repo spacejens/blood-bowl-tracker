@@ -1,7 +1,3 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-
 import {
   TpFileNameService,
   TpFilesReaderService,
@@ -12,6 +8,11 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
+import type {
+  TpEraFixture,
+  TpTeamsFixture,
+} from './tp-files-fixtures.test-helpers';
+import { stubTpFiles } from './tp-files-fixtures.test-helpers';
 import { TpRawPlayerSkillsIndexService } from './tp-raw-player-skills-index.service';
 import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
@@ -21,34 +22,45 @@ function defaultMasters(): MockProxy<TpSkillMasterNamesService> {
   return masters;
 }
 
-async function makeService(
-  files: Record<string, unknown>,
+async function makeServiceFrom(
+  fixtures: { eras?: TpEraFixture[]; teams?: TpTeamsFixture[] },
   masters: MockProxy<TpSkillMasterNamesService> = defaultMasters(),
-  extraFiles: Record<string, unknown> = {},
 ): Promise<TpRawPlayerSkillsIndexService> {
-  const root = await mkdtemp(join(tmpdir(), 'review-player-tp-skills-'));
-  const competitionDir = join(root, 'fourth-era', 'a-cup');
-  await mkdir(competitionDir, { recursive: true });
-  for (const [name, body] of Object.entries(files)) {
-    await writeFile(join(competitionDir, name), JSON.stringify(body), 'utf8');
-  }
-  for (const [relativePath, body] of Object.entries(extraFiles)) {
-    await mkdir(dirname(join(root, relativePath)), { recursive: true });
-    await writeFile(join(root, relativePath), JSON.stringify(body), 'utf8');
-  }
+  const tpFiles = mock<TpFilesReaderService>();
+  stubTpFiles(tpFiles, fixtures);
   const config: MockProxy<ReviewPlayerConfigService> =
     mock<ReviewPlayerConfigService>();
-  config.getDataDir.mockReturnValue(root);
+  config.getDataDir.mockReturnValue('/data/tp');
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpRawPlayerSkillsIndexService,
-      TpFilesReaderService,
       TpFileNameService,
+      { provide: TpFilesReaderService, useValue: tpFiles },
       { provide: ReviewPlayerConfigService, useValue: config },
       { provide: TpSkillMasterNamesService, useValue: masters },
     ],
   }).compile();
   return moduleRef.get(TpRawPlayerSkillsIndexService);
+}
+
+/** Files in one competition, listed in the order given. */
+function makeService(
+  files: Record<string, unknown>,
+  masters: MockProxy<TpSkillMasterNamesService> = defaultMasters(),
+  teams: TpTeamsFixture[] = [],
+): Promise<TpRawPlayerSkillsIndexService> {
+  return makeServiceFrom(
+    {
+      eras: Object.entries(files).map(([name, body]) => ({
+        era: 'fourth-era',
+        competition: 'a-cup',
+        name,
+        body,
+      })),
+      teams,
+    },
+    masters,
+  );
 }
 
 describe('TpRawPlayerSkillsIndexService', () => {
@@ -164,11 +176,6 @@ describe('TpRawPlayerSkillsIndexService', () => {
     // chronological meaning. Here "a-cup" alphabetically precedes "b-cup", so
     // a filename-based or directory-order-based tie-break would keep the
     // stale a-cup snapshot even though b-cup is the later, more complete one.
-    const root = await mkdtemp(join(tmpdir(), 'review-player-tp-skills-'));
-    const staleDir = join(root, 'fourth-era', 'a-cup');
-    const freshDir = join(root, 'fourth-era', 'b-cup');
-    await mkdir(staleDir, { recursive: true });
-    await mkdir(freshDir, { recursive: true });
     const lineUp = (
       totalStarPlayerPoints: number,
       skills: unknown[],
@@ -187,37 +194,28 @@ describe('TpRawPlayerSkillsIndexService', () => {
         },
       ],
     });
-    await writeFile(
-      join(staleDir, 'rosters_164848.json'),
-      JSON.stringify(lineUp(3, [])),
-      'utf8',
-    );
-    await writeFile(
-      join(freshDir, 'rosters_164848.json'),
-      JSON.stringify(
-        lineUp(26, [
-          {
-            skillMasterId: 263,
-            skillMaster: { id: 263, name: 'Mighty Blow' },
-            isRandom: false,
-          },
-        ]),
-      ),
-      'utf8',
-    );
-    const config: MockProxy<ReviewPlayerConfigService> =
-      mock<ReviewPlayerConfigService>();
-    config.getDataDir.mockReturnValue(root);
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        TpRawPlayerSkillsIndexService,
-        TpFilesReaderService,
-        TpFileNameService,
-        { provide: ReviewPlayerConfigService, useValue: config },
-        { provide: TpSkillMasterNamesService, useValue: defaultMasters() },
+    const service = await makeServiceFrom({
+      eras: [
+        {
+          era: 'fourth-era',
+          competition: 'a-cup',
+          name: 'rosters_164848.json',
+          body: lineUp(3, []),
+        },
+        {
+          era: 'fourth-era',
+          competition: 'b-cup',
+          name: 'rosters_164848.json',
+          body: lineUp(26, [
+            {
+              skillMasterId: 263,
+              skillMaster: { id: 263, name: 'Mighty Blow' },
+              isRandom: false,
+            },
+          ]),
+        },
       ],
-    }).compile();
-    const service = moduleRef.get(TpRawPlayerSkillsIndexService);
+    });
 
     const advancements = await service.advancementsFor('2463394');
 
@@ -644,23 +642,27 @@ describe('TpRawPlayerSkillsIndexService', () => {
   });
 
   it('does not index a roster file under teams/, which is not an era', async () => {
-    const service = await makeService({}, defaultMasters(), {
-      'teams/BB2020/rosters_1.json': {
-        lineUps: [
-          {
-            id: 77,
-            ma: 6,
-            st: 3,
-            ag: 3,
-            pa: 4,
-            av: 9,
-            skills: [
-              { skillMasterId: 261, skillMaster: { id: 261, name: 'Guard' } },
-            ],
-          },
-        ],
+    const service = await makeService({}, defaultMasters(), [
+      {
+        rulesSet: 'BB2020',
+        name: 'rosters_1.json',
+        body: {
+          lineUps: [
+            {
+              id: 77,
+              ma: 6,
+              st: 3,
+              ag: 3,
+              pa: 4,
+              av: 9,
+              skills: [
+                { skillMasterId: 261, skillMaster: { id: 261, name: 'Guard' } },
+              ],
+            },
+          ],
+        },
       },
-    });
+    ]);
 
     expect(await service.advancementsFor('77')).toBeNull();
   });
