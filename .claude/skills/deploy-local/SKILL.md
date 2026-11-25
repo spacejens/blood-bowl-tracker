@@ -157,15 +157,14 @@ Run this section only if "Restore a database backup" was selected in step 0 abov
    node tools/backup-cli/dist/main.js restore <backup-key>
    ```
    It downloads the backup, clears the database `localDatabase.url` names (default: the docker-compose database), restores, and prints `{ "key", "restoredMigrations", "tableRowCounts" }`. It needs `pg_restore` and `psql` on `PATH` at the production server's major version or newer; if they are missing or too old, say so (on macOS, Homebrew's `libpq` or `postgresql@<major>` provides them). On failure it prints `{"error": ...}` on stderr and exits `1`: a download or credential error leaves the database untouched, while an error saying the database "is now empty" means the wipe succeeded and the restore did not — tell the developer to re-run this action. An error starting "Restored <key> into ..., but reading the restored database back failed" is different: the data is restored and only the summary could not be read, so still run step 7 (the bot needs its restart to apply pending migrations), then report that error in step 8 without the counts. For any other failure, skip step 7, report the error, and continue with the other selected sections.
-7. A backup taken before production's `001-initial-seed` ledger hash was updated (see "Changing curated data" in `docs/import-manual/batches.md`) carries the old hash, so a later plain `apply` would fail on the changed batch. If the restored ledger still holds the old hash, run the same `UPDATE` from that section against the local database; it must report `UPDATE 1`. Do this before "Run the manual import (remaining batches)".
-8. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
+7. Restart the bot so it applies this branch's pending migrations to the restored data (a backup may be older than the branch), then confirm it came back healthy:
    ```bash
    docker compose restart discord-bot
    docker compose ps
    docker compose logs --tail 200 discord-bot
    ```
    Poll `docker compose ps` until `discord-bot` is `Up`, as in "Deploy the stack" step 4. In the logs from the restart, expect `Running migrations...`, one `Applying: <name>` line per migration newer than the backup, `Migrations complete.`, then the same leader-lock and startup-message lines as "Deploy the stack" step 5. A failed migration means the branch's migrations do not apply cleanly to production-shaped data — report it prominently.
-9. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
+8. Report the restored key, the backup's migration count, the key tables' row counts, which migrations the bot applied on top, and the bot's health. Do not tear down any containers — same non-goal as the "Deploy the stack" section.
 
 ### Run the full import
 
