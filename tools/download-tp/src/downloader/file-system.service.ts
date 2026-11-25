@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 
+import { TP_FILE_EXTENSION } from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -15,7 +16,7 @@ export class FileSystemService {
   writeJsonFile(dirName: string, fileName: string, contents: unknown): void {
     const fullDirName = this.outputDir() + dirName;
     const fullFileName =
-      fullDirName + '/' + fileName.replaceAll('/', '_') + '.json';
+      fullDirName + '/' + fileName.replaceAll('/', '_') + TP_FILE_EXTENSION;
     console.log(`Writing file ${fullFileName}`);
     writeFileSync(fullFileName, JSON.stringify(contents, null, 2));
   }

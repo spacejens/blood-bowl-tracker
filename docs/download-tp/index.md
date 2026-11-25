@@ -153,7 +153,10 @@ the live team and match imports (see
 
 Every response is written to a file named after its API path with `/`
 replaced by `_` and `.json` appended — e.g. `tournament/<slug>/news` becomes
-`tournament_<slug>_news.json` — which is the layout `tools/import-tp` reads.
+`tournament_<slug>_news.json` — which is the layout `tools/import-tp` reads. The official-team-list folder and
+the file extension are the constants of
+[`packages/read-tp-files`](../read-tp-files/index.md), so the writer and its
+readers agree.
 
 After live imports started being refused with 403 on 2026-09-29, three header
 sets were tried from a developer machine, each as one request to

@@ -4,8 +4,10 @@ import {
 } from '@blood-bowl-tracker/cli-shared';
 import { DbModule } from '@blood-bowl-tracker/db';
 import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
+import { ReadTpFilesModule } from '@blood-bowl-tracker/read-tp-files';
 import { DynamicModule, Module, Provider } from '@nestjs/common';
 
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
@@ -120,8 +122,10 @@ export class AppModule {
         CliSharedModule,
         DiscordRestModule,
         GameRulesModule,
+        ImportSharedModule,
         ParseTpModule,
         ParseTpFeedModule,
+        ReadTpFilesModule,
         ...(fills
           ? [
               LocalDatabaseModule,

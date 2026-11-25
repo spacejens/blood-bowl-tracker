@@ -27,6 +27,10 @@ depend on it, so a change here reaches bulk and live imports together.
   (`lonerListed` undefined: a roster entry without a skills group, or no
   Loner skill ids to read it against); any other roster player is unmarked.
   Used by BBL, TP bulk and TP live.
+- **`RosterCopyPrecedenceService`** — which downloaded copies of one TP roster
+  count: the one whose newest match finished last, a copy with no finish
+  instant counting as older than any with one. The TP import keeps the first
+  copy on a tie; the manual-import planner counts every tied copy.
 
 ## Why the Name ids must be shared
 

@@ -2,11 +2,15 @@ import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpSkillMaster } from '@blood-bowl-tracker/parse-tp';
 import { SkillMasterNamesParserService } from '@blood-bowl-tracker/parse-tp';
+import type { TpFileKind } from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { TpSourceReader } from './tp-source-reader';
 
-const SKILL_MASTER_FILE_TYPES = ['rosters', 'match'] as const;
+const SKILL_MASTER_FILE_TYPES: readonly TpFileKind['kind'][] = [
+  'rosters',
+  'match',
+];
 
 /**
  * Builds the `skillMasterId -> skill name` lookup the positions' skills import

@@ -2,11 +2,12 @@ import type { TpCompetitionAward } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
 import { AwardsParserService } from '@blood-bowl-tracker/parse-tp';
+import type { TpFileKind } from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { TpSourceReader } from '../source/tp-source-reader';
 
-const AWARDS_FILE_TYPE = 'awards';
+const AWARDS_FILE_TYPE: TpFileKind['kind'] = 'awards';
 
 @Injectable()
 export class TpAwardsReaderService {

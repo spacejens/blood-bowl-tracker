@@ -245,7 +245,9 @@ roster copy the way the TP import does, so a copy the import drops is
 unreadable here too. `@blood-bowl-tracker/db` and
 `@blood-bowl-tracker/game-data` are regular dependencies: `db` for the
 schema and the drizzle builders, `game-data` for
-`INCOMPLETE_PLAYER_CRITERIA`. `@blood-bowl-tracker/game-rules` supplies the
+`INCOMPLETE_PLAYER_CRITERIA`. `@blood-bowl-tracker/import-shared`'s
+`RosterCopyPrecedenceService` picks which copies count as sent, the rule the
+TP import applies. `@blood-bowl-tracker/game-rules` supplies the
 advancement pricing, lasting reductions, incomplete-player gaps, free-extra
 skills and deduction limit, so the tool applies the same rules as the
 server. One drift-guard spec reads roster copies next to parse-tp's

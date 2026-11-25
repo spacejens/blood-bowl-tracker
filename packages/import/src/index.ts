@@ -74,4 +74,5 @@ export {
   ImportResultService,
   JourneymanRuleService,
   NameExternalIdService,
+  RosterCopyPrecedenceService,
 } from '@blood-bowl-tracker/import-shared';

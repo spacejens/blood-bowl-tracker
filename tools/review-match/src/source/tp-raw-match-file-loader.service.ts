@@ -1,13 +1,17 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { ReviewMatchConfigService } from '../config/review-match-config.service';
 
-/** `match_<id>.json` — TP's per-match file, one per competition directory. */
-const MATCH_FILENAME = /^match_(\d+)\.json$/;
+/** Where a match file sits under the data directory. */
+interface MatchFileLocation {
+  era: string;
+  competition: string;
+  name: string;
+}
 
 /**
  * Locates and reads a single TP match file from the downloaded mirror, whose
@@ -19,9 +23,13 @@ const MATCH_FILENAME = /^match_(\d+)\.json$/;
  */
 @Injectable()
 export class TpRawMatchFileLoaderService {
-  private index: Promise<Map<string, string>> | undefined;
+  private index: Promise<Map<string, MatchFileLocation>> | undefined;
 
-  constructor(private readonly config: ReviewMatchConfigService) {}
+  constructor(
+    private readonly config: ReviewMatchConfigService,
+    private readonly tpFiles: TpFilesReaderService,
+    private readonly names: TpFileNameService,
+  ) {}
 
   /**
    * The raw parsed body of the match file, or null when there is none. TP's
@@ -30,60 +38,44 @@ export class TpRawMatchFileLoaderService {
    * `unknown` would need suppressing.
    */
   async loadMatchFile(externalId: string): Promise<object | null> {
-    const path = (await this.matchFilePaths()).get(externalId);
-    if (path === undefined) {
+    const location = (await this.matchFileLocations()).get(externalId);
+    if (location === undefined) {
       return null;
     }
-    const raw = await readFile(path, 'utf8');
-    try {
-      return JSON.parse(raw) as object;
-    } catch (error) {
-      throw new Error(
-        `Failed to parse TP match file ${path}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
-      );
-    }
+    const file = await this.tpFiles.readJson(this.config.getDataDir('tp'), [
+      location.era,
+      location.competition,
+      location.name,
+    ]);
+    return file?.content ?? null;
   }
 
-  /** TP match id -> absolute file path, built once per process. */
-  private matchFilePaths(): Promise<Map<string, string>> {
+  /** TP match id -> file location, built once per process. */
+  private matchFileLocations(): Promise<Map<string, MatchFileLocation>> {
     this.index ??= this.buildIndex();
     return this.index;
   }
 
-  private async buildIndex(): Promise<Map<string, string>> {
-    const paths = new Map<string, string>();
+  private async buildIndex(): Promise<Map<string, MatchFileLocation>> {
+    const locations = new Map<string, MatchFileLocation>();
     const dataDir = this.config.getDataDir('tp');
-    for (const era of await this.subdirectories(dataDir)) {
-      const eraDir = join(dataDir, era.name);
-      for (const competition of await this.subdirectories(eraDir)) {
-        const competitionDir = join(eraDir, competition.name);
-        for (const entry of await this.entries(competitionDir)) {
-          const matched = entry.isFile()
-            ? MATCH_FILENAME.exec(entry.name)
-            : null;
-          if (matched) {
-            paths.set(matched[1], join(competitionDir, entry.name));
+    for (const era of await this.tpFiles.listEras(dataDir)) {
+      for (const competition of await this.tpFiles.listCompetitions(
+        dataDir,
+        era,
+      )) {
+        for (const name of await this.tpFiles.listFiles(
+          dataDir,
+          era,
+          competition,
+        )) {
+          const kind = this.names.classify(name);
+          if (kind.kind === 'match') {
+            locations.set(kind.matchId, { era, competition, name });
           }
         }
       }
     }
-    return paths;
-  }
-
-  private async subdirectories(dir: string): Promise<Dirent[]> {
-    return (await this.entries(dir)).filter((entry) => entry.isDirectory());
-  }
-
-  /** Directory entries, or none when the directory is absent. */
-  private async entries(dir: string): Promise<Dirent[]> {
-    try {
-      return await readdir(dir, { withFileTypes: true });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
-      throw error;
-    }
+    return locations;
   }
 }

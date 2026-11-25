@@ -1,3 +1,4 @@
+import { RosterCopyPrecedenceService } from '@blood-bowl-tracker/import-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -24,7 +25,8 @@ describe('TpRosterCopySelectionService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [TpRosterCopySelectionService],
+      // Pure and dependency-free, so the cases assert the whole rule.
+      providers: [TpRosterCopySelectionService, RosterCopyPrecedenceService],
     }).compile();
     service = moduleRef.get(TpRosterCopySelectionService);
   });

@@ -1,12 +1,12 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
+import { TpFilesReaderService } from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
+import type { TpTeamsFixture } from './tp-files-fixtures.test-helpers';
+import { stubTpFiles } from './tp-files-fixtures.test-helpers';
 import { TpRawOfficialTeamsIndexService } from './tp-raw-official-teams-index.service';
 
 /** The one file each `teams/<rulesSet>/` folder holds, named as TP serves it. */
@@ -14,24 +14,26 @@ const FILE_NAME = 'rosters_masters?ruleSet=25.json';
 
 describe('TpRawOfficialTeamsIndexService', () => {
   let service: TpRawOfficialTeamsIndexService;
-  let config: ReturnType<typeof mock<RaceReviewConfigService>>;
-  let tempDir: string;
+  let config: MockProxy<RaceReviewConfigService>;
+  let tpFiles: MockProxy<TpFilesReaderService>;
+  /** The canned files the mocked reader lists, in the order added. */
+  let teams: TpTeamsFixture[];
 
   beforeEach(async () => {
+    teams = [];
     config = mock<RaceReviewConfigService>();
-    tempDir = mkdtempSync(join(tmpdir(), 'tp-official-teams-index-test-'));
+    config.getDataDir.mockReturnValue('/data/tp');
+    tpFiles = mock<TpFilesReaderService>();
+    stubTpFiles(tpFiles, { teams });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRawOfficialTeamsIndexService,
+        { provide: TpFilesReaderService, useValue: tpFiles },
         { provide: RaceReviewConfigService, useValue: config },
       ],
     }).compile();
     service = moduleRef.get(TpRawOfficialTeamsIndexService);
-  });
-
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
   });
 
   /** A real-shaped `lineUpMasters[]` entry, trimmed to the read fields. */
@@ -90,27 +92,25 @@ describe('TpRawOfficialTeamsIndexService', () => {
     };
   }
 
-  /** Write one rules-set folder's official-team-list response. */
+  /** Add one rules-set folder's official-team-list response. */
   function write(
     rulesSet: string,
     body: {
       rosterMasters?: unknown[];
       starplayerMasters?: unknown[];
     },
-    fileName = FILE_NAME,
+    name = FILE_NAME,
   ): void {
-    const dataDir = join(tempDir, 'data');
-    mkdirSync(join(dataDir, 'teams', rulesSet), { recursive: true });
-    writeFileSync(
-      join(dataDir, 'teams', rulesSet, fileName),
-      JSON.stringify({
+    teams.push({
+      rulesSet,
+      name,
+      body: {
         rosterMasters: [],
         starplayerMasters: [],
         inducementsMasters: [],
         ...body,
-      }),
-    );
-    config.getDataDir.mockReturnValue(dataDir);
+      },
+    });
   }
 
   it('returns null for a race code no official list carries', async () => {
@@ -153,21 +153,16 @@ describe('TpRawOfficialTeamsIndexService', () => {
   });
 
   it('unions a code appearing under several rules set folders', async () => {
-    const dataDir = join(tempDir, 'data');
-    for (const [rulesSet, position] of [
-      ['BB2020', 'Dwarf Blocker'],
-      ['BB2025', 'Dwarf Runner'],
-    ]) {
-      mkdirSync(join(dataDir, 'teams', rulesSet ?? ''), { recursive: true });
-      writeFileSync(
-        join(dataDir, 'teams', rulesSet ?? '', FILE_NAME),
-        JSON.stringify({
-          rosterMasters: [roster({ lineUpMasters: [lineman({ position })] })],
-          starplayerMasters: [],
-        }),
-      );
-    }
-    config.getDataDir.mockReturnValue(dataDir);
+    write('BB2020', {
+      rosterMasters: [
+        roster({ lineUpMasters: [lineman({ position: 'Dwarf Blocker' })] }),
+      ],
+    });
+    write('BB2025', {
+      rosterMasters: [
+        roster({ lineUpMasters: [lineman({ position: 'Dwarf Runner' })] }),
+      ],
+    });
 
     const race = await service.raceFor('Dwarf_BB2025');
 
@@ -233,21 +228,14 @@ describe('TpRawOfficialTeamsIndexService', () => {
   });
 
   it('keeps the same position name under two rules sets as two entries', async () => {
-    const dataDir = join(tempDir, 'data');
     for (const [rulesSet, armour] of [
       ['BB2020', 9],
       ['BB2025', 10],
     ] as [string, number][]) {
-      mkdirSync(join(dataDir, 'teams', rulesSet), { recursive: true });
-      writeFileSync(
-        join(dataDir, 'teams', rulesSet, FILE_NAME),
-        JSON.stringify({
-          rosterMasters: [roster({ lineUpMasters: [lineman({ av: armour })] })],
-          starplayerMasters: [],
-        }),
-      );
+      write(rulesSet, {
+        rosterMasters: [roster({ lineUpMasters: [lineman({ av: armour })] })],
+      });
     }
-    config.getDataDir.mockReturnValue(dataDir);
 
     const race = await service.raceFor('Dwarf_BB2025');
 
@@ -284,9 +272,8 @@ describe('TpRawOfficialTeamsIndexService', () => {
   });
 
   it('returns null when the teams directory does not exist', async () => {
-    config.getDataDir.mockReturnValue(join(tempDir, 'nonexistent'));
-
     expect(await service.raceFor('Dwarf_BB2025')).toBeNull();
+    expect(tpFiles.listTeamsRulesSets).toHaveBeenCalledWith('/data/tp');
   });
 
   it('keeps legacy rosters alongside the official ones', async () => {
@@ -433,37 +420,34 @@ describe('TpRawOfficialTeamsIndexService', () => {
   });
 
   it('skips a file whose JSON does not parse', async () => {
-    const dataDir = join(tempDir, 'data');
-    mkdirSync(join(dataDir, 'teams', 'BB2025'), { recursive: true });
-    writeFileSync(join(dataDir, 'teams', 'BB2025', FILE_NAME), 'not json');
-    config.getDataDir.mockReturnValue(dataDir);
-
-    expect(await service.raceFor('Dwarf_BB2025')).toBeNull();
-  });
-
-  it('ignores files that are not JSON', async () => {
-    write('BB2025', { rosterMasters: [roster()] }, 'notes.txt');
+    teams.push({
+      rulesSet: 'BB2025',
+      name: FILE_NAME,
+      body: new Error('Failed to parse TP file teams/BB2025: not json'),
+    });
 
     expect(await service.raceFor('Dwarf_BB2025')).toBeNull();
   });
 
   it('rethrows a listing failure that is not a missing directory', async () => {
-    const dataDir = join(tempDir, 'data');
-    mkdirSync(dataDir, { recursive: true });
-    writeFileSync(join(dataDir, 'teams'), '');
-    config.getDataDir.mockReturnValue(dataDir);
+    tpFiles.listTeamsRulesSets.mockRejectedValue(
+      Object.assign(new Error('ENOTDIR: not a directory'), {
+        code: 'ENOTDIR',
+      }),
+    );
 
-    await expect(service.raceFor('Dwarf_BB2025')).rejects.toThrow();
+    await expect(service.raceFor('Dwarf_BB2025')).rejects.toThrow(/ENOTDIR/);
   });
 
   it('caches the index across multiple raceFor calls', async () => {
     write('BB2025', { rosterMasters: [roster()] });
 
     const first = await service.raceFor('Dwarf_BB2025');
-    rmSync(join(tempDir, 'data'), { recursive: true });
+    teams.length = 0;
     const second = await service.raceFor('Dwarf_BB2025');
 
     expect(second).toEqual(first);
+    expect(tpFiles.listTeamsRulesSets).toHaveBeenCalledTimes(1);
   });
 
   it("reads each position entry's skill refs with their attribute values", async () => {

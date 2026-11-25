@@ -35,7 +35,7 @@ app-module wiring) is shared with the other review tools through
 [`packages/review-harness`](../review-harness/index.md) — it never touches a raw source's meaning, so it cannot
 agree with itself about one. Locating and byte-decoding a BBL mirror file is shared
 on a similar basis, via [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md): it carries no BBL-page-type
-awareness or HTML parsing, so depending on it does not weaken the boundary above.
+awareness or HTML parsing, so depending on it does not weaken the boundary above. Locating, listing and parsing download-tp's files is shared via [`packages/read-tp-files`](../read-tp-files/index.md), which carries no TP file interpretation.
 Walking the curated batches is shared via `packages/review-harness`'s
 `ManualBatchReaderService`. It shapes no entry, so every reading of what a curated
 entry means still happens in this tool; it only lists the batches and their files in

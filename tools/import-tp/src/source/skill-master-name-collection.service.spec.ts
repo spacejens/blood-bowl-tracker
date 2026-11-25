@@ -7,6 +7,7 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { SkillMasterNameCollectionService } from './skill-master-name-collection.service';
+import type { TpSourceFile } from './tp-source-reader';
 import { TpSourceReader } from './tp-source-reader';
 
 describe('SkillMasterNameCollectionService', () => {
@@ -15,7 +16,7 @@ describe('SkillMasterNameCollectionService', () => {
   let parser: MockProxy<SkillMasterNamesParserService>;
   let importResults: MockProxy<ImportResultService>;
 
-  function file(filename: string, type: string) {
+  function file(filename: string, type: TpSourceFile['type']): TpSourceFile {
     return {
       era: 'third',
       competition: 'cup',
@@ -25,7 +26,7 @@ describe('SkillMasterNameCollectionService', () => {
     };
   }
 
-  function seed(files: ReturnType<typeof file>[]) {
+  function seed(files: TpSourceFile[]) {
     sourceReader.filesOfType.mockReturnValue(
       (async function* () {
         await Promise.resolve();

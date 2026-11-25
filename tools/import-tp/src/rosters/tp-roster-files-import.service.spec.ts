@@ -7,6 +7,7 @@ import type {
 import {
   ImportResultService,
   ImportRunnerService,
+  RosterCopyPrecedenceService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
@@ -104,6 +105,8 @@ describe('TpRosterFilesImportService', () => {
         { provide: API_CLIENT, useValue: client },
         { provide: ImportRunnerService, useValue: importRunner },
         { provide: ImportResultService, useValue: importResults },
+        // Pure and dependency-free, so the precedence cases assert the whole path.
+        RosterCopyPrecedenceService,
       ],
     }).compile();
     service = moduleRef.get(TpRosterFilesImportService);

@@ -1,3 +1,4 @@
+import { TP_TEAMS_DIR } from '@blood-bowl-tracker/read-tp-files';
 import { TpFetcherService } from '@blood-bowl-tracker/scrape-tp';
 import { TpOfficialTeamsPathsService } from '@blood-bowl-tracker/tp-paths';
 import { Injectable } from '@nestjs/common';
@@ -38,7 +39,7 @@ export class OfficialTeamsDownloaderService {
         this.downloadTpConfigService,
         this.ruleSetId(rulesSet),
       );
-      const dirName = `teams/${rulesSet}`;
+      const dirName = `${TP_TEAMS_DIR}/${rulesSet}`;
       this.fileSystemService.mkdir(dirName);
       await this.apiResponseStoringService.fetchAndStore(
         session,

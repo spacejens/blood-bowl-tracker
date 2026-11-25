@@ -1,13 +1,10 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
-
-/** `rosters_<id>.json` — TP's per-team roster file. */
-const ROSTER_FILENAME = /^rosters_\d+\.json$/;
 
 /** One TP skill master: its display name and BB2025's elite marker. */
 export interface TpRawSkillMaster {
@@ -41,7 +38,11 @@ export interface TpRawSkillMaster {
 export class TpSkillMasterNamesService {
   private index: Promise<Map<number, TpRawSkillMaster>> | undefined;
 
-  constructor(private readonly config: RaceReviewConfigService) {}
+  constructor(
+    private readonly config: RaceReviewConfigService,
+    private readonly tpFiles: TpFilesReaderService,
+    private readonly names: TpFileNameService,
+  ) {}
 
   async masterFor(skillMasterId: number): Promise<TpRawSkillMaster | null> {
     this.index ??= this.buildIndex();
@@ -51,14 +52,21 @@ export class TpSkillMasterNamesService {
   private async buildIndex(): Promise<Map<number, TpRawSkillMaster>> {
     const masters = new Map<number, TpRawSkillMaster>();
     const dataDir = this.config.getDataDir('tp');
-    for (const era of await this.subdirectories(dataDir)) {
-      const eraDir = join(dataDir, era.name);
-      for (const competition of await this.subdirectories(eraDir)) {
-        const competitionDir = join(eraDir, competition.name);
-        for (const entry of await this.entries(competitionDir)) {
-          if (entry.isFile() && ROSTER_FILENAME.test(entry.name)) {
-            const body = await this.readJson(join(competitionDir, entry.name));
-            this.walk(body, masters);
+    for (const era of await this.tpFiles.listEras(dataDir)) {
+      for (const competition of await this.tpFiles.listCompetitions(
+        dataDir,
+        era,
+      )) {
+        for (const name of await this.tpFiles.listFiles(
+          dataDir,
+          era,
+          competition,
+        )) {
+          if (this.names.classify(name).kind === 'rosters') {
+            this.walk(
+              await this.readOrNull(dataDir, [era, competition, name]),
+              masters,
+            );
           }
         }
       }
@@ -105,27 +113,15 @@ export class TpSkillMasterNamesService {
     });
   }
 
-  private async readJson(path: string): Promise<unknown> {
+  /** One file's JSON, or null when it is missing or unparseable. */
+  private async readOrNull(
+    dataDir: string,
+    segments: readonly string[],
+  ): Promise<unknown> {
     try {
-      return JSON.parse(await readFile(path, 'utf8')) as unknown;
+      return (await this.tpFiles.readJson(dataDir, segments))?.content ?? null;
     } catch {
       return null;
-    }
-  }
-
-  private async subdirectories(dir: string): Promise<Dirent[]> {
-    return (await this.entries(dir)).filter((entry) => entry.isDirectory());
-  }
-
-  /** Directory entries, or none when the directory is absent. */
-  private async entries(dir: string): Promise<Dirent[]> {
-    try {
-      return await readdir(dir, { withFileTypes: true });
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
-      throw error;
     }
   }
 }

@@ -67,6 +67,7 @@ for the specifics. Only participants in that pipeline are listed.
 - **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON for `tools/import-tp` and `packages/import-tp-live`, typed with the contract's TP wire shapes; it has no BBL counterpart. See [parse-tp](parse-tp/index.md).
 - **`packages/parse-tp-feed`** (shared TP feed parsing) — reads the TP feed channel's advancement reports for the bot's live feed and for `tools/import-manual-planner-cli`'s `read-tp-feed-history`, so a live notification and one read back from history are understood alike. See [parse-tp-feed](parse-tp-feed/index.md).
 - **`packages/read-bbl-mirror`** (shared mirror access) — mechanical BBL mirror file access, without interpretation, for `tools/import-bbl` and every review tool. See [read-bbl-mirror](read-bbl-mirror/index.md).
+- **`packages/read-tp-files`** (shared TP file access) — mechanical access to `tools/download-tp`'s files (layout, listings, filename classification, safe JSON reading), without interpretation, for the TP importer and review tools. See [read-tp-files](read-tp-files/index.md).
 - **`packages/import-tp-live`** (TP import, server-side) — imports one TP roster, match, competition or official team list through `packages/game-data`; it backs both the `tp*.import` procedures and the bot's live imports, so a change reaches bulk and live imports together. See [import-tp-live](import-tp-live/index.md).
 - **`packages/import-shared`** (shared import rules) — the I/O-free rules bulk and live imports must apply identically, including the identity-critical Name ids. See [import-shared](import-shared/index.md).
 - **`packages/game-rules`** (shared game rules) — the advancement, lasting-reduction and incomplete-player rules `packages/game-data` and `tools/import-manual-planner-cli` both apply, so a rule change reaches the server and the planner together. See [game-rules](game-rules/index.md).
@@ -219,6 +220,7 @@ not shipped as part of any app).
 - **`packages/parse-tp`** — reusable TP JSON parsing. See [parse-tp](parse-tp/index.md).
 - **`packages/parse-tp-feed`** — parsing of the TP feed's advancement reports. See [parse-tp-feed](parse-tp-feed/index.md).
 - **`packages/read-bbl-mirror`** — mechanical file access to BBL's `wget` mirror. See [read-bbl-mirror](read-bbl-mirror/index.md).
+- **`packages/read-tp-files`** (shared TP file access) — mechanical access to `tools/download-tp`'s files, without interpretation, for `tools/import-tp`, `tools/import-manual-planner-cli` and every review tool. See [read-tp-files](read-tp-files/index.md).
 - **`packages/review-harness`** — the generic scaffolding behind the review tools. See [review-harness](review-harness/index.md).
 - **`packages/scrape-tp`** — fetching TP's API over plain HTTP. See [scrape-tp](scrape-tp/index.md).
 - **`packages/tp-paths`** — TP's URL paths and TP page classification. See [tp-paths](tp-paths/index.md).

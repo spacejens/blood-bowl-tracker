@@ -32,7 +32,7 @@ bug there cannot "agree with itself" against a raw source, because that code
 never touches a source's meaning. Locating and byte-decoding a BBL mirror file
 is shared on the same basis, via [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md): it carries no
 BBL-page-type awareness or HTML parsing, so depending on it does not weaken
-the boundary above. Depending on `packages/domain-enums` for match
+the boundary above. Locating, listing and parsing download-tp's files is shared via [`packages/read-tp-files`](../read-tp-files/index.md), which carries no TP file interpretation. Depending on `packages/domain-enums` for match
 categories is likewise allowed: it holds constants and types only, no
 interpretation.
 The report document is shared the same way: `report-builder.service.ts` and

@@ -1,41 +1,36 @@
-import type { Dirent } from 'node:fs';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
+import type { TpEraFixture } from './tp-files-fixtures.test-helpers';
+import { stubTpFiles } from './tp-files-fixtures.test-helpers';
 import { TpRawPlayerIndexService } from './tp-raw-player-index.service';
 
-let dir: string;
+const COMPETITION = { era: 'fourth-era', competition: 'season-30' };
 
-beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'review-player-tp-'));
-  mkdirSync(join(dir, 'fourth-era', 'season-30'), { recursive: true });
-});
-
-afterEach(() => {
-  rmSync(dir, { recursive: true, force: true });
-});
+/**
+ * The canned files the mocked reader lists and reads. Files are listed in the
+ * order they are added, so a test controls scan order by controlling the order
+ * of its writeMatch/writeRoster calls.
+ */
+let files: TpEraFixture[];
 
 function writeMatch(matchId: number, body: unknown): void {
-  writeFileSync(
-    join(dir, 'fourth-era', 'season-30', `match_${matchId}.json`),
-    JSON.stringify(body),
-    'utf8',
-  );
+  files.push({ ...COMPETITION, name: `match_${matchId}.json`, body });
 }
 
 function writeRoster(rosterId: number, lineUps: unknown[]): void {
-  writeFileSync(
-    join(dir, 'fourth-era', 'season-30', `rosters_${rosterId}.json`),
-    JSON.stringify({ lineUps }),
-    'utf8',
-  );
+  files.push({
+    ...COMPETITION,
+    name: `rosters_${rosterId}.json`,
+    body: { lineUps },
+  });
 }
 
 function writeRosterWithTemplate(master: Record<string, unknown>): void {
@@ -51,44 +46,6 @@ function writeRosterWithTemplate(master: Record<string, unknown>): void {
       lineUpMaster: { ma: 6, st: 4, ag: 3, pa: 5, av: 7, ...master },
     },
   ]);
-}
-
-type EntriesFn = (dir: string) => Promise<Dirent[]>;
-
-/**
- * Forces the service's directory scan to visit `targetDir`'s entries in
- * exactly `order`, regardless of what the real `readdir` call returns. The
- * production code relies on `readdir` order to break roster-conflict ties
- * (see `absorbRoster`), and that order is filesystem-dependent — write order
- * does not reliably control it, so a test that only writes files in a chosen
- * order cannot discriminate between the two directions. Pinning the scan
- * order directly is the only portable way to exercise both directions of the
- * guard.
- */
-function withOrderedEntries(
-  targetService: TpRawPlayerIndexService,
-  targetDir: string,
-  order: string[],
-): void {
-  const proto = Object.getPrototypeOf(targetService) as { entries: EntriesFn };
-  const original = proto.entries.bind(targetService);
-  vi.spyOn(
-    targetService as unknown as { entries: EntriesFn },
-    'entries',
-  ).mockImplementation(async (targetPath: string) => {
-    const result = await original(targetPath);
-    if (targetPath !== targetDir) {
-      return result;
-    }
-    const byName = new Map(result.map((entry) => [entry.name, entry]));
-    return order.map((name) => {
-      const entry = byName.get(name);
-      if (entry === undefined) {
-        throw new Error(`entries() did not return ${name} for ${targetPath}`);
-      }
-      return entry;
-    });
-  });
 }
 
 function matchFile(options: {
@@ -126,14 +83,20 @@ function matchFile(options: {
 
 describe('TpRawPlayerIndexService', () => {
   let service: TpRawPlayerIndexService;
+  let tpFiles: MockProxy<TpFilesReaderService>;
   let config: MockProxy<ReviewPlayerConfigService>;
 
   beforeEach(async () => {
+    files = [];
     config = mock<ReviewPlayerConfigService>();
-    config.getDataDir.mockReturnValue(dir);
+    config.getDataDir.mockReturnValue('/data/tp');
+    tpFiles = mock<TpFilesReaderService>();
+    stubTpFiles(tpFiles, { eras: files });
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRawPlayerIndexService,
+        TpFileNameService,
+        { provide: TpFilesReaderService, useValue: tpFiles },
         { provide: ReviewPlayerConfigService, useValue: config },
       ],
     }).compile();
@@ -201,36 +164,34 @@ describe('TpRawPlayerIndexService', () => {
   });
 
   it('ignores a malformed match file instead of failing the whole run', async () => {
-    writeFileSync(
-      join(dir, 'fourth-era', 'season-30', 'match_3.json'),
-      '{ not json',
-      'utf8',
-    );
+    files.push({
+      ...COMPETITION,
+      name: 'match_3.json',
+      body: new Error('Failed to parse TP file match_3.json: { not json'),
+    });
     writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
 
     expect(await service.aggregateFor('2477481')).not.toBeNull();
   });
 
   it('returns null for every player when the data directory is absent', async () => {
-    rmSync(dir, { recursive: true, force: true });
-
     expect(await service.aggregateFor('2477481')).toBeNull();
+    expect(tpFiles.listEras).toHaveBeenCalledTimes(1);
   });
 
   it('returns null for a non-numeric external id', async () => {
     expect(await service.aggregateFor('not-a-number')).toBeNull();
   });
 
-  it('ignores a subdirectory and a non-match file inside a competition folder', async () => {
-    mkdirSync(join(dir, 'fourth-era', 'season-30', 'nested'));
-    writeFileSync(
-      join(dir, 'fourth-era', 'season-30', 'notes.txt'),
-      'not a match file',
-      'utf8',
-    );
+  it('ignores a non-match file inside a competition folder', async () => {
+    files.push({ ...COMPETITION, name: 'notes.txt', body: 'not a match file' });
     writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
 
     expect(await service.aggregateFor('2477481')).not.toBeNull();
+    expect(tpFiles.readJson).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.arrayContaining(['notes.txt']),
+    );
   });
 
   it('ignores a line-up entry missing an id or a name', async () => {
@@ -306,18 +267,13 @@ describe('TpRawPlayerIndexService', () => {
   });
 
   it('rethrows a directory-scan failure that is not a missing directory', async () => {
-    // A directory nested one or more levels down (e.g. the season directory)
-    // can't be used here: the code filters entries by isDirectory() before
-    // recursing, so replacing it with a file just makes it get skipped, not
-    // fail. Only the configured data dir itself is read without a prior
-    // isDirectory() check, so replacing it with a file reliably produces an
-    // ENOTDIR scan failure regardless of the process's user/permissions
-    // (a chmod-based technique would not: it silently doesn't block access
-    // when the test process runs as root).
-    rmSync(dir, { recursive: true, force: true });
-    writeFileSync(dir, 'not a directory', 'utf8');
+    tpFiles.listEras.mockRejectedValue(
+      Object.assign(new Error('ENOTDIR: not a directory'), {
+        code: 'ENOTDIR',
+      }),
+    );
 
-    await expect(service.aggregateFor('2477481')).rejects.toThrow();
+    await expect(service.aggregateFor('2477481')).rejects.toThrow(/ENOTDIR/);
   });
 
   it('reads a player characteristics line from the roster file', async () => {
@@ -403,11 +359,6 @@ describe('TpRawPlayerIndexService', () => {
         totalStarPlayerPoints: 26,
       },
     ]);
-    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
-      'match_1.json',
-      'rosters_500.json',
-      'rosters_700.json',
-    ]);
 
     const player = await service.aggregateFor('2477481');
 
@@ -428,17 +379,7 @@ describe('TpRawPlayerIndexService', () => {
     // winner: here the numerically lower "rosters_500.json" carries the
     // higher totalStarPlayerPoints and must still win.
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
-    writeRoster(500, [
-      {
-        id: 2477481,
-        ma: 6,
-        st: 4,
-        ag: 3,
-        pa: 5,
-        av: 10,
-        totalStarPlayerPoints: 26,
-      },
-    ]);
+    // Scanned in this order: match_1, then rosters_700, then rosters_500.
     writeRoster(700, [
       {
         id: 2477481,
@@ -450,10 +391,16 @@ describe('TpRawPlayerIndexService', () => {
         totalStarPlayerPoints: 3,
       },
     ]);
-    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
-      'match_1.json',
-      'rosters_700.json',
-      'rosters_500.json',
+    writeRoster(500, [
+      {
+        id: 2477481,
+        ma: 6,
+        st: 4,
+        ag: 3,
+        pa: 5,
+        av: 10,
+        totalStarPlayerPoints: 26,
+      },
     ]);
 
     const player = await service.aggregateFor('2477481');
@@ -471,11 +418,12 @@ describe('TpRawPlayerIndexService', () => {
     // The exact reported bug: TP appears to number roster files per team, not
     // per upload, so the same team's file can carry the identical number in
     // two different competition directories with no relation to recency.
-    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
-    mkdirSync(join(dir, 'fourth-era', 'chaos-cup-8'), { recursive: true });
-    writeFileSync(
-      join(dir, 'fourth-era', 'chaos-cup-8', 'rosters_164848.json'),
-      JSON.stringify({
+    // Scanned chaos-cup-8 first, then season-30.
+    files.push({
+      era: 'fourth-era',
+      competition: 'chaos-cup-8',
+      name: 'rosters_164848.json',
+      body: {
         lineUps: [
           {
             id: 2477481,
@@ -487,26 +435,20 @@ describe('TpRawPlayerIndexService', () => {
             totalStarPlayerPoints: 3,
           },
         ],
-      }),
-      'utf8',
-    );
-    writeFileSync(
-      join(dir, 'fourth-era', 'season-30', 'rosters_164848.json'),
-      JSON.stringify({
-        lineUps: [
-          {
-            id: 2477481,
-            ma: 8,
-            st: 2,
-            ag: 5,
-            pa: 3,
-            av: 9,
-            totalStarPlayerPoints: 26,
-          },
-        ],
-      }),
-      'utf8',
-    );
+      },
+    });
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    writeRoster(164848, [
+      {
+        id: 2477481,
+        ma: 8,
+        st: 2,
+        ag: 5,
+        pa: 3,
+        av: 9,
+        totalStarPlayerPoints: 26,
+      },
+    ]);
 
     const player = await service.aggregateFor('2477481');
 
@@ -521,11 +463,11 @@ describe('TpRawPlayerIndexService', () => {
 
   it('skips a malformed roster file rather than failing the scan', async () => {
     writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
-    writeFileSync(
-      join(dir, 'fourth-era', 'season-30', 'rosters_500.json'),
-      'not json at all',
-      'utf8',
-    );
+    files.push({
+      ...COMPETITION,
+      name: 'rosters_500.json',
+      body: new Error('Failed to parse TP file rosters_500.json'),
+    });
 
     const player = await service.aggregateFor('2477481');
 
@@ -825,9 +767,9 @@ describe('TpRawPlayerIndexService', () => {
   });
 
   it('keeps the higher match id even when it is scanned first', async () => {
-    // `entries()` sorts by name, so match_10 is visited before match_9.
-    writeMatch(9, matchWithStatus({ state: 24, isActive: false }));
+    // The sorted listing visits match_10 before match_9.
     writeMatch(10, matchWithStatus({ state: 16, isActive: false }));
+    writeMatch(9, matchWithStatus({ state: 24, isActive: false }));
 
     const aggregate = await service.aggregateFor('2477481');
 
@@ -844,5 +786,24 @@ describe('TpRawPlayerIndexService', () => {
     writeMatch(1, matchWithStatus({ state: 'dead', isActive: 'no' }));
 
     expect((await service.aggregateFor('2477481'))?.matchStatus).toBeNull();
+  });
+
+  it('does not index a roster file under teams/, which is not an era', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    const teamsRoster = {
+      lineUps: [{ id: 2477481, ma: 9, st: 9, ag: 9, pa: 9, av: 9 }],
+    };
+    stubTpFiles(tpFiles, {
+      eras: files,
+      teams: [
+        { rulesSet: 'BB2020', name: 'rosters_1.json', body: teamsRoster },
+      ],
+    });
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.move).toBeNull();
+    expect(tpFiles.listTeamsRulesSets).not.toHaveBeenCalled();
+    expect(tpFiles.listTeamsFiles).not.toHaveBeenCalled();
   });
 });

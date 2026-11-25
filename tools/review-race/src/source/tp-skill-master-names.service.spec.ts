@@ -1,34 +1,37 @@
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { RaceReviewConfigService } from '../config/review-race-config.service';
+import { stubTpFiles } from './tp-files-fixtures.test-helpers';
 import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
 
+/** Files in one competition, listed in the order given; an Error body makes the read fail. */
 async function makeService(
   files: Record<string, unknown>,
-  options?: { rawFiles?: Record<string, string> },
 ): Promise<TpSkillMasterNamesService> {
-  const root = await mkdtemp(join(tmpdir(), 'review-race-tp-skills-'));
-  const competitionDir = join(root, 'fourth-era', 'a-cup');
-  await mkdir(competitionDir, { recursive: true });
-  for (const [name, body] of Object.entries(files)) {
-    await writeFile(join(competitionDir, name), JSON.stringify(body), 'utf8');
-  }
-  for (const [name, body] of Object.entries(options?.rawFiles ?? {})) {
-    await writeFile(join(competitionDir, name), body, 'utf8');
-  }
+  const tpFiles = mock<TpFilesReaderService>();
+  stubTpFiles(tpFiles, {
+    eras: Object.entries(files).map(([name, body]) => ({
+      era: 'fourth-era',
+      competition: 'a-cup',
+      name,
+      body,
+    })),
+  });
   const config: MockProxy<RaceReviewConfigService> =
     mock<RaceReviewConfigService>();
-  config.getDataDir.mockReturnValue(root);
+  config.getDataDir.mockReturnValue('/data/tp');
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpSkillMasterNamesService,
+      TpFileNameService,
+      { provide: TpFilesReaderService, useValue: tpFiles },
       { provide: RaceReviewConfigService, useValue: config },
     ],
   }).compile();
@@ -100,10 +103,9 @@ describe('TpSkillMasterNamesService', () => {
   });
 
   it('skips a malformed roster file instead of failing the run', async () => {
-    const service = await makeService(
-      {},
-      { rawFiles: { 'rosters_1.json': '{ not json' } },
-    );
+    const service = await makeService({
+      'rosters_1.json': new Error('Failed to parse TP file rosters_1.json'),
+    });
 
     expect(await service.masterFor(261)).toBeNull();
   });
@@ -119,15 +121,7 @@ describe('TpSkillMasterNamesService', () => {
   });
 
   it('returns null when the TP data directory does not exist', async () => {
-    const config = mock<RaceReviewConfigService>();
-    config.getDataDir.mockReturnValue(join(tmpdir(), 'review-race-absent-dir'));
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        TpSkillMasterNamesService,
-        { provide: RaceReviewConfigService, useValue: config },
-      ],
-    }).compile();
-    const service = moduleRef.get(TpSkillMasterNamesService);
+    const service = await makeService({});
 
     expect(await service.masterFor(261)).toBeNull();
   });

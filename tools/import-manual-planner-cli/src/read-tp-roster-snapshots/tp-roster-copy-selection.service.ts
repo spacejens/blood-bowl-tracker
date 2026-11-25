@@ -1,3 +1,4 @@
+import { RosterCopyPrecedenceService } from '@blood-bowl-tracker/import-shared';
 import { Injectable } from '@nestjs/common';
 
 import type {
@@ -20,17 +21,17 @@ interface Collected {
 
 /**
  * Tells, per era directory and roster id, which downloaded copy the TP
- * import sends: the one whose newest match finished last, a copy with no
- * finish instant counting as older than any with one. This repeats
- * tools/import-tp's TpRosterFilesImportService.distinctByEraAndRoster; keep
- * the two in step. That one keeps the first copy read on a tie, and the read
- * order is not defined, so here every tied copy counts as sent. A group
- * with an unreadable copy is undetermined: no copy counts as sent.
+ * import sends. The precedence is import-shared's
+ * RosterCopyPrecedenceService, the rule the TP import applies; every tied
+ * copy counts as sent here, since the import's read order is not known. A
+ * group with an unreadable copy is undetermined: no copy counts as sent.
  *
- * Pure decision logic, with no I/O and no dependencies.
+ * Pure decision logic, with no I/O.
  */
 @Injectable()
 export class TpRosterCopySelectionService {
+  constructor(private readonly precedence: RosterCopyPrecedenceService) {}
+
   select(input: SelectRosterCopiesInput): TpRosterCopyGroup[] {
     const groups = new Map<string, Collected>();
     const groupOf = (location: TpRosterCopyLocation): Collected => {
@@ -69,8 +70,11 @@ export class TpRosterCopySelectionService {
         listedElsewhere: this.ids(all),
       };
     }
-    const newest = Math.max(...copies.map((copy) => this.finish(copy)));
-    const chosen = copies.filter((copy) => this.finish(copy) === newest);
+    const chosen = this.precedence.newest({
+      copies,
+      finishedAt: (copy) => copy.finishedAt,
+      ties: 'all',
+    });
     const listed = new Set(
       chosen[0].playerIds.filter((id) =>
         chosen.every((copy) => copy.playerIds.includes(id)),
@@ -86,10 +90,6 @@ export class TpRosterCopySelectionService {
         new Set([...all].filter((id) => !listed.has(id))),
       ),
     };
-  }
-
-  private finish(copy: TpRosterCopy): number {
-    return copy.finishedAt ?? Number.NEGATIVE_INFINITY;
   }
 
   private ids(ids: ReadonlySet<string>): string[] {
