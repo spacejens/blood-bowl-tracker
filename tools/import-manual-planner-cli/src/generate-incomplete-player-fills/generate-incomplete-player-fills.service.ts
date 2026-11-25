@@ -76,7 +76,8 @@ export interface GenerateIncompletePlayerFillsResult {
 }
 
 /**
- * `generate-incomplete-player-fills`: reads production read-only, plans a
+ * `generate-incomplete-player-fills`: reads the local database (a restored
+ * production backup) read-only, plans a
  * fill for every incomplete TP player whose data can be proven (optionally
  * from the saved TP feed reports and roster snapshots), lists the complete
  * TP players whose stored line shows a lasting stat reduction the server

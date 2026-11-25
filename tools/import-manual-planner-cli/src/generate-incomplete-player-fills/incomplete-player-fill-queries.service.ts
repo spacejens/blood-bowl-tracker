@@ -1,361 +1,153 @@
-import {
-  ADVANCEMENT_KINDS,
-  CHARACTERISTIC_FORMATS,
-  PLAYER_STATUSES,
-  SKILL_ACCESS_LEVELS,
-  SKILL_CATEGORIES,
-  TP_EXTERNAL_SYSTEM_NAME,
-} from '@blood-bowl-tracker/domain-enums';
-import { Injectable } from '@nestjs/common';
-import { z } from 'zod';
+import { DB, type Db, type DbOrTx } from '@blood-bowl-tracker/db';
+import { Inject, Injectable } from '@nestjs/common';
 
-import {
-  CHARACTERISTIC_KEYS,
-  type FillPlannerRows,
-  type LastingInjuryRepairCandidate,
-  type OngoingCompetitionSummary,
+import { CandidateMatchQueriesService } from './candidate-match-queries.service';
+import { CandidateQueriesService } from './candidate-queries.service';
+import { EraRulesQueriesService } from './era-rules-queries.service';
+import type {
+  FillPlannerRows,
+  LastingInjuryRepairCandidate,
+  OngoingCompetitionSummary,
 } from './fill-plan.types';
-import {
-  ADVANCEMENT_COSTS_SQL,
-  ATTRIBUTED_SKILLS_SQL,
-  BIG_GUY_POSITIONS_SQL,
-  CANDIDATES_SQL,
-  CONSEQUENCES_SQL,
-  DEATH_TIMES_SQL,
-  ERA_RULES_SETS_SQL,
-  FREE_SKILL_RISK_SQL,
-  LASTING_INJURY_REPAIRS_SQL,
-  ONGOING_COMPETITIONS_SQL,
-  PAID_ADVANCEMENTS_SQL,
-  POSITION_ACCESS_SQL,
-  POSITION_RULES_SETS_SQL,
-  POSITION_SKILLS_SQL,
-  SKILL_CATEGORIES_SQL,
-  SKILL_NAMES_SQL,
-  STAT_REDUCTION_EVENTS_SQL,
-  STORED_ADVANCEMENTS_SQL,
-  TEAM_COMPETITIONS_SQL,
-  TEAM_PLAYERS_SQL,
-  TEAM_ROSTERS_SQL,
-  TP_POSITION_IDS_SQL,
-  TP_SKILL_IDS_SQL,
-} from './incomplete-player-fill.sql';
-import { ProductionJsonQueryService } from './production-json-query.service';
+import type { OngoingCompetitionRow } from './fill-query.types';
+import { FillQueryScopeService } from './fill-query-scope.service';
+import { LastingInjuryRepairQueriesService } from './lasting-injury-repair-queries.service';
+import { LookupQueriesService } from './lookup-queries.service';
+import { PositionRulesQueriesService } from './position-rules-queries.service';
 
-const id = z.number().int();
-const value = z.number().int();
-const format = z.enum(CHARACTERISTIC_FORMATS);
-
-const CandidateRowSchema = z.object({
-  playerId: id,
-  tpId: z.string().min(1),
-  teamId: id,
-  positionId: id,
-  eraId: id,
-  sppTotal: value.nullable(),
-  unspentSpp: value.nullable(),
-  status: z.enum(PLAYER_STATUSES).nullable(),
-  isJourneyman: z.boolean(),
-  move: value,
-  strength: value,
-  agility: value,
-  passing: value.nullable(),
-  armour: value,
-});
-
-const ConsequenceRowSchema = z.object({
-  playerId: id,
-  hasStatReduction: z.boolean(),
-  hasDeath: z.boolean(),
-});
-
-const StoredAdvancementRowSchema = z.object({
-  playerId: id,
-  source: z.string(),
-  skillId: id.nullable(),
-  skillName: z.string().nullable(),
-  attributeValue: z.string().nullable(),
-  isFreeExtra: z.boolean(),
-});
-
-const PlayerIdRowSchema = z.object({ playerId: id });
-
-const OngoingRowSchema = z.object({
-  competitionId: id,
-  competitionName: z.string(),
-  teamId: id,
-});
-
-const PositionRulesSetRowSchema = z.object({
-  positionRulesSetId: id,
-  positionId: id,
-  eraId: id,
-  rulesSetId: id,
-  line: z.object({
-    ma: value,
-    st: value,
-    ag: value,
-    pa: value.nullable(),
-    av: value,
-  }),
-  formats: z.object({
-    ma: format,
-    st: format,
-    ag: format,
-    pa: format,
-    av: format,
-  }),
-});
-
-const PositionSkillRowSchema = z.object({
-  positionRulesSetId: id,
-  skillId: id,
-  nameId: z.string().nullable(),
-  attributeValue: z.string().nullable(),
-});
-
-const EraRulesSetRowSchema = z.object({
-  eraId: id,
-  rulesSetId: id,
-  lastingInjuriesNeverHeal: z.boolean(),
-  cheapestCost: value.nullable(),
-});
-
-const timestamp = z
-  .string()
-  .refine((text) => !Number.isNaN(Date.parse(text)), 'not a timestamp');
-
-const TeamPlayerRowSchema = z.object({
-  playerId: id,
-  teamId: id,
-  eraId: id,
-  positionId: id,
-  playerName: z.string(),
-  positionName: z.string(),
-  sppTotal: value.nullable(),
-  unspentSpp: value.nullable(),
-  isJourneyman: z.boolean(),
-  isIncomplete: z.boolean(),
-});
-
-const PaidAdvancementRowSchema = z.object({
-  playerId: id,
-  skillId: id.nullable(),
-  attributeValue: z.string().nullable(),
-  characteristic: z.enum(CHARACTERISTIC_KEYS).nullable(),
-});
-
-const TeamRosterRowSchema = z.object({
-  teamId: id,
-  rosterId: z.string().min(1),
-});
-
-const TpSkillIdRowSchema = z.object({
-  skillId: id,
-  masterId: z.string().min(1),
-});
-
-const TpPositionIdRowSchema = z.object({
-  positionId: id,
-  tpPositionId: z.string().min(1),
-});
-
-const SkillIdRowSchema = z.object({ skillId: id });
-
-const SkillNameRowSchema = z.object({
-  skillId: id,
-  skillName: z.string(),
-  nameId: z.string().min(1),
-});
-
-const SkillCategoryRowSchema = z.object({
-  skillId: id,
-  rulesSetId: id,
-  category: z.enum(SKILL_CATEGORIES),
-});
-
-const PositionAccessRowSchema = z.object({
-  positionId: id,
-  rulesSetId: id,
-  category: z.enum(SKILL_CATEGORIES),
-  access: z.enum(SKILL_ACCESS_LEVELS),
-});
-
-const AdvancementCostRowSchema = z.object({
-  eraId: id,
-  rulesSetId: id,
-  leagueId: id.nullable(),
-  advancementNumber: value.positive(),
-  advancementKind: z.enum(ADVANCEMENT_KINDS),
-  skillId: id.nullable(),
-  sppCost: value.positive(),
-});
-
-const StatReductionEventRowSchema = z.object({
-  playerId: id,
-  characteristic: z.enum(CHARACTERISTIC_KEYS),
-  competitionId: id,
-  playedAt: timestamp,
-});
-
-const TeamCompetitionRowSchema = z.object({
-  playerId: id,
-  competitionId: id,
-  firstPlayedAt: timestamp,
-  lastPlayedAt: timestamp,
-});
-
-const DeathTimeRowSchema = z.object({ playerId: id, diedAt: timestamp });
-
-const BigGuyPositionRowSchema = z.object({ positionId: id, eraId: id });
-
-const LineSchema = z.object({
-  ma: value,
-  st: value,
-  ag: value,
-  pa: value.nullable(),
-  av: value,
-});
-
-const LastingInjuryRepairCandidateRowSchema = z.object({
-  player: z.object({
-    system: z.literal(TP_EXTERNAL_SYSTEM_NAME),
-    id: z.string().min(1),
-  }),
-  line: LineSchema,
-  increases: z.array(z.enum(CHARACTERISTIC_KEYS)),
-  context: z
-    .object({
-      formats: z.object({
-        ma: format,
-        st: format,
-        ag: format,
-        pa: format,
-        av: format,
-      }),
-      baseline: LineSchema.nullable(),
-    })
-    .nullable(),
-});
+/** One consistent, read-only view of the database for a whole read. */
+const READ_ONLY_SNAPSHOT = {
+  isolationLevel: 'repeatable read',
+  accessMode: 'read only',
+} as const;
 
 /**
- * Reads what the fill planner needs from production, one read-only query
- * per kind of row, and validates every row before the planner sees it. The
- * rows cover the candidates and their stored data, team players (TP
- * players of the candidates' teams), their paid advancements and rosters,
- * skill names and categories, position access, advancement costs and
- * stat-reduction events, the competitions and death times that decide
- * whether they last, Big Guy positions, the TP ids of skills and candidate
- * positions, and the skills held with a variant; separately, the complete
- * players who may need a lasting-reduction repair.
+ * Reads what the fill planner needs from the local database (a restored
+ * production backup) in one read-only REPEATABLE READ transaction, so every
+ * query sees the same snapshot. The rows cover the candidates and their
+ * stored data, team players (TP players of the candidates' teams), their
+ * paid advancements and rosters, skill names and categories, position
+ * access, advancement costs and stat-reduction events, the competitions and
+ * death times that decide whether they last, Big Guy positions, the TP ids
+ * of skills and candidate positions, and the skills held with a variant;
+ * separately, the complete players who may need a lasting-reduction repair.
  */
 @Injectable()
 export class IncompletePlayerFillQueriesService {
-  constructor(private readonly json: ProductionJsonQueryService) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly scope: FillQueryScopeService,
+    private readonly candidateQueries: CandidateQueriesService,
+    private readonly matchQueries: CandidateMatchQueriesService,
+    private readonly positionRules: PositionRulesQueriesService,
+    private readonly eraRules: EraRulesQueriesService,
+    private readonly lookups: LookupQueriesService,
+    private readonly repairs: LastingInjuryRepairQueriesService,
+  ) {}
 
-  async load(): Promise<FillPlannerRows> {
-    const ongoing = await this.rows(ONGOING_COMPETITIONS_SQL, OngoingRowSchema);
-    const candidates = await this.rows(CANDIDATES_SQL, CandidateRowSchema);
-    const consequences = await this.rows(
-      CONSEQUENCES_SQL,
-      ConsequenceRowSchema,
-    );
-    return {
-      candidates,
-      statReductionPlayerIds: consequences
-        .filter((row) => row.hasStatReduction)
-        .map((row) => row.playerId),
-      deathPlayerIds: consequences
-        .filter((row) => row.hasDeath)
-        .map((row) => row.playerId),
-      deathTimes: await this.rows(DEATH_TIMES_SQL, DeathTimeRowSchema),
-      storedAdvancements: await this.rows(
-        STORED_ADVANCEMENTS_SQL,
-        StoredAdvancementRowSchema,
-      ),
-      freeSkillRiskPlayerIds: (
-        await this.rows(FREE_SKILL_RISK_SQL, PlayerIdRowSchema)
-      ).map((row) => row.playerId),
-      ongoingTeamIds: [...new Set(ongoing.map((row) => row.teamId))],
-      ongoingCompetitions: this.summarizeOngoing(ongoing),
-      positionRulesSets: await this.rows(
-        POSITION_RULES_SETS_SQL,
-        PositionRulesSetRowSchema,
-      ),
-      positionSkills: await this.rows(
-        POSITION_SKILLS_SQL,
-        PositionSkillRowSchema,
-      ),
-      eraRulesSets: await this.rows(ERA_RULES_SETS_SQL, EraRulesSetRowSchema),
-      teamPlayers: await this.rows(TEAM_PLAYERS_SQL, TeamPlayerRowSchema),
-      teamRosters: await this.rows(TEAM_ROSTERS_SQL, TeamRosterRowSchema),
-      paidAdvancements: await this.rows(
-        PAID_ADVANCEMENTS_SQL,
-        PaidAdvancementRowSchema,
-      ),
-      skillNames: await this.rows(SKILL_NAMES_SQL, SkillNameRowSchema),
-      skillCategories: await this.rows(
-        SKILL_CATEGORIES_SQL,
-        SkillCategoryRowSchema,
-      ),
-      positionAccess: await this.rows(
-        POSITION_ACCESS_SQL,
-        PositionAccessRowSchema,
-      ),
-      advancementCosts: await this.rows(
-        ADVANCEMENT_COSTS_SQL,
-        AdvancementCostRowSchema,
-      ),
-      statReductionEvents: await this.rows(
-        STAT_REDUCTION_EVENTS_SQL,
-        StatReductionEventRowSchema,
-      ),
-      teamCompetitions: await this.rows(
-        TEAM_COMPETITIONS_SQL,
-        TeamCompetitionRowSchema,
-      ),
-      bigGuyPositions: await this.rows(
-        BIG_GUY_POSITIONS_SQL,
-        BigGuyPositionRowSchema,
-      ),
-      tpSkillIds: await this.rows(TP_SKILL_IDS_SQL, TpSkillIdRowSchema),
-      tpPositionIds: await this.rows(
-        TP_POSITION_IDS_SQL,
-        TpPositionIdRowSchema,
-      ),
-      attributedSkillIds: (
-        await this.rows(ATTRIBUTED_SKILLS_SQL, SkillIdRowSchema)
-      ).map((row) => row.skillId),
-    };
+  load(): Promise<FillPlannerRows> {
+    return this.db.transaction((tx) => this.read(tx), READ_ONLY_SNAPSHOT);
   }
 
   /**
    * The complete TP players who may need a lasting-reduction repair, with
    * what the server derives their reductions from.
    */
-  async loadLastingInjuryRepairCandidates(): Promise<
-    LastingInjuryRepairCandidate[]
-  > {
-    return this.rows(
-      LASTING_INJURY_REPAIRS_SQL,
-      LastingInjuryRepairCandidateRowSchema,
+  loadLastingInjuryRepairCandidates(): Promise<LastingInjuryRepairCandidate[]> {
+    return this.db.transaction(
+      (tx) => this.repairs.candidates(tx),
+      READ_ONLY_SNAPSHOT,
     );
   }
 
-  private async rows<T extends z.ZodType>(
-    sql: string,
-    schema: T,
-  ): Promise<z.infer<T>[]> {
-    return z.array(schema).parse(await this.json.rows(sql));
+  private async read(tx: DbOrTx): Promise<FillPlannerRows> {
+    const ongoing = await this.lookups.ongoingCompetitions(tx);
+    const candidates = this.scope.candidateScope(
+      await this.candidateQueries.candidates(tx),
+    );
+    const teamPlayers = await this.candidateQueries.teamPlayers(
+      tx,
+      candidates.teamIds,
+    );
+    const team = this.scope.teamPlayerScope(teamPlayers);
+    const consequences = await this.matchQueries.consequences(
+      tx,
+      candidates.playerIds,
+    );
+    const statReductionPlayerIds = consequences
+      .filter((row) => row.hasStatReduction)
+      .map((row) => row.playerId);
+    const reduced = new Set(statReductionPlayerIds);
+    return {
+      candidates: candidates.rows,
+      statReductionPlayerIds,
+      deathPlayerIds: consequences
+        .filter((row) => row.hasDeath)
+        .map((row) => row.playerId),
+      deathTimes: await this.matchQueries.deathTimes(tx, candidates.playerIds),
+      storedAdvancements: await this.candidateQueries.storedAdvancements(
+        tx,
+        candidates.playerIds,
+      ),
+      freeSkillRiskPlayerIds:
+        await this.candidateQueries.freeSkillRiskPlayerIds(
+          tx,
+          candidates.playerIds,
+        ),
+      ongoingTeamIds: [...new Set(ongoing.map((row) => row.teamId))],
+      ongoingCompetitions: this.summarizeOngoing(ongoing),
+      positionRulesSets: await this.positionRules.positionRulesSets(
+        tx,
+        candidates.positionEras,
+      ),
+      positionSkills: await this.positionRules.positionSkills(
+        tx,
+        candidates.positionEras,
+      ),
+      eraRulesSets: await this.eraRules.eraRulesSets(tx, team.eraIds),
+      teamPlayers,
+      teamRosters: await this.lookups.teamRosters(tx, candidates.teamIds),
+      paidAdvancements: await this.candidateQueries.paidAdvancements(tx, {
+        teamIds: candidates.teamIds,
+        playerIds: team.playerIds,
+      }),
+      skillNames: await this.lookups.skillNames(tx),
+      skillCategories: await this.eraRules.skillCategories(tx, team.eraIds),
+      positionAccess: await this.positionRules.positionAccess(
+        tx,
+        team.positionEras,
+      ),
+      advancementCosts: await this.eraRules.advancementCosts(tx, team.eraIds),
+      statReductionEvents: await this.matchQueries.statReductionEvents(
+        tx,
+        candidates.playerIds,
+      ),
+      teamCompetitions: await this.matchQueries.teamCompetitions(
+        tx,
+        candidates.playerTeamEras.filter((player) =>
+          reduced.has(player.playerId),
+        ),
+      ),
+      bigGuyPositions: await this.positionRules.bigGuyPositions(
+        tx,
+        candidates.positionEras,
+      ),
+      tpSkillIds: await this.lookups.tpSkillIds(tx),
+      tpPositionIds: await this.lookups.tpPositionIds(
+        tx,
+        candidates.positionIds,
+      ),
+      attributedSkillIds: await this.lookups.attributedSkillIds(tx),
+    };
   }
 
   /**
    * One summary per ongoing competition, counting its distinct teams (the
-   * query's rows are distinct per competition and team), ordered by name
-   * and then id so same-named competitions stay apart.
+   * rows are distinct per competition and team), ordered by name and then id
+   * so same-named competitions stay apart.
    */
   private summarizeOngoing(
-    rows: readonly z.infer<typeof OngoingRowSchema>[],
+    rows: readonly OngoingCompetitionRow[],
   ): OngoingCompetitionSummary[] {
     const byId = new Map<number, OngoingCompetitionSummary>();
     for (const row of rows) {

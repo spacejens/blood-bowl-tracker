@@ -3,8 +3,8 @@
 `tools/import-manual-planner-cli` is a NestJS CLI application that plans
 [import-manual](../import-manual/index.md) batches filling in the data of
 incomplete TP players, and collects the evidence those plans rest on. It
-reads production read-only, the TP feed channel's history and the TP
-downloads, and changes no data itself: `tools/import-manual` applies the
+reads a local restore of a production backup read-only, the TP feed
+channel's history and the TP downloads, and changes no data itself: `tools/import-manual` applies the
 batch files it writes like any other batch (see
 [Filling in missing players](../import-manual/filling-missing-players.md#generated-fills)).
 
@@ -12,7 +12,7 @@ batch files it writes like any other batch (see
 
 | Subcommand | Purpose |
 | --- | --- |
-| `generate-incomplete-player-fills` | Plan the manual-import fills of incomplete TP players whose data can be proven, read-only from production, optionally with the TP feed evidence `read-tp-feed-history` saved (`--feed-channel=<channel-id>`) and the roster snapshot evidence `read-tp-roster-snapshots` saved (`--snapshots`); prints the batch file and a report, or writes the file with `--out=<repo-relative-path>` |
+| `generate-incomplete-player-fills` | Plan the manual-import fills of incomplete TP players whose data can be proven, read-only from a local restore of a production backup, optionally with the TP feed evidence `read-tp-feed-history` saved (`--feed-channel=<channel-id>`) and the roster snapshot evidence `read-tp-roster-snapshots` saved (`--snapshots`); prints the batch file and a report, or writes the file with `--out=<repo-relative-path>` |
 | `read-tp-feed-history` | Read a TP feed channel's whole history and save its advancement reports as local evidence; `--max-pages=N` stops after N pages of 100 |
 | `read-tp-roster-snapshots` | Read every downloaded TP match and roster file and save what each shows of every player, as evidence for `generate-incomplete-player-fills --snapshots` |
 
@@ -23,32 +23,41 @@ pnpm build
 node tools/import-manual-planner-cli/dist/main.js <subcommand>
 ```
 
-Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1. `generate-incomplete-player-fills` (for the database URL) and `read-tp-feed-history` (for the bot token) require `apps/discord-bot/.env.production` to be present in the checkout they run in, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)); they read it through `packages/cli-shared`'s `ProductionEnvFileService`, which never prints a value. `read-tp-feed-history` calls Discord through cli-shared's `DiscordRestService`, the same client [production-ops-cli](../production-ops-cli/index.md#running-it)'s Discord subcommands use.
+Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1.
+
+Only `read-tp-feed-history` (for the bot token) requires `apps/discord-bot/.env.production` to be present in the checkout it runs in, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)); it reads it through `packages/cli-shared`'s `ProductionEnvFileService`, which never prints a value. It calls Discord through cli-shared's `DiscordRestService`, the same client [production-ops-cli](../production-ops-cli/index.md#running-it)'s Discord subcommands use. `generate-incomplete-player-fills` no longer needs production access, but it needs a running local database holding a restored backup (see below). The two collectors need no database.
 
 The evidence the two collectors save lives in the gitignored `tools/import-manual-planner-cli/data/`. Evidence saved in the main checkout's `tools/production-ops-cli/data/` is not moved by any command: move its `tp-feed-<channel-id>/` and `tp-roster-snapshots/` directories into `tools/import-manual-planner-cli/data/` by hand, or run `read-tp-feed-history` and `read-tp-roster-snapshots` again.
 
 ## Generating incomplete-player fills
 
-`generate-incomplete-player-fills` runs read-only queries through
-`packages/cli-shared`'s `RunProductionQueryService`, the same guarded `psql`
-runner as production-ops-cli's `run-production-query`, one per kind of
-row. The query runner has a `tuplesOnly` mode for this: it passes `psql` its tuples-only
-flag so the output holds just the result. Each query is wrapped in
-`json_agg`, so that output is parsed as JSON. The selection repeats
-game-data's `INCOMPLETE_PLAYER_CRITERIA` in SQL, and a spec keeps the two in
-step. A competition counts as ongoing when it has a `tourplay.net` id and no end
-date: the TP importers store an end date only once TP shows the
-competition finished, so one that has ended but is not fully imported still
-counts. No list of competition names is kept, and a run with no ongoing
-competition skips no team for that reason.
+`generate-incomplete-player-fills` reads a local database through
+`packages/db`, never production. Restore the newest backup into it first
+with [backup-cli](../backup-cli/index.md)'s `restore`, then run the
+generator. It connects to `LOCAL_DATABASE_URL` (the variable `restore` also
+takes its target from), by default the docker-compose database `restore`
+writes to (`postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl`). It
+does not read backup-cli's config file. `packages/cli-shared`'s
+`LocalDatabaseGuardService` refuses any host but `localhost`, `127.0.0.1` or
+`::1` before it connects. Connecting applies this checkout's pending
+migrations, so a backup older than the branch is brought up to date.
+
+Every read runs in one read-only `REPEATABLE READ` transaction, so the
+queries see one consistent snapshot. They are drizzle query-builder code
+over `packages/db`'s schema, and the selection uses game-data's
+`INCOMPLETE_PLAYER_CRITERIA` itself, so it counts exactly the players
+`/debugincompleteimport` counts. A competition counts as ongoing when it has
+a `tourplay.net` id and no end date: the TP importers store an end date only
+once TP shows the competition finished, so one that has ended but is not
+fully imported still counts. No list of competition names is kept, and a run
+with no ongoing competition skips no team for that reason.
 What it selects and why is described in
 [Filling in missing players](../import-manual/filling-missing-players.md#generated-fills).
 A trophy award makes its player a free-skill risk only when the trophy is
 curated as granting a skill (`game_data.trophies.grants_skill`) or the award
-records a granted skill, so the queries need a database whose migrations
-include that column. They also read `game_data.rules_sets.lasting_injuries_never_heal`
-to tell which rules sets never heal lasting injuries, so its migration is
-needed too.
+records a granted skill. The queries also read
+`game_data.rules_sets.lasting_injuries_never_heal` to tell which rules sets
+never heal lasting injuries.
 
 The output is JSON: `report` counts the players considered and filled, and
 lists the skipped players' TP ids under each reason.
@@ -214,31 +223,29 @@ for what the files show.
 
 ## Dependency rules
 
-It is a client-side tool. It reaches production only through
-`packages/cli-shared`'s `RunProductionQueryService` and Discord only through
-cli-shared's `DiscordRestService`, the services `tools/production-ops-cli`
-uses too, so neither tool depends on the other. It writes batch files that
-`tools/import-manual` applies, but does not depend on that package.
+It is a client-side tool. It reads only a local database, through
+`packages/db`, behind cli-shared's localhost-only guard, and Discord only
+through cli-shared's `DiscordRestService`. It shares only the Discord client
+with `tools/production-ops-cli`, so neither tool depends on the other. It
+writes batch files that `tools/import-manual` applies, but does not depend
+on that package.
 
 The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums, and
 on `@blood-bowl-tracker/parse-tp`, whose `RosterParserService` reads each
 roster copy the way the TP import does, so a copy the import drops is
 unreadable here too. `@blood-bowl-tracker/db` and
-`@blood-bowl-tracker/game-data` are regular dependencies: the generator's
-query building blocks (`fill-query-conditions.ts` and the
-`FillQueryScope` and `FillRowShapes` services) use db's drizzle exports and
-game-data's `INCOMPLETE_PLAYER_CRITERIA` directly. Four drift-guard specs keep the tool in step with the
-code it mirrors. One keeps the SQL selection in step with
-`INCOMPLETE_PLAYER_CRITERIA`. Another runs the generator's advancement
-pricing next to game-data's own order check
+`@blood-bowl-tracker/game-data` are regular dependencies: `db` for the
+schema and the drizzle builders, `game-data` for
+`INCOMPLETE_PLAYER_CRITERIA` and, in specs, the drift guards. Three
+drift-guard specs keep the tool in step with the code it mirrors. One runs
+the generator's advancement pricing next to game-data's own order check
 (`AdvancementOrderDeductionService`) and requires the server to accept
-exactly the spend the generator prices. The third runs the repair
-selector's reduction counts next to game-data's
-`PlayerFillReductionsService` and requires both to agree. The fourth reads
-roster copies next to parse-tp's `RosterParserService` and requires the
-same finish instant and players, or an unreadable copy where parse-tp
-rejects the file.
+exactly the spend the generator prices. Another runs the repair selector's
+reduction counts next to game-data's `PlayerFillReductionsService` and
+requires both to agree. The third reads roster copies next to parse-tp's
+`RosterParserService` and requires the same finish instant and players, or
+an unreadable copy where parse-tp rejects the file.
 
 ## Development
 

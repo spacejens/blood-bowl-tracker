@@ -49,9 +49,7 @@ tools share. It has no CLI entry point of its own.
   `ProductionQueryModule`: one query from the caller, run against
   production's `DATABASE_URL` in a read-only transaction with a statement
   timeout and a process deadline, psql meta-commands refused, optionally
-  tuples-only. `production-ops-cli`'s `run-production-query` and
-  `import-manual-planner-cli`'s `generate-incomplete-player-fills` both use
-  it.
+  tuples-only. `production-ops-cli`'s `run-production-query` uses it.
 - **Discord REST** — `DiscordRestService`, in `DiscordRestModule`: the
   discord.js `REST` client, built once per process with the production bot
   token, returning Discord's responses verbatim and never printing the
