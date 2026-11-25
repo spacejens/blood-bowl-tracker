@@ -139,12 +139,10 @@ export {
   SkillUpsertConflictError,
 } from './skills/skills.service';
 export { AdvancementCostsService } from './spp/advancement-costs.service';
-export { AdvancementKindCandidatesService } from './spp/advancement-kind-candidates.service';
 export {
   AdvancementOrderDeductionService,
   MAX_DEDUCED,
 } from './spp/advancement-order-deduction.service';
-export { AdvancementSpendRangeService } from './spp/advancement-spend-range.service';
 export { PlayerPricingModelService } from './spp/player-pricing-model.service';
 export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
@@ -174,3 +172,7 @@ export {
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,
 } from './trophy-awards/trophy-awards.service';
+export {
+  AdvancementKindCandidatesService,
+  AdvancementSpendRangeService,
+} from '@blood-bowl-tracker/game-rules';

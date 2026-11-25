@@ -72,8 +72,9 @@ interface KnownRules {
  * the server derives his reductions from: his stored line, his active
  * characteristic increases, and the rules set context
  * PositionRulesSetsService.findCharacteristicsContext resolves for his
- * position and his team era's era. LastingInjuryRepairSelectorService keeps
- * those the server would record a reduction for. The context resolution
+ * position and his team era's era. The generator applies game-rules'
+ * LastingReductionService to each candidate and keeps those the server would
+ * record a reduction for. The context resolution
  * must track findCharacteristicsContext in packages/game-data.
  */
 @Injectable()

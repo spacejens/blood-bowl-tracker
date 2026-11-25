@@ -2,21 +2,14 @@ import type { AdvancementKind } from '@blood-bowl-tracker/domain-enums';
 import { Injectable } from '@nestjs/common';
 
 import type {
-  AdvancementCostRow,
-  FeedSelection,
+  PricingCostRow,
   PricingOutcome,
-  ResolvedStep,
+  ReportedPricingInput,
+  ReportedSelection,
+  ReportedSkillStep,
+  ReportedStep,
   RulesSetPricingInput,
-} from './fill-plan.types';
-
-export interface PricingInput {
-  /** The player's advancements, first taken first. */
-  steps: readonly ResolvedStep[];
-  /** One entry per rules set of the player's era. */
-  rulesSets: readonly RulesSetPricingInput[];
-}
-
-type SkillStep = Extract<ResolvedStep, { kind: 'skill' }>;
+} from './reported-pricing.types';
 
 /** What one rules set makes of the steps. */
 type RulesSetPrice =
@@ -25,8 +18,8 @@ type RulesSetPrice =
   | { kind: 'category-mismatch' };
 
 const SKILL_KINDS: Record<
-  FeedSelection,
-  Record<SkillStep['category'], AdvancementKind>
+  ReportedSelection,
+  Record<ReportedSkillStep['category'], AdvancementKind>
 > = {
   chosen: {
     primary: 'chosen_primary_skill',
@@ -39,10 +32,11 @@ const SKILL_KINDS: Record<
 };
 
 /**
- * Prices a player's feed advancements, taken in the listed order, the way
- * the server's order check prices a fill (AdvancementKindCandidatesService
- * and AdvancementSpendRangeService in packages/game-data), with each step's
- * kind fixed by the report instead of left open:
+ * Prices a player's reported advancements (a TP feed report or a roster
+ * snapshot), taken in the listed order, the way the server's order check
+ * prices a fill (AdvancementKindCandidatesService and
+ * AdvancementSpendRangeService, in this package), with each step's kind
+ * fixed by the report instead of left open:
  *
  * - under a rules set whose own cost rows (no league) are all table rolls,
  *   every step is a `table_roll`;
@@ -56,14 +50,14 @@ const SKILL_KINDS: Record<
  * priced. So is a skill whose category the position's access under the rules
  * set puts on the other side of primary and secondary than the report: the
  * server would price it as the other kind. Every rules set of the era must
- * give the same costs. advancement-pricing.drift.spec.ts checks the result
- * against game-data's own deduction.
+ * give the same costs. reported-advancement-pricing.agreement.spec.ts checks
+ * the result against the server's order check.
  *
  * Pure decision logic, with no I/O and no dependencies.
  */
 @Injectable()
-export class AdvancementPricingService {
-  price(input: PricingInput): PricingOutcome {
+export class ReportedAdvancementPricingService {
+  price(input: ReportedPricingInput): PricingOutcome {
     const prices = input.rulesSets.map((rulesSet) =>
       this.priceUnder(input.steps, rulesSet),
     );
@@ -104,7 +98,7 @@ export class AdvancementPricingService {
    * `table_roll`.
    */
   hasConflictingCosts(input: {
-    costs: readonly AdvancementCostRow[];
+    costs: readonly PricingCostRow[];
     maxNumber: number;
   }): boolean {
     const kinds: readonly AdvancementKind[] = this.isFixedThreshold(input.costs)
@@ -126,7 +120,7 @@ export class AdvancementPricingService {
   }
 
   private priceUnder(
-    steps: readonly ResolvedStep[],
+    steps: readonly ReportedStep[],
     rulesSet: RulesSetPricingInput,
   ): RulesSetPrice {
     const fixed = this.isFixedThreshold(rulesSet.costs);
@@ -151,7 +145,7 @@ export class AdvancementPricingService {
   }
 
   /** A rules set's own rows all table rolls: fixed thresholds. */
-  private isFixedThreshold(costs: readonly AdvancementCostRow[]): boolean {
+  private isFixedThreshold(costs: readonly PricingCostRow[]): boolean {
     const own = costs.filter((cost) => cost.leagueId === null);
     return (
       own.length > 0 &&
@@ -160,8 +154,8 @@ export class AdvancementPricingService {
   }
 
   private isGranted(
-    step: SkillStep,
-    costs: readonly AdvancementCostRow[],
+    step: ReportedSkillStep,
+    costs: readonly PricingCostRow[],
   ): boolean {
     return costs.some(
       (cost) =>
@@ -171,7 +165,7 @@ export class AdvancementPricingService {
   }
 
   private accessDiffers(
-    step: SkillStep,
+    step: ReportedSkillStep,
     rulesSet: RulesSetPricingInput,
   ): boolean {
     const category = rulesSet.skillCategories.get(step.skillId);
@@ -182,7 +176,7 @@ export class AdvancementPricingService {
     return access !== undefined && access !== step.category;
   }
 
-  private kindOf(step: ResolvedStep): AdvancementKind | undefined {
+  private kindOf(step: ReportedStep): AdvancementKind | undefined {
     if (step.kind === 'characteristic') {
       return step.selection === 'random' ? 'random_characteristic' : undefined;
     }
@@ -191,7 +185,7 @@ export class AdvancementPricingService {
 
   /** The one price of the kind at the number; null with none, or several that differ. */
   private costAt(at: {
-    costs: readonly AdvancementCostRow[];
+    costs: readonly PricingCostRow[];
     kind: AdvancementKind;
     number: number;
   }): number | null {

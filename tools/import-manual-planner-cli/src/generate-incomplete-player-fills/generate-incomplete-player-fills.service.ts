@@ -1,13 +1,19 @@
 import type { WriteFileResult } from '@blood-bowl-tracker/cli-shared';
 import { WriteFileService } from '@blood-bowl-tracker/cli-shared';
+import { LastingReductionService } from '@blood-bowl-tracker/game-rules';
 import { Injectable } from '@nestjs/common';
 
 import { TpFeedHistoryStoreService } from '../read-tp-feed-history/tp-feed-history-store.service';
 import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-snapshots.schema';
 import { TpRosterSnapshotsStoreService } from '../read-tp-roster-snapshots/tp-roster-snapshots-store.service';
+import {
+  CHARACTERISTIC_KEYS,
+  CHARACTERISTIC_NAME_BY_KEY,
+} from './characteristic-keys';
 import type {
   FillEntry,
   FillReport,
+  LastingInjuryRepairCandidate,
   LastingInjuryRepairEntry,
   OngoingCompetitionSummary,
   SkipTally,
@@ -15,7 +21,6 @@ import type {
 import { FillSectionRendererService } from './fill-section-renderer.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
-import { LastingInjuryRepairSelectorService } from './lasting-injury-repair-selector.service';
 import {
   ScratchCompletenessService,
   type ScratchCompletenessSplit,
@@ -95,7 +100,7 @@ export class GenerateIncompletePlayerFillsService {
     private readonly renderer: FillSectionRendererService,
     private readonly writeFile: WriteFileService,
     private readonly feedHistory: TpFeedHistoryStoreService,
-    private readonly repairSelector: LastingInjuryRepairSelectorService,
+    private readonly lastingReduction: LastingReductionService,
     private readonly snapshotStore: TpRosterSnapshotsStoreService,
     private readonly scratch: ScratchCompletenessService,
   ) {}
@@ -115,7 +120,7 @@ export class GenerateIncompletePlayerFillsService {
     const rows = await this.queries.load();
     const plan = this.planner.plan({ ...rows, feed, snapshots });
     const candidates = await this.queries.loadLastingInjuryRepairCandidates();
-    const selected = this.repairSelector.select(candidates);
+    const selected = this.repairable(candidates);
     const { safe, unsafe } = await this.scratchSafeRepairs({
       repairs: selected,
       snapshots,
@@ -175,5 +180,33 @@ export class GenerateIncompletePlayerFillsService {
       runFills: input.entries,
       out: input.out,
     });
+  }
+
+  /**
+   * The candidates for whom the server's players.recordLastingReductions
+   * derives at least one reduction, so no listed repair is a no-op. Without
+   * a rules set or a start line every count is 0.
+   */
+  private repairable(
+    candidates: readonly LastingInjuryRepairCandidate[],
+  ): LastingInjuryRepairEntry[] {
+    return candidates
+      .filter(({ context, line, increases }) => {
+        if (context === null || context.baseline === null) {
+          return false;
+        }
+        const { baseline, formats } = context;
+        return CHARACTERISTIC_KEYS.some(
+          (key) =>
+            this.lastingReduction.reduction({
+              characteristic: CHARACTERISTIC_NAME_BY_KEY[key],
+              format: formats[key],
+              value: line[key],
+              start: baseline[key],
+              increases: increases.filter((k) => k === key).length,
+            }) > 0,
+        );
+      })
+      .map(({ player }) => ({ player }));
   }
 }

@@ -1,9 +1,12 @@
 import type { PlayerStatus } from '@blood-bowl-tracker/domain-enums';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
+import {
+  MAX_DEDUCED,
+  ReportedAdvancementPricingService,
+} from '@blood-bowl-tracker/game-rules';
 import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
-import { AdvancementPricingService } from './advancement-pricing.service';
 import { CHARACTERISTIC_NAME_BY_KEY } from './characteristic-keys';
 import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
@@ -29,8 +32,8 @@ import { FREE_EXTRA_SKILL_NAMES } from './fill-plan.types';
 import { LastingInjuryProofService } from './lasting-injury-proof.service';
 import { PricingRulesSetsService } from './pricing-rules-sets.service';
 
-/** The server's order check prices at most this many paid advancements. */
-export const MAX_PAID_ADVANCEMENTS = 6;
+/** As many as the server's order deduction searches. */
+export const MAX_PAID_ADVANCEMENTS = MAX_DEDUCED;
 
 export interface AdvancementStageInput {
   candidate: CandidateRow;
@@ -89,7 +92,7 @@ export class AdvancementFillStageService {
   constructor(
     private readonly proof: LastingInjuryProofService,
     private readonly skills: FeedSkillResolverService,
-    private readonly pricing: AdvancementPricingService,
+    private readonly pricing: ReportedAdvancementPricingService,
     private readonly pricingRulesSets: PricingRulesSetsService,
     private readonly replay: CharacteristicReplayService,
     private readonly validity: CharacteristicValidityService,

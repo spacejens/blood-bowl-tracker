@@ -3,12 +3,12 @@ import {
   DiscordRestModule,
 } from '@blood-bowl-tracker/cli-shared';
 import { DbModule } from '@blood-bowl-tracker/db';
+import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
 import { DynamicModule, Module, Provider } from '@nestjs/common';
 
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
-import { AdvancementPricingService } from './generate-incomplete-player-fills/advancement-pricing.service';
 import { CandidateMatchQueriesService } from './generate-incomplete-player-fills/candidate-match-queries.service';
 import { CandidateQueriesService } from './generate-incomplete-player-fills/candidate-queries.service';
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
@@ -29,7 +29,6 @@ import { IncompletePlayerFillQueriesService } from './generate-incomplete-player
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
 import { LastingInjuryRepairQueriesService } from './generate-incomplete-player-fills/lasting-injury-repair-queries.service';
-import { LastingInjuryRepairSelectorService } from './generate-incomplete-player-fills/lasting-injury-repair-selector.service';
 import { LookupQueriesService } from './generate-incomplete-player-fills/lookup-queries.service';
 import { ManualBatchFillsStoreService } from './generate-incomplete-player-fills/manual-batch-fills-store.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
@@ -73,7 +72,6 @@ const EVIDENCE_PROVIDERS: Provider[] = [
 /** generate-incomplete-player-fills' services, which need the database. */
 const FILL_PROVIDERS: Provider[] = [
   CharacteristicValidityService,
-  AdvancementPricingService,
   PricingRulesSetsService,
   SnapshotSkillResolverService,
   SnapshotOrderSearchService,
@@ -85,7 +83,6 @@ const FILL_PROVIDERS: Provider[] = [
   CharacteristicChangeService,
   CharacteristicReplayService,
   LastingInjuryProofService,
-  LastingInjuryRepairSelectorService,
   ManualBatchFillsStoreService,
   ScratchCompletenessService,
   FeedPlayerMatcherService,
@@ -122,6 +119,7 @@ export class AppModule {
       imports: [
         CliSharedModule,
         DiscordRestModule,
+        GameRulesModule,
         ParseTpModule,
         ParseTpFeedModule,
         ...(fills

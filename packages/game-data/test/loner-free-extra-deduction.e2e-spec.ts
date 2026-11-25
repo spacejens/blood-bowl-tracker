@@ -4,6 +4,8 @@ import {
   closeTestDb,
   resetGameDataTables,
 } from '@blood-bowl-tracker/db/test-helpers';
+import { AdvancementKindCandidatesService } from '@blood-bowl-tracker/game-rules';
+import { AdvancementSpendRangeService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -11,10 +13,8 @@ import { CharacteristicAdvancementPlannerService } from '../src/player-skills/ch
 import { PaidAdvancementSlotsService } from '../src/player-skills/paid-advancement-slots.service';
 import { PlayerAdvancementSyncPlannerService } from '../src/player-skills/player-advancement-sync-planner.service';
 import { PlayerSkillsService } from '../src/player-skills/player-skills.service';
-import { AdvancementKindCandidatesService } from '../src/spp/advancement-kind-candidates.service';
 import { AdvancementOrderDeductionService } from '../src/spp/advancement-order-deduction.service';
 import { AdvancementPricingModelService } from '../src/spp/advancement-pricing-model.service';
-import { AdvancementSpendRangeService } from '../src/spp/advancement-spend-range.service';
 import { StoredUnspentSppSettlementService } from '../src/spp/stored-unspent-spp-settlement.service';
 import { UnspentSppService } from '../src/spp/unspent-spp.service';
 import { UnspentSppCombinationService } from '../src/spp/unspent-spp-combination.service';

@@ -1,0 +1,65 @@
+import type {
+  AdvancementKind,
+  PlayerSkillSource,
+  SkillAccess,
+  SkillCategory,
+} from '@blood-bowl-tracker/domain-enums';
+
+/**
+ * One `advancement_costs` row that applies to a player under one rules set:
+ * either the rules set's own row or one of the player's league's rows.
+ */
+export interface ApplicableAdvancementCost {
+  advancementNumber: number;
+  advancementKind: AdvancementKind;
+  skillId: number | null;
+  sppCost: number;
+}
+
+/**
+ * One way a gained advancement could have been paid for. `advancementNumber`
+ * is null when the advancement could have been any number, and set when only
+ * one number fits (a skill a league's cost row grants).
+ */
+export interface AdvancementOption {
+  advancementKind: AdvancementKind;
+  advancementNumber: number | null;
+}
+
+/** One advancement row of a player, as the advancement rules read it. */
+export interface PlayerSkillEntry {
+  /** The `player_advancements` row id, so a caller can pin a particular row. */
+  id: number;
+  /** Null for a characteristic increase. */
+  skillId: number | null;
+  source: PlayerSkillSource;
+  /** Gained without spending SPP and not one of the player's advancements. */
+  isFreeExtra: boolean;
+  advancementOrder: number | null;
+  /** True when `advancementOrder` is the real sequence. */
+  orderConfirmed: boolean;
+}
+
+/** What AdvancementKindCandidatesService needs for one player under one rules set. */
+export interface AdvancementCandidatesInput {
+  /**
+   * Every advancement row the player has, starting skills and characteristic
+   * increases included.
+   */
+  skills: PlayerSkillEntry[];
+  /** Each skill's category under this rules set; a skill with none is absent. */
+  skillCategories: ReadonlyMap<number, SkillCategory>;
+  /**
+   * The position's access to each category under this rules set; a category
+   * the position has no access to is absent.
+   */
+  positionAccess: ReadonlyMap<SkillCategory, SkillAccess>;
+  /** The cost rows that apply to the player under this rules set. */
+  costs: ApplicableAdvancementCost[];
+}
+
+/** The least and most SPP a player's gained advancements can have cost. */
+export interface SpendRange {
+  spentMin: number;
+  spentMax: number;
+}

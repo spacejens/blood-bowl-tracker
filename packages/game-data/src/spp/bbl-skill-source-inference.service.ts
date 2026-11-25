@@ -2,10 +2,10 @@ import type { UnspentSppSnapshot } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import { and, DB, eq, or, playerAdvancements } from '@blood-bowl-tracker/db';
 import type { PlayerSkillSource } from '@blood-bowl-tracker/domain-enums';
+import { AdvancementKindCandidatesService } from '@blood-bowl-tracker/game-rules';
+import { AdvancementSpendRangeService } from '@blood-bowl-tracker/game-rules';
 import { Inject, Injectable } from '@nestjs/common';
 
-import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
-import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import { UnspentSppService } from './unspent-spp.service';
 import type {
   AdvancementCandidatesInput,

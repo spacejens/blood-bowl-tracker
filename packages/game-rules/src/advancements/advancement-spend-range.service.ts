@@ -4,7 +4,7 @@ import type {
   AdvancementOption,
   ApplicableAdvancementCost,
   SpendRange,
-} from './unspent-spp.types';
+} from './advancement.types';
 
 /** Picks one cost out of several that fit the same advancement and number. */
 type CostPicker = (costs: number[]) => number;

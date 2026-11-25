@@ -1,9 +1,9 @@
+import { AdvancementKindCandidatesService } from '@blood-bowl-tracker/game-rules';
+import { AdvancementSpendRangeService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
 import { AdvancementOrderDeductionService } from './advancement-order-deduction.service';
-import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import type {
   ApplicableAdvancementCost,
   PlayerSkillEntry,

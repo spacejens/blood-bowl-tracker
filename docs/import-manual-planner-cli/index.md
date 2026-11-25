@@ -51,7 +51,8 @@ complete players the `lastingInjuryRepairs` section is selected from.
 The queries within each see one consistent snapshot; the two read
 disjoint sets of players. They are drizzle query-builder code
 over `packages/db`'s schema, and the selection uses game-data's
-`INCOMPLETE_PLAYER_CRITERIA` itself, so it counts exactly the players
+`INCOMPLETE_PLAYER_CRITERIA` itself (built from game-rules'
+`INCOMPLETE_PLAYER_GAPS`), so it counts exactly the players
 `/debugincompleteimport` counts. A competition counts as ongoing when it has
 a `tourplay.net` id and no end date: the TP importers store an end date only
 once TP shows the competition finished, so one that has ended but is not
@@ -75,10 +76,11 @@ gets a `lastingInjuryRepairs` section listing every complete non-star TP
 player with a stat reduction recorded in a match and none stored whose
 stored line shows a reduction the server would record (see
 [Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)).
-`LastingInjuryRepairSelectorService` derives each candidate's counts from
-his stored line, active characteristic increases and the rules set context
-the query resolves, the way game-data's `PlayerFillReductionsService` does,
-and leaves out every candidate with nothing to record.
+The generator works out each candidate's counts from his stored line,
+active characteristic increases and the rules set context the query
+resolves, with game-rules' `LastingReductionService`, the same rule
+game-data's `PlayerFillReductionsService` applies, and leaves out every
+candidate with nothing to record.
 `report.lastingInjuryRepairs` counts the listed players and
 `report.lastingInjuryRepairsNothingToRecord` the ones left out.
 `ScratchCompletenessService` then leaves out every repair a database built
@@ -243,13 +245,10 @@ roster copy the way the TP import does, so a copy the import drops is
 unreadable here too. `@blood-bowl-tracker/db` and
 `@blood-bowl-tracker/game-data` are regular dependencies: `db` for the
 schema and the drizzle builders, `game-data` for
-`INCOMPLETE_PLAYER_CRITERIA` and, in specs, the drift guards. Three
-drift-guard specs keep the tool in step with the code it mirrors. One runs
-the generator's advancement pricing next to game-data's own order check
-(`AdvancementOrderDeductionService`) and requires the server to accept
-exactly the spend the generator prices. Another runs the repair selector's
-reduction counts next to game-data's `PlayerFillReductionsService` and
-requires both to agree. The third reads roster copies next to parse-tp's
+`INCOMPLETE_PLAYER_CRITERIA`. `@blood-bowl-tracker/game-rules` supplies the
+advancement pricing, lasting reductions, incomplete-player gaps, free-extra
+skills and deduction limit, so the tool applies the same rules as the
+server. One drift-guard spec reads roster copies next to parse-tp's
 `RosterParserService` and requires the same finish instant and players, or
 an unreadable copy where parse-tp rejects the file.
 

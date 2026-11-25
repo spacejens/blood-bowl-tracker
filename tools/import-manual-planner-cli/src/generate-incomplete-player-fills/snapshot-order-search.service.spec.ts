@@ -1,7 +1,7 @@
+import { ReportedAdvancementPricingService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { AdvancementPricingService } from './advancement-pricing.service';
 import {
   BB2020_COSTS,
   BB2025_COSTS,
@@ -35,7 +35,7 @@ describe('SnapshotOrderSearchService', () => {
         SnapshotOrderSearchService,
         // Pure and dependency-free, so passed real: the search is only
         // meaningful against real prices.
-        AdvancementPricingService,
+        ReportedAdvancementPricingService,
       ],
     }).compile();
     service = moduleRef.get(SnapshotOrderSearchService);

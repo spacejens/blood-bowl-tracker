@@ -1,4 +1,5 @@
 import { WriteFileService } from '@blood-bowl-tracker/cli-shared';
+import { LastingReductionService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
@@ -8,6 +9,7 @@ import type { TpRosterSnapshots } from '../read-tp-roster-snapshots/tp-roster-sn
 import { TpRosterSnapshotsStoreService } from '../read-tp-roster-snapshots/tp-roster-snapshots-store.service';
 import { eligibleInput, report } from './fill-plan.test-helpers';
 import {
+  type CharacteristicFormats,
   type FillEntry,
   type FillPlan,
   type FillReport,
@@ -19,7 +21,6 @@ import { FillSectionRendererService } from './fill-section-renderer.service';
 import { GenerateIncompletePlayerFillsService } from './generate-incomplete-player-fills.service';
 import { IncompletePlayerFillPlannerService } from './incomplete-player-fill-planner.service';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
-import { LastingInjuryRepairSelectorService } from './lasting-injury-repair-selector.service';
 import { ScratchCompletenessService } from './scratch-completeness.service';
 
 const REPAIR: LastingInjuryRepairEntry = {
@@ -58,12 +59,20 @@ const NONE_LEFT_OUT = { count: 0, players: [] };
 
 const LINE = { ma: 6, st: 3, ag: 3, pa: 4, av: 9 };
 
+const FORMATS: CharacteristicFormats = {
+  ma: 'bare',
+  st: 'bare',
+  ag: 'plus',
+  pa: 'plus',
+  av: 'plus',
+};
+
 function repairCandidate(id: string): LastingInjuryRepairCandidate {
   return {
     player: { system: 'tourplay.net', id },
     line: LINE,
     increases: [],
-    context: null,
+    context: { formats: FORMATS, baseline: LINE },
   };
 }
 
@@ -115,7 +124,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
   let renderer: MockProxy<FillSectionRendererService>;
   let writeFile: MockProxy<WriteFileService>;
   let feedHistory: MockProxy<TpFeedHistoryStoreService>;
-  let repairSelector: MockProxy<LastingInjuryRepairSelectorService>;
+  let lastingReduction: MockProxy<LastingReductionService>;
   let snapshotStore: MockProxy<TpRosterSnapshotsStoreService>;
   let scratch: MockProxy<ScratchCompletenessService>;
 
@@ -125,12 +134,12 @@ describe('GenerateIncompletePlayerFillsService', () => {
     renderer = mock<FillSectionRendererService>();
     writeFile = mock<WriteFileService>();
     feedHistory = mock<TpFeedHistoryStoreService>();
-    repairSelector = mock<LastingInjuryRepairSelectorService>();
+    lastingReduction = mock<LastingReductionService>();
     snapshotStore = mock<TpRosterSnapshotsStoreService>();
     scratch = mock<ScratchCompletenessService>();
     queries.load.mockResolvedValue(eligibleInput());
     queries.loadLastingInjuryRepairCandidates.mockResolvedValue([]);
-    repairSelector.select.mockReturnValue([]);
+    lastingReduction.reduction.mockReturnValue(0);
     planner.plan.mockReturnValue(planWith([ENTRY]));
     renderer.render.mockReturnValue('// file\n');
     const moduleRef = await Test.createTestingModule({
@@ -141,16 +150,21 @@ describe('GenerateIncompletePlayerFillsService', () => {
         { provide: FillSectionRendererService, useValue: renderer },
         { provide: WriteFileService, useValue: writeFile },
         { provide: TpFeedHistoryStoreService, useValue: feedHistory },
-        {
-          provide: LastingInjuryRepairSelectorService,
-          useValue: repairSelector,
-        },
+        { provide: LastingReductionService, useValue: lastingReduction },
         { provide: TpRosterSnapshotsStoreService, useValue: snapshotStore },
         { provide: ScratchCompletenessService, useValue: scratch },
       ],
     }).compile();
     service = moduleRef.get(GenerateIncompletePlayerFillsService);
   });
+
+  /** Loads these candidates; each one shows a reduction. */
+  function selectRepairs(...ids: string[]): void {
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue(
+      ids.map(repairCandidate),
+    );
+    lastingReduction.reduction.mockReturnValue(1);
+  }
 
   it('plans from the loaded rows and prints the section with the report', async () => {
     const result = await service.run({});
@@ -210,15 +224,23 @@ describe('GenerateIncompletePlayerFillsService', () => {
   });
 
   it('renders and counts only the repairs the server would record', async () => {
-    const candidates = [repairCandidate('929761'), repairCandidate('688945')];
-    queries.loadLastingInjuryRepairCandidates.mockResolvedValue(candidates);
-    repairSelector.select.mockReturnValue([REPAIR]);
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue([
+      repairCandidate('929761'),
+      repairCandidate('688945'),
+    ]);
+    lastingReduction.reduction.mockReturnValueOnce(1);
     snapshotStore.readSnapshots.mockResolvedValue(SNAPSHOTS);
     scratch.split.mockResolvedValue({ safe: [REPAIR], unsafe: [] });
 
     const result = await service.run({ snapshots: true });
 
-    expect(repairSelector.select).toHaveBeenCalledWith(candidates);
+    expect(lastingReduction.reduction).toHaveBeenCalledWith({
+      characteristic: 'MA',
+      format: 'bare',
+      value: 6,
+      start: 6,
+      increases: 0,
+    });
     expect(renderer.render).toHaveBeenCalledWith([ENTRY], [REPAIR]);
     expect(result.report.lastingInjuryRepairs).toBe(1);
     expect(result.report.lastingInjuryRepairsNothingToRecord).toBe(1);
@@ -241,7 +263,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
 
   it('writes a batch file with repairs and no fills', async () => {
     planner.plan.mockReturnValue(planWith([]));
-    repairSelector.select.mockReturnValue([REPAIR]);
+    selectRepairs('929761');
     snapshotStore.readSnapshots.mockResolvedValue(SNAPSHOTS);
     scratch.split.mockResolvedValue({ safe: [REPAIR], unsafe: [] });
     writeFile.run.mockResolvedValue({ written: 'x.json5', bytes: 8 });
@@ -253,7 +275,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
 
   it('leaves out and lists the repairs a database built from scratch has incomplete', async () => {
     const out = 'tools/import-manual/data/batches/017-x/f.json5';
-    repairSelector.select.mockReturnValue([REPAIR, OTHER]);
+    selectRepairs('929761', '688945');
     snapshotStore.readSnapshots.mockResolvedValue(SNAPSHOTS);
     scratch.split.mockResolvedValue({ safe: [REPAIR], unsafe: ['688945'] });
     writeFile.run.mockResolvedValue({ written: out, bytes: 8 });
@@ -277,7 +299,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
   });
 
   it('tells the split the evidence is incomplete when a file could not be read', async () => {
-    repairSelector.select.mockReturnValue([REPAIR]);
+    selectRepairs('929761');
     snapshotStore.readSnapshots.mockResolvedValue({
       ...SNAPSHOTS,
       unreadable: [{ source: 'fourth-era/c/match_1.json', reason: 'bad' }],
@@ -292,7 +314,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
   });
 
   it('prints the scratch-safe repairs without a path to judge earlier batches by', async () => {
-    repairSelector.select.mockReturnValue([REPAIR, OTHER]);
+    selectRepairs('929761', '688945');
     snapshotStore.readSnapshots.mockResolvedValue(SNAPSHOTS);
     scratch.split.mockResolvedValue({ safe: [REPAIR], unsafe: ['688945'] });
 
@@ -307,7 +329,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
   });
 
   it('refuses repairs without --snapshots, writing nothing', async () => {
-    repairSelector.select.mockReturnValue([REPAIR]);
+    selectRepairs('929761');
 
     await expect(service.run({ out: 'x.json5' })).rejects.toThrow(
       /1 lasting-injury repair[\s\S]*--snapshots/,
@@ -318,7 +340,7 @@ describe('GenerateIncompletePlayerFillsService', () => {
 
   it('writes nothing when every repair is left out and nothing is eligible', async () => {
     planner.plan.mockReturnValue(planWith([]));
-    repairSelector.select.mockReturnValue([REPAIR]);
+    selectRepairs('929761');
     snapshotStore.readSnapshots.mockResolvedValue(SNAPSHOTS);
     scratch.split.mockResolvedValue({ safe: [], unsafe: ['929761'] });
 
@@ -449,5 +471,47 @@ describe('GenerateIncompletePlayerFillsService', () => {
     await service.run({});
 
     expect(snapshotStore.readSnapshots).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['no rules set', null],
+    ['no start line', { formats: FORMATS, baseline: null }],
+  ])('skips a candidate with %s', async (_name, context) => {
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue([
+      { ...repairCandidate('929761'), context },
+    ]);
+    lastingReduction.reduction.mockReturnValue(1);
+
+    const result = await service.run({});
+
+    expect(lastingReduction.reduction).not.toHaveBeenCalled();
+    expect(result.report.lastingInjuryRepairs).toBe(0);
+    expect(result.report.lastingInjuryRepairsNothingToRecord).toBe(1);
+  });
+
+  it('skips a candidate whose every characteristic shows no reduction', async () => {
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue([
+      repairCandidate('929761'),
+    ]);
+
+    const result = await service.run({});
+
+    expect(lastingReduction.reduction).toHaveBeenCalledTimes(5);
+    expect(result.report.lastingInjuryRepairsNothingToRecord).toBe(1);
+  });
+
+  it('counts a candidate increases of each characteristic', async () => {
+    queries.loadLastingInjuryRepairCandidates.mockResolvedValue([
+      { ...repairCandidate('929761'), increases: ['ag', 'ag', 'ma'] },
+    ]);
+
+    await service.run({});
+
+    expect(lastingReduction.reduction).toHaveBeenCalledWith(
+      expect.objectContaining({ characteristic: 'AG', increases: 2 }),
+    );
+    expect(lastingReduction.reduction).toHaveBeenCalledWith(
+      expect.objectContaining({ characteristic: 'MA', increases: 1 }),
+    );
   });
 });

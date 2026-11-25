@@ -11,13 +11,13 @@ import type {
   SkillAccess,
   SkillCategory,
 } from '@blood-bowl-tracker/domain-enums';
+import { AdvancementKindCandidatesService } from '@blood-bowl-tracker/game-rules';
+import { AdvancementSpendRangeService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { AdvancementKindCandidatesService } from './advancement-kind-candidates.service';
-import { AdvancementSpendRangeService } from './advancement-spend-range.service';
 import { BblSkillSourceInferenceService } from './bbl-skill-source-inference.service';
 import { UnspentSppService } from './unspent-spp.service';
 import {

@@ -1,9 +1,7 @@
 import type { CharacteristicLine } from '@blood-bowl-tracker/api-contract';
-import type {
-  CharacteristicFormat,
-  PlayerCharacteristic,
-} from '@blood-bowl-tracker/domain-enums';
+import type { PlayerCharacteristic } from '@blood-bowl-tracker/domain-enums';
 import { PLAYER_CHARACTERISTICS } from '@blood-bowl-tracker/domain-enums';
+import { LastingReductionService } from '@blood-bowl-tracker/game-rules';
 import { Injectable } from '@nestjs/common';
 
 import type { PositionCharacteristicsContext } from '../position-rules-sets/position-rules-sets.service';
@@ -28,12 +26,6 @@ interface Comparison {
     keyof PositionCharacteristicsContext,
     'rulesSetId' | 'baseline'
   >;
-  /**
-   * Whether the characteristic is one where a lower value is better, but only
-   * under a target-number format (plus / plus_zero_legal) for AG and PA; the
-   * format check decides.
-   */
-  rollTarget: boolean;
 }
 
 const COMPARISON_BY_INCREASE: Readonly<
@@ -43,31 +35,26 @@ const COMPARISON_BY_INCREASE: Readonly<
     key: 'move',
     counter: 'moveReductionCount',
     format: 'moveFormat',
-    rollTarget: false,
   },
   ST: {
     key: 'strength',
     counter: 'strengthReductionCount',
     format: 'strengthFormat',
-    rollTarget: false,
   },
   AG: {
     key: 'agility',
     counter: 'agilityReductionCount',
     format: 'agilityFormat',
-    rollTarget: true,
   },
   PA: {
     key: 'passing',
     counter: 'passingReductionCount',
     format: 'passingFormat',
-    rollTarget: true,
   },
   AV: {
     key: 'armour',
     counter: 'armourReductionCount',
     format: 'armourFormat',
-    rollTarget: false,
   },
 };
 
@@ -78,26 +65,20 @@ const COMPARISONS: readonly Comparison[] = PLAYER_CHARACTERISTICS.map(
 
 /**
  * Derives a player's five lasting stat-reduction counts from his current
- * characteristics and characteristic increases: for each characteristic, how
- * far the value sits on the worse side of the position's baseline once the
- * increases are counted,
- *
- *   reduction = max(0, increases - gap)
- *
- * where `gap` is how far the value is on the better side of the baseline
- * (negative on the worse side). It is the identity
- * TpCharacteristicIncreasesService uses (increases = gap + reduction) solved
- * for the reduction. AG and PA are better when lower under a `plus` or
- * `plus_zero_legal` format; every other characteristic is better when higher.
+ * characteristics and characteristic increases, one characteristic at a time
+ * through game-rules' LastingReductionService.
  *
  * The baseline and formats are those
  * PositionRulesSetsService.findCharacteristicsContext resolves, which the
  * player deepdive also compares against. Without a baseline every count is
- * 0, and so is a characteristic with an `absent` format or a null value.
+ * 0.
  */
 @Injectable()
 export class PlayerFillReductionsService {
-  constructor(private readonly positionRulesSets: PositionRulesSetsService) {}
+  constructor(
+    private readonly positionRulesSets: PositionRulesSetsService,
+    private readonly lastingReduction: LastingReductionService,
+  ) {}
 
   async derive(input: ReductionsInput): Promise<LastingReductionCounts> {
     const counts: LastingReductionCounts = {
@@ -116,20 +97,15 @@ export class PlayerFillReductionsService {
       return counts;
     }
     for (const comparison of COMPARISONS) {
-      const format: CharacteristicFormat = context[comparison.format];
-      const value = input.line[comparison.key];
-      const start = baseline[comparison.key];
-      if (format === 'absent' || value === null || start === null) {
-        continue;
-      }
-      const lowerIsBetter =
-        comparison.rollTarget &&
-        (format === 'plus' || format === 'plus_zero_legal');
-      const gap = lowerIsBetter ? start - value : value - start;
-      const increases = input.increases.filter(
-        (increase) => increase === comparison.increase,
-      ).length;
-      counts[comparison.counter] = Math.max(0, increases - gap);
+      counts[comparison.counter] = this.lastingReduction.reduction({
+        characteristic: comparison.increase,
+        format: context[comparison.format],
+        value: input.line[comparison.key],
+        start: baseline[comparison.key],
+        increases: input.increases.filter(
+          (increase) => increase === comparison.increase,
+        ).length,
+      });
     }
     return counts;
   }

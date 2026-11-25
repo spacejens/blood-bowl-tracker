@@ -17,7 +17,6 @@ import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
-import { AdvancementPricingService } from './generate-incomplete-player-fills/advancement-pricing.service';
 import { CandidateMatchQueriesService } from './generate-incomplete-player-fills/candidate-match-queries.service';
 import { CandidateQueriesService } from './generate-incomplete-player-fills/candidate-queries.service';
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
@@ -38,7 +37,6 @@ import { IncompletePlayerFillQueriesService } from './generate-incomplete-player
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
 import { LastingInjuryRepairQueriesService } from './generate-incomplete-player-fills/lasting-injury-repair-queries.service';
-import { LastingInjuryRepairSelectorService } from './generate-incomplete-player-fills/lasting-injury-repair-selector.service';
 import { LookupQueriesService } from './generate-incomplete-player-fills/lookup-queries.service';
 import { ManualBatchFillsStoreService } from './generate-incomplete-player-fills/manual-batch-fills-store.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
@@ -88,7 +86,6 @@ const EVIDENCE_SERVICES: readonly Type<unknown>[] = [
 /** The services only generate-incomplete-player-fills gets, with the local database. */
 const FILL_SERVICES: readonly Type<unknown>[] = [
   CharacteristicValidityService,
-  AdvancementPricingService,
   PricingRulesSetsService,
   SnapshotSkillResolverService,
   SnapshotOrderSearchService,
@@ -100,7 +97,6 @@ const FILL_SERVICES: readonly Type<unknown>[] = [
   CharacteristicChangeService,
   CharacteristicReplayService,
   LastingInjuryProofService,
-  LastingInjuryRepairSelectorService,
   ManualBatchFillsStoreService,
   ScratchCompletenessService,
   FeedPlayerMatcherService,

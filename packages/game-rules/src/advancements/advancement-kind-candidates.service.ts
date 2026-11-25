@@ -9,7 +9,7 @@ import type {
   AdvancementCandidatesInput,
   AdvancementOption,
   PlayerSkillEntry,
-} from './unspent-spp.types';
+} from './advancement.types';
 
 /** A row that names a skill. */
 type SkillAdvancement = PlayerSkillEntry & { skillId: number };
