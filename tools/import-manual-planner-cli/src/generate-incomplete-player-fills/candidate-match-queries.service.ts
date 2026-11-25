@@ -35,6 +35,9 @@ export class CandidateMatchQueriesService {
     tx: DbOrTx,
     playerIds: number[],
   ): Promise<ConsequenceRow[]> {
+    if (playerIds.length === 0) {
+      return [];
+    }
     return tx
       .select({
         // Never null: the filter keeps only candidate ids.
@@ -61,6 +64,9 @@ export class CandidateMatchQueriesService {
    * (acting or receiving): then his death is contradicted and he gets none.
    */
   async deathTimes(tx: DbOrTx, playerIds: number[]): Promise<DeathTimeRow[]> {
+    if (playerIds.length === 0) {
+      return [];
+    }
     const deaths = await tx
       .select({
         playerId: sql<number>`${matchEvents.consequencePlayerId}`,
@@ -75,6 +81,9 @@ export class CandidateMatchQueriesService {
         ),
       )
       .groupBy(matchEvents.consequencePlayerId);
+    if (deaths.length === 0) {
+      return [];
+    }
     const deadIds = deaths.map((death) => death.playerId);
     const appearances = await tx
       .select({
@@ -108,6 +117,9 @@ export class CandidateMatchQueriesService {
     tx: DbOrTx,
     playerIds: number[],
   ): Promise<StatReductionEventRow[]> {
+    if (playerIds.length === 0) {
+      return [];
+    }
     const rows = await tx
       .select({
         playerId: sql<number>`${matchEvents.consequencePlayerId}`,
@@ -137,6 +149,9 @@ export class CandidateMatchQueriesService {
     tx: DbOrTx,
     players: PlayerTeamEra[],
   ): Promise<TeamCompetitionRow[]> {
+    if (players.length === 0) {
+      return [];
+    }
     const rows = await tx
       .select({
         teamEraId: matchTeams.teamEraId,

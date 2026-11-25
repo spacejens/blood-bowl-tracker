@@ -25,6 +25,9 @@ import type {
 export class EraRulesQueriesService {
   /** Every rules set of the eras, whether lasting injuries never heal under it, and its cheapest advancement of any kind or league. */
   async eraRulesSets(tx: DbOrTx, eraIds: number[]): Promise<EraRulesSetRow[]> {
+    if (eraIds.length === 0) {
+      return [];
+    }
     return tx
       .select({
         eraId: eraRulesSets.eraId,
@@ -50,6 +53,9 @@ export class EraRulesQueriesService {
     tx: DbOrTx,
     eraIds: number[],
   ): Promise<SkillCategoryRow[]> {
+    if (eraIds.length === 0) {
+      return [];
+    }
     return tx
       .selectDistinct({
         skillId: skillRulesSets.skillId,
@@ -73,6 +79,9 @@ export class EraRulesQueriesService {
     tx: DbOrTx,
     eraIds: number[],
   ): Promise<AdvancementCostRow[]> {
+    if (eraIds.length === 0) {
+      return [];
+    }
     return tx
       .select({
         eraId: eraRulesSets.eraId,

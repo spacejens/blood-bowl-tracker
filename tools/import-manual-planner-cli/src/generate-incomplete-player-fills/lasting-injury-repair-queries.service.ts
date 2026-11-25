@@ -82,6 +82,9 @@ export class LastingInjuryRepairQueriesService {
 
   async candidates(tx: DbOrTx): Promise<LastingInjuryRepairCandidate[]> {
     const found = await this.players(tx);
+    if (found.length === 0) {
+      return [];
+    }
     const increases = await tx
       .select({
         playerId: playerAdvancements.playerId,
@@ -181,6 +184,9 @@ export class LastingInjuryRepairQueriesService {
     tx: DbOrTx,
     scope: RepairScope,
   ): Promise<PositionLine[]> {
+    if (scope.eraRules.length === 0) {
+      return [];
+    }
     return tx
       .select({
         positionId: positionRulesSets.positionId,

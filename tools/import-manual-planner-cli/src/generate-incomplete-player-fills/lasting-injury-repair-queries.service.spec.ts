@@ -131,4 +131,22 @@ describe('LastingInjuryRepairQueriesService', () => {
       baseline: null,
     });
   });
+
+  it('reads nothing further when no player was found', async () => {
+    const { db, chains } = mockDb([]);
+
+    await expect(service.candidates(db)).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(1);
+  });
+
+  it('reads no start lines when the eras list no rules set', async () => {
+    const { db, chains } = mockDb([PLAYER], [], []);
+
+    await expect(service.candidates(db)).resolves.toMatchObject([
+      { context: null },
+    ]);
+
+    expect(chains).toHaveLength(3);
+  });
 });

@@ -45,6 +45,9 @@ export class PositionRulesQueriesService {
     tx: DbOrTx,
     pairs: PositionEra[],
   ): Promise<PositionRulesSetRow[]> {
+    if (pairs.length === 0) {
+      return [];
+    }
     const rows = await tx
       .select({
         positionRulesSetId: positionRulesSets.id,
@@ -84,6 +87,9 @@ export class PositionRulesQueriesService {
     tx: DbOrTx,
     pairs: PositionEra[],
   ): Promise<PositionSkillRow[]> {
+    if (pairs.length === 0) {
+      return [];
+    }
     return tx
       .selectDistinctOn([positionRulesSetSkills.id], {
         positionRulesSetId: positionRulesSetSkills.positionRulesSetId,
@@ -118,6 +124,9 @@ export class PositionRulesQueriesService {
     tx: DbOrTx,
     pairs: PositionEra[],
   ): Promise<PositionAccessRow[]> {
+    if (pairs.length === 0) {
+      return [];
+    }
     return tx
       .selectDistinct({
         positionId: positionRulesSets.positionId,
@@ -154,6 +163,9 @@ export class PositionRulesQueriesService {
     tx: DbOrTx,
     pairs: PositionEra[],
   ): Promise<BigGuyPositionRow[]> {
+    if (pairs.length === 0) {
+      return [];
+    }
     return tx
       .selectDistinct({
         positionId: positionRulesSets.positionId,

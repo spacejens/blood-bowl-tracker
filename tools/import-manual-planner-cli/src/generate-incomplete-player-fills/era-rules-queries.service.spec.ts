@@ -65,4 +65,28 @@ describe('EraRulesQueriesService', () => {
     expect(costJoin.sql).toContain('"advancement_costs"."league_id" = "');
     expect(renderedWhere(chains[0]).params).toEqual([4]);
   });
+
+  it('reads no rules sets without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.eraRulesSets(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no skill categories without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.skillCategories(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no advancement costs without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.advancementCosts(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
 });

@@ -93,6 +93,14 @@ describe('CandidateQueriesService', () => {
       ).toContain('"players"."status" is null');
       expect(chains[0].orderBy).toHaveBeenCalledWith(players.id);
     });
+
+    it('reads nothing without querying when given nothing to filter by', async () => {
+      const { db, chains } = mockDb();
+
+      await expect(service.teamPlayers(db, [])).resolves.toEqual([]);
+
+      expect(chains).toHaveLength(0);
+    });
   });
 
   describe('storedAdvancements', () => {
@@ -115,6 +123,14 @@ describe('CandidateQueriesService', () => {
       const where = renderedWhere(chains[0]);
       expect(where.sql).toContain('"player_advancements"."removed" = $1');
       expect(where.params).toEqual([false, 1, 2]);
+    });
+
+    it('reads nothing without querying when given nothing to filter by', async () => {
+      const { db, chains } = mockDb();
+
+      await expect(service.storedAdvancements(db, [])).resolves.toEqual([]);
+
+      expect(chains).toHaveLength(0);
     });
   });
 
@@ -165,6 +181,16 @@ describe('CandidateQueriesService', () => {
         expect.arrayContaining([20, false, 'starting']),
       );
     });
+
+    it('reads nothing without querying when given nothing to filter by', async () => {
+      const { db, chains } = mockDb();
+
+      await expect(
+        service.paidAdvancements(db, { teamIds: [], playerIds: [] }),
+      ).resolves.toEqual([]);
+
+      expect(chains).toHaveLength(0);
+    });
   });
 
   describe('freeSkillRiskPlayerIds', () => {
@@ -181,6 +207,14 @@ describe('CandidateQueriesService', () => {
         '"trophy_awards"."granted_skill_id" is not null',
       );
       expect(where.params).toEqual([9, true]);
+    });
+
+    it('reads nothing without querying when given nothing to filter by', async () => {
+      const { db, chains } = mockDb();
+
+      await expect(service.freeSkillRiskPlayerIds(db, [])).resolves.toEqual([]);
+
+      expect(chains).toHaveLength(0);
     });
   });
 });

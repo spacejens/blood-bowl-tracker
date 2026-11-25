@@ -61,6 +61,9 @@ export class LookupQueriesService {
           eq(externalSystems.name, TP_EXTERNAL_SYSTEM_NAME),
         ),
       );
+    if (ongoing.length === 0) {
+      return [];
+    }
     const ids = ongoing.map((competition) => competition.competitionId);
     const enrolled = await tx
       .selectDistinct({
@@ -93,6 +96,9 @@ export class LookupQueriesService {
 
   /** The TP roster id (`tourplay.net` external id) of each given team. */
   async teamRosters(tx: DbOrTx, teamIds: number[]): Promise<TeamRosterRow[]> {
+    if (teamIds.length === 0) {
+      return [];
+    }
     return tx
       .selectDistinct({
         teamId: teamExternalIds.teamId,
@@ -152,6 +158,9 @@ export class LookupQueriesService {
     tx: DbOrTx,
     positionIds: number[],
   ): Promise<TpPositionIdRow[]> {
+    if (positionIds.length === 0) {
+      return [];
+    }
     return tx
       .selectDistinct({
         positionId: positionExternalIds.positionId,

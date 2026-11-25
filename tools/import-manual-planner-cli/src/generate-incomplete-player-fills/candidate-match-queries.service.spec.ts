@@ -144,4 +144,44 @@ describe('CandidateMatchQueriesService', () => {
       matches.competitionId,
     );
   });
+
+  it('reads no consequences without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.consequences(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('times no deaths without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.deathTimes(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no stat reductions without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.statReductionEvents(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no team competitions without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.teamCompetitions(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no appearances when no candidate died', async () => {
+    const { db, chains } = mockDb([]);
+
+    await expect(service.deathTimes(db, [1])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(1);
+  });
 });

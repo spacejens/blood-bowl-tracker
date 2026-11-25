@@ -72,6 +72,9 @@ export class CandidateQueriesService {
 
   /** `isIncomplete` applies the conditions that select the candidates. */
   async teamPlayers(tx: DbOrTx, teamIds: number[]): Promise<TeamPlayerRow[]> {
+    if (teamIds.length === 0) {
+      return [];
+    }
     return tx
       .selectDistinctOn([players.id], {
         playerId: players.id,
@@ -101,6 +104,9 @@ export class CandidateQueriesService {
     tx: DbOrTx,
     playerIds: number[],
   ): Promise<StoredAdvancementRow[]> {
+    if (playerIds.length === 0) {
+      return [];
+    }
     return tx
       .select({
         playerId: playerAdvancements.playerId,
@@ -129,6 +135,9 @@ export class CandidateQueriesService {
     tx: DbOrTx,
     scope: PaidAdvancementScope,
   ): Promise<PaidAdvancementRow[]> {
+    if (scope.teamIds.length === 0) {
+      return [];
+    }
     const rows = await tx
       .select({
         playerId: playerAdvancements.playerId,
@@ -171,6 +180,9 @@ export class CandidateQueriesService {
     tx: DbOrTx,
     playerIds: number[],
   ): Promise<number[]> {
+    if (playerIds.length === 0) {
+      return [];
+    }
     const rows = await tx
       .selectDistinct({
         // Never null: the filter keeps only candidate ids.

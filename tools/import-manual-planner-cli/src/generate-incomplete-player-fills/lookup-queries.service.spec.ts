@@ -48,9 +48,11 @@ describe('LookupQueriesService', () => {
     });
 
     it('lists nothing when no competition is ongoing', async () => {
-      const { db } = mockDb([], [], []);
+      const { db, chains } = mockDb([]);
 
       await expect(service.ongoingCompetitions(db)).resolves.toEqual([]);
+
+      expect(chains).toHaveLength(1);
     });
   });
 
@@ -109,5 +111,21 @@ describe('LookupQueriesService', () => {
     expect(renderedWhere(chains[1]).sql).toContain(
       '"position_rules_set_skills"."attribute_value" is not null',
     );
+  });
+
+  it('reads no rosters without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.teamRosters(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no TP position ids without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.tpPositionIds(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
   });
 });

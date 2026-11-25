@@ -122,11 +122,35 @@ describe('PositionRulesQueriesService', () => {
     expect(renderedWhere(chains[0]).params).toEqual(['Big Guy', 30, 4]);
   });
 
-  it('matches nothing when there are no candidate positions', async () => {
-    const { db, chains } = mockDb([]);
+  it('reads no position rules sets without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
 
     await expect(service.positionRulesSets(db, [])).resolves.toEqual([]);
 
-    expect(renderedWhere(chains[0]).sql).toBe('false');
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no position skills without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.positionSkills(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no position access without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.positionAccess(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
+  });
+
+  it('reads no Big Guy positions without querying when given nothing to filter by', async () => {
+    const { db, chains } = mockDb();
+
+    await expect(service.bigGuyPositions(db, [])).resolves.toEqual([]);
+
+    expect(chains).toHaveLength(0);
   });
 });
