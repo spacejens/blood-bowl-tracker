@@ -554,6 +554,18 @@ describe('IncompletePlayerFillQueriesService', () => {
     await expect(service.load()).rejects.toThrow('boom');
   });
 
+  it('renders the shared incomplete-player gaps as SQL conditions', () => {
+    expect(INCOMPLETE_PLAYER_CONDITIONS).toEqual([
+      'move = 0',
+      'strength = 0',
+      'agility = 0',
+      'armour = 0',
+      'spp_total is null',
+      'spp_adjustment is null',
+      'status is null',
+    ]);
+  });
+
   describe('loadLastingInjuryRepairCandidates', () => {
     it('loads the repair candidates', async () => {
       await expect(
