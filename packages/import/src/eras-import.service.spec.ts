@@ -63,4 +63,24 @@ describe('ErasImportService', () => {
       'Failed to import era "BB2020": boom',
     );
   });
+
+  it('names the era by its first external id when no name is sent', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.upsert(
+      {
+        rulesSetIds: [],
+        externalIds: [
+          { externalSystemId: 2, externalId: 'Fourth era' },
+          { externalSystemId: 1, externalId: 'fourth-era' },
+        ],
+      },
+      [],
+    );
+
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('name is required'))).toBe(
+      'Failed to import era "Fourth era": name is required',
+    );
+  });
 });
