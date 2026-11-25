@@ -33,16 +33,6 @@ export interface RunProductionQueryResult {
   readonly timedOut: boolean;
 }
 
-export interface RunProductionQueryOptions {
-  /**
-   * Prints only the result values, unaligned, with no headers, row counts
-   * or command tags, so a single JSON value comes out as-is.
-   */
-  readonly tuplesOnly?: boolean;
-}
-
-const TUPLES_ONLY_ARGS = ['--quiet', '--tuples-only', '--no-align'];
-
 /**
  * Runs one developer-described, read-only query against production, for
  * `deploy-production`'s "Run read-only queries against production" action.
@@ -61,17 +51,13 @@ export class RunProductionQueryService {
     private readonly pgClient: PgClientService,
   ) {}
 
-  async run(
-    query: string,
-    options: RunProductionQueryOptions = {},
-  ): Promise<RunProductionQueryResult> {
+  async run(query: string): Promise<RunProductionQueryResult> {
     this.validateQuery(query);
     const databaseUrl = await this.productionEnvFile.readDatabaseUrl();
     const result = await this.pgClient.runToResult({
       program: 'psql',
       args: [
         '--no-psqlrc',
-        ...(options.tuplesOnly === true ? TUPLES_ONLY_ARGS : []),
         '-v',
         'ON_ERROR_STOP=1',
         '-c',
