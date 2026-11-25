@@ -1624,6 +1624,9 @@ importers:
       '@blood-bowl-tracker/game-rules':
         specifier: workspace:*
         version: link:../../packages/game-rules
+      '@blood-bowl-tracker/import-shared':
+        specifier: workspace:*
+        version: link:../../packages/import-shared
       '@blood-bowl-tracker/parse-tp':
         specifier: workspace:*
         version: link:../../packages/parse-tp

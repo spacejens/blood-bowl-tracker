@@ -224,7 +224,9 @@ The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums, and
 on `@blood-bowl-tracker/parse-tp`, whose `RosterParserService` reads each
 roster copy the way the TP import does, so a copy the import drops is
-unreadable here too. `@blood-bowl-tracker/game-rules` supplies the advancement pricing, lasting
+unreadable here too. `@blood-bowl-tracker/import-shared`'s
+`RosterCopyPrecedenceService` picks which copies count as sent, the rule the
+TP import applies. `@blood-bowl-tracker/game-rules` supplies the advancement pricing, lasting
 reductions, incomplete-player gaps, free-extra skills and deduction limit, so
 the tool applies the same rules as the server. One drift-guard spec reads
 roster copies next to parse-tp's `RosterParserService` and requires the same

@@ -4,6 +4,7 @@ import {
   ProductionQueryModule,
 } from '@blood-bowl-tracker/cli-shared';
 import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
+import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
 import { ReadTpFilesModule } from '@blood-bowl-tracker/read-tp-files';
@@ -48,6 +49,7 @@ import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-ros
     CliSharedModule,
     DiscordRestModule,
     GameRulesModule,
+    ImportSharedModule,
     ProductionQueryModule,
     ParseTpModule,
     ParseTpFeedModule,

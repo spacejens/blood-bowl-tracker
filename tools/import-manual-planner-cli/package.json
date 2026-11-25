@@ -22,6 +22,7 @@
     "@blood-bowl-tracker/cli-shared": "workspace:*",
     "@blood-bowl-tracker/domain-enums": "workspace:*",
     "@blood-bowl-tracker/game-rules": "workspace:*",
+    "@blood-bowl-tracker/import-shared": "workspace:*",
     "@blood-bowl-tracker/parse-tp": "workspace:*",
     "@blood-bowl-tracker/parse-tp-feed": "workspace:*",
     "@blood-bowl-tracker/read-tp-files": "workspace:*",

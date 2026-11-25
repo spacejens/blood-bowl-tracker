@@ -10,6 +10,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   ImportRunnerService,
+  RosterCopyPrecedenceService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Inject, Injectable } from '@nestjs/common';
@@ -49,6 +50,7 @@ export class TpRosterFilesImportService {
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
     private readonly importResults: ImportResultService,
+    private readonly precedence: RosterCopyPrecedenceService,
   ) {}
 
   /**
@@ -179,27 +181,19 @@ export class TpRosterFilesImportService {
     }
   }
 
-  /**
-   * One copy per (era, roster). The copies differ in when they were
-   * downloaded, so the one whose newest match finished last wins; a copy
-   * with no finish instant counts as older than any with one, and a tie
-   * keeps the first seen. tools/import-manual-planner-cli's
-   * TpRosterCopySelectionService repeats this rule to tell which players a
-   * database built from scratch has complete; keep the two in step.
-   */
+  /** One copy per (era, roster): import-shared's roster-copy precedence, first seen on a tie. */
   private distinctByEraAndRoster(rosters: RosterEntry[]): RosterEntry[] {
-    const byKey = new Map<string, RosterEntry>();
+    const byKey = new Map<string, RosterEntry[]>();
     for (const entry of rosters) {
       const key = `${entry.era}\t${entry.roster.id}`;
-      const known = byKey.get(key);
-      if (
-        known === undefined ||
-        (entry.roster.lastMatchFinishedAt ?? Number.NEGATIVE_INFINITY) >
-          (known.roster.lastMatchFinishedAt ?? Number.NEGATIVE_INFINITY)
-      ) {
-        byKey.set(key, entry);
-      }
+      byKey.set(key, [...(byKey.get(key) ?? []), entry]);
     }
-    return [...byKey.values()];
+    return [...byKey.values()].flatMap((copies) =>
+      this.precedence.newest({
+        copies,
+        finishedAt: (entry) => entry.roster.lastMatchFinishedAt,
+        ties: 'first',
+      }),
+    );
   }
 }
