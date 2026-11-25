@@ -42,6 +42,26 @@ describe('TpFilesReaderService', () => {
     });
   });
 
+  describe('hasEraDirectory', () => {
+    it('is true for an existing directory, including one named teams', async () => {
+      mkdirSync(join(dir, 'fourth-era'));
+      mkdirSync(join(dir, 'teams'));
+
+      expect(await service.hasEraDirectory(dir, 'fourth-era')).toBe(true);
+      expect(await service.hasEraDirectory(dir, 'teams')).toBe(true);
+    });
+
+    it('is false for a missing directory, a plain file or a missing data directory', async () => {
+      writeFileSync(join(dir, 'stray'), '{}');
+
+      expect(await service.hasEraDirectory(dir, 'third-era')).toBe(false);
+      expect(await service.hasEraDirectory(dir, 'stray')).toBe(false);
+      expect(await service.hasEraDirectory(join(dir, 'missing'), 'x')).toBe(
+        false,
+      );
+    });
+  });
+
   describe('listCompetitions', () => {
     it('returns the competitions sorted', async () => {
       mkdirSync(join(dir, 'third-era', 'b'), { recursive: true });

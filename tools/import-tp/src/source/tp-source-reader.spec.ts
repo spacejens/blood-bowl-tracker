@@ -52,7 +52,7 @@ function stubLayout(
   tpFiles: MockProxy<TpFilesReaderService>,
   layout: { eraName: string; files: Record<string, unknown> },
 ): void {
-  tpFiles.listEras.mockResolvedValue([layout.eraName]);
+  tpFiles.hasEraDirectory.mockResolvedValue(true);
   tpFiles.listCompetitions.mockResolvedValue(['chaos-cup-8']);
   tpFiles.listFiles.mockResolvedValue(Object.keys(layout.files));
   tpFiles.readJson.mockImplementation((_dataDir, segments) =>
@@ -192,7 +192,7 @@ describe('TpSourceReader', () => {
 
   it('skips a file that disappears between listing and reading', async () => {
     const { reader, tpFiles } = await makeReader();
-    tpFiles.listEras.mockResolvedValue(['fourth-era']);
+    tpFiles.hasEraDirectory.mockResolvedValue(true);
     tpFiles.listCompetitions.mockResolvedValue(['chaos-cup-8']);
     tpFiles.listFiles.mockResolvedValue(['match_1.json']);
     tpFiles.readJson.mockResolvedValue(null);
@@ -202,7 +202,7 @@ describe('TpSourceReader', () => {
 
   it('throws a friendly error when an era directory is missing', async () => {
     const { reader, tpFiles } = await makeReader();
-    tpFiles.listEras.mockResolvedValue([]);
+    tpFiles.hasEraDirectory.mockResolvedValue(false);
 
     await expect(collect(reader.files())).rejects.toThrow(
       /Era data directory not found.*Fourth era/,
@@ -211,7 +211,7 @@ describe('TpSourceReader', () => {
 
   it('names the directory and era when an era directory is missing', async () => {
     const { reader, tpFiles } = await makeReader();
-    tpFiles.listEras.mockResolvedValue(['third-era']);
+    tpFiles.hasEraDirectory.mockResolvedValue(false);
 
     await expect(collect(reader.files())).rejects.toThrow(
       'Era data directory not found: /data/fourth-era (configured for era "Fourth era").',
@@ -235,7 +235,7 @@ describe('TpSourceReader', () => {
 
   it('rejects with the reader error when a JSON file is malformed', async () => {
     const { reader, tpFiles } = await makeReader();
-    tpFiles.listEras.mockResolvedValue(['fourth-era']);
+    tpFiles.hasEraDirectory.mockResolvedValue(true);
     tpFiles.listCompetitions.mockResolvedValue(['chaos-cup-8']);
     tpFiles.listFiles.mockResolvedValue(['match_1.json']);
     tpFiles.readJson.mockRejectedValue(
@@ -279,7 +279,10 @@ describe('TpSourceReader', () => {
       const files = await collect(reader.files());
 
       expect(files.map((f) => f.filename)).toEqual(['match_1.json']);
-      expect(tpFiles.listEras).toHaveBeenCalledWith(parent);
+      expect(tpFiles.hasEraDirectory).toHaveBeenCalledWith(
+        parent,
+        'fourth-era',
+      );
       expect(tpFiles.readJson).toHaveBeenCalledWith(parent, [
         'fourth-era',
         'chaos-cup-8',
@@ -288,11 +291,29 @@ describe('TpSourceReader', () => {
     },
   );
 
+  it.each(['teams', 'archive/teams'])(
+    'walks a configured era directory named teams (%s)',
+    async (dataSubdir) => {
+      const { reader, tpFiles } = await makeReader([
+        { ...fourthEra, dataSubdir },
+      ]);
+      stubLayout(tpFiles, { eraName: 'teams', files: { 'match_1.json': {} } });
+
+      const files = await collect(reader.files());
+
+      expect(files.map((f) => f.filename)).toEqual(['match_1.json']);
+      expect(tpFiles.hasEraDirectory).toHaveBeenCalledWith(
+        expect.any(String),
+        'teams',
+      );
+    },
+  );
+
   it('names the resolved path when a nested era directory is missing', async () => {
     const { reader, tpFiles } = await makeReader([
       { ...fourthEra, dataSubdir: 'archive/fourth-era' },
     ]);
-    tpFiles.listEras.mockResolvedValue([]);
+    tpFiles.hasEraDirectory.mockResolvedValue(false);
 
     await expect(collect(reader.files())).rejects.toThrow(
       'Era data directory not found: /data/archive/fourth-era (configured for era "Fourth era").',

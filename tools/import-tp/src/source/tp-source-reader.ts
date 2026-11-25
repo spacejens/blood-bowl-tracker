@@ -74,8 +74,7 @@ export class TpSourceReader {
       const eraDir = join(dataDir, era.dataSubdir);
       const parent = dirname(eraDir);
       const eraName = basename(eraDir);
-      const present = await this.tpFiles.listEras(parent);
-      if (!present.includes(eraName)) {
+      if (!(await this.tpFiles.hasEraDirectory(parent, eraName))) {
         throw new Error(
           `Era data directory not found: ${eraDir} (configured for era "${era.name}").`,
         );
