@@ -1362,6 +1362,9 @@ importers:
       '@blood-bowl-tracker/config-loader':
         specifier: workspace:*
         version: link:../../packages/config-loader
+      '@blood-bowl-tracker/read-tp-files':
+        specifier: workspace:*
+        version: link:../../packages/read-tp-files
       '@blood-bowl-tracker/scrape-tp':
         specifier: workspace:*
         version: link:../../packages/scrape-tp
