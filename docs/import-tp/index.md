@@ -72,9 +72,9 @@ The tool expects, under `dataDir`:
       ...
 ```
 
-Each file's "type" is the filename text before the first `_` (or the whole
-basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
-`awards`, `inscriptions`.
+Each file's "type" is the kind the read-tp-files classifier gives its filename
+(`match`, `rosters`, `tournament`, `awards`, `inscriptions`, `rosters-masters`
+or `other`); a name outside those patterns, such as `match_abc.json`, is `other`.
 
 ## Run it
 

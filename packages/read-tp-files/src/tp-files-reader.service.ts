@@ -32,6 +32,15 @@ export class TpFilesReaderService {
     );
   }
 
+  /**
+   * Whether `<dataDir>/<era>` is a directory. Unlike `listEras` this does not
+   * exclude `teams`: a configured era directory is addressed by name, so it
+   * exists whatever it is called.
+   */
+  async hasEraDirectory(dataDir: string, era: string): Promise<boolean> {
+    return (await this.directories(dataDir)).includes(era);
+  }
+
   listCompetitions(dataDir: string, era: string): Promise<string[]> {
     return this.directories(this.resolve(dataDir, [era]));
   }

@@ -23,7 +23,6 @@ import {
   LocalMigrationsService,
   MIGRATIONS_DIR,
 } from './migrations/local-migrations.service';
-import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
 import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';
@@ -48,7 +47,6 @@ import { VerifyBackupService } from './verify-backup/verify-backup.service';
     BackupConfigService,
     S3ClientFactoryService,
     BackupStorageService,
-    LocalDatabaseGuardService,
     TempDirService,
     PgDumpService,
     RetentionService,

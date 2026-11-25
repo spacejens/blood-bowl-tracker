@@ -14,9 +14,10 @@ validated read-only query) behind one tested command is more repeatable and
 reliable than re-deriving the equivalent shell inline every time a skill needs
 it.
 
-Planning import-manual fills from production data is
-[import-manual-planner-cli](../import-manual-planner-cli/index.md)'s job; the
-two tools share the query runner and the Discord client through
+Planning import-manual fills is
+[import-manual-planner-cli](../import-manual-planner-cli/index.md)'s job; it
+reads a local restore of a production backup through `packages/db`, so the
+two tools share only the Discord client, through
 [cli-shared](../cli-shared/index.md).
 
 ## Subcommands
@@ -40,6 +41,12 @@ node tools/production-ops-cli/dist/main.js <subcommand>
 Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1. `run-production-query` and the Discord subcommands additionally require `apps/discord-bot/.env.production` to be present in the checkout they run in, synced from the main checkout (see [deploy-production/SKILL.md](../../.claude/skills/deploy-production/SKILL.md)); they read it through `packages/cli-shared`'s `ProductionEnvFileService`, which parses it with dotenv, the same parser the bot itself uses, and never prints a value.
 
 `run-production-query` runs `packages/cli-shared`'s `RunProductionQueryService`, which runs `psql` through cli-shared's `PgClientService`, the same guarded runner `tools/backup-cli` uses: the libpq variables `PGHOSTADDR`, `PGHOST`, `PGSERVICE` and `PGSERVICEFILE` are removed from its environment so they cannot redirect the connection, the URL is passed as `--dbname=`, and the URL is redacted (password masked) from the reported `stdout` and `stderr` and from any error.
+
+`run-production-query` keeps `psql` on purpose. It runs whatever SQL the
+developer describes and shows the result to a person, so there is no row
+shape to type, and psql's own table output is what that reader wants. Code
+that consumes structured rows reads them through `packages/db` instead, from a
+local restore, as import-manual-planner-cli's generator does.
 
 The Discord subcommands call Discord through the discord.js `REST` client (API v10), shared via `packages/cli-shared`'s `DiscordRestService`, so they get discord.js's rate-limit handling and retries. The client is built once per process, on the first request, and reused, so discord.js's per-route rate-limit buckets span a whole loop of requests. The bot token is read only then, after the subcommand's own input validation. discord.js aborts and retries any attempt whose response headers take longer than 30 seconds. A Discord API failure is reported with the requested message or channel, the HTTP status, and Discord's error code and message; the bot token never appears in output.
 

@@ -29,7 +29,8 @@ implementation here means a rule change reaches both together.
 
 Consumers: game-data uses the candidates, spend range, limits, lasting
 reduction and incomplete-player gaps; import-manual-planner-cli uses reported
-pricing, lasting reduction, the gaps and the limits. An agreement spec ties
+pricing, lasting reduction and the limits, and the gaps through game-data's
+`INCOMPLETE_PLAYER_CRITERIA`. An agreement spec ties
 reported pricing to the server's order check inside this package.
 
 The package exports `GameRulesModule`, which provides and exports every
@@ -38,8 +39,10 @@ re-exports the services, so its consumers keep their imports.
 
 ## Why it is shared
 
-The planner and the server apply these rules from this one package, so neither
-carries a copy that could drift.
+The planner tool and `packages/game-data` both price advancements, derive
+lasting reductions and decide which players are incomplete. With one shared
+implementation there is no second copy to keep in step, so no drift spec is
+needed.
 
 ## Dependencies
 

@@ -186,7 +186,12 @@ export class TpRosterFilesImportService {
     const byKey = new Map<string, RosterEntry[]>();
     for (const entry of rosters) {
       const key = `${entry.era}\t${entry.roster.id}`;
-      byKey.set(key, [...(byKey.get(key) ?? []), entry]);
+      const bucket = byKey.get(key);
+      if (bucket === undefined) {
+        byKey.set(key, [entry]);
+      } else {
+        bucket.push(entry);
+      }
     }
     return [...byKey.values()].flatMap((copies) =>
       this.precedence.newest({

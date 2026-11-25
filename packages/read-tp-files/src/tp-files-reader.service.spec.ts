@@ -42,6 +42,26 @@ describe('TpFilesReaderService', () => {
     });
   });
 
+  describe('hasEraDirectory', () => {
+    it('is true for an existing directory, including one named teams', async () => {
+      mkdirSync(join(dir, 'fourth-era'));
+      mkdirSync(join(dir, 'teams'));
+
+      expect(await service.hasEraDirectory(dir, 'fourth-era')).toBe(true);
+      expect(await service.hasEraDirectory(dir, 'teams')).toBe(true);
+    });
+
+    it('is false for a missing directory, a plain file or a missing data directory', async () => {
+      writeFileSync(join(dir, 'stray'), '{}');
+
+      expect(await service.hasEraDirectory(dir, 'third-era')).toBe(false);
+      expect(await service.hasEraDirectory(dir, 'stray')).toBe(false);
+      expect(await service.hasEraDirectory(join(dir, 'missing'), 'x')).toBe(
+        false,
+      );
+    });
+  });
+
   describe('listCompetitions', () => {
     it('returns the competitions sorted', async () => {
       mkdirSync(join(dir, 'third-era', 'b'), { recursive: true });
@@ -97,6 +117,53 @@ describe('TpFilesReaderService', () => {
       expect(await service.listTeamsFiles(dir, 'BB2020')).toEqual([
         'rosters_masters?ruleSet=20.json',
       ]);
+    });
+
+    it('lists only plain json files under a rules set, sorted', async () => {
+      const rulesSet = join(dir, 'teams', 'BB2025');
+      mkdirSync(join(rulesSet, 'sub.json'), { recursive: true });
+      writeFileSync(join(rulesSet, 'rosters_masters?ruleSet=25.json'), '{}');
+      writeFileSync(join(rulesSet, 'notes.txt'), '');
+
+      expect(await service.listTeamsFiles(dir, 'BB2025')).toEqual([
+        'rosters_masters?ruleSet=25.json',
+      ]);
+    });
+
+    it('lists no rules sets and no files when the teams directory is missing', async () => {
+      expect(await service.listTeamsRulesSets(dir)).toEqual([]);
+      expect(await service.listTeamsFiles(dir, 'BB2025')).toEqual([]);
+    });
+
+    it('lists rules sets and their files sorted', async () => {
+      mkdirSync(join(dir, 'teams', 'BB2025'), { recursive: true });
+      mkdirSync(join(dir, 'teams', 'BB2020'));
+      writeFileSync(join(dir, 'teams', 'BB2020', 'zzz.json'), '{}');
+      writeFileSync(join(dir, 'teams', 'BB2020', 'aaa.json'), '{}');
+
+      expect(await service.listTeamsRulesSets(dir)).toEqual([
+        'BB2020',
+        'BB2025',
+      ]);
+      expect(await service.listTeamsFiles(dir, 'BB2020')).toEqual([
+        'aaa.json',
+        'zzz.json',
+      ]);
+    });
+
+    it('lists only directories as rules sets', async () => {
+      mkdirSync(join(dir, 'teams', 'BB2025'), { recursive: true });
+      writeFileSync(join(dir, 'teams', 'stray.json'), '{}');
+
+      expect(await service.listTeamsRulesSets(dir)).toEqual(['BB2025']);
+    });
+
+    it('propagates a teams listing failure other than a missing directory', async () => {
+      writeFileSync(join(dir, 'teams'), 'not a directory');
+
+      await expect(service.listTeamsRulesSets(dir)).rejects.toMatchObject({
+        code: 'ENOTDIR',
+      });
     });
   });
 
