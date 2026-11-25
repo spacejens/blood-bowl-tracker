@@ -77,6 +77,9 @@ listed he is left out.
 `report.lastingInjuryRepairsScratchIncomplete` gives their count and TP ids
 (see
 [Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)).
+The generated file is checked against manual-batch's fill and repair
+schemas before it is written, and earlier batches are walked through
+manual-batch's layout.
 `section` holds the batch file when no `--out` is given. With `--out`, the
 file is written through cli-shared's `WriteFileService` and `written`
 reports it. A run with `--out`, no eligible player and no repair writes

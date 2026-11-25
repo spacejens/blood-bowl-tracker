@@ -1682,6 +1682,9 @@ importers:
       '@blood-bowl-tracker/import-shared':
         specifier: workspace:*
         version: link:../../packages/import-shared
+      '@blood-bowl-tracker/manual-batch':
+        specifier: workspace:*
+        version: link:../../packages/manual-batch
       '@blood-bowl-tracker/parse-tp':
         specifier: workspace:*
         version: link:../../packages/parse-tp

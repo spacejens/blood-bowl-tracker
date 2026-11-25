@@ -101,4 +101,26 @@ describe('FillSectionRendererService', () => {
       text.indexOf('incompletePlayerFills'),
     );
   });
+
+  it('refuses a fill the batch schema rejects', () => {
+    const bad: FillEntry = {
+      ...ENTRY,
+      characteristics: { ...ENTRY.characteristics, ma: 0 },
+    };
+
+    expect(() => service.render([bad], [])).toThrow(
+      /^Generated incompletePlayerFills do not match the batch schema/,
+    );
+  });
+
+  it('refuses a repair entry the batch schema rejects', () => {
+    const bad = {
+      ...REPAIR,
+      extra: true,
+    } as LastingInjuryRepairEntry;
+
+    expect(() => service.render([ENTRY], [bad])).toThrow(
+      /^Generated lastingInjuryRepairs do not match the batch schema/,
+    );
+  });
 });
