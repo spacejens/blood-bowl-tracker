@@ -33,7 +33,9 @@ describe('LocalDatabaseUrlService', () => {
   it('defaults to the docker-compose database, guarded', async () => {
     const { service, guard } = await makeService({});
 
-    expect(service.resolve()).toBe(DEFAULT_LOCAL_DATABASE_URL);
+    expect(service.resolve()).toBe(
+      `${DEFAULT_LOCAL_DATABASE_URL}?client_min_messages=warning`,
+    );
     expect(guard.assertLocal).toHaveBeenCalledWith(DEFAULT_LOCAL_DATABASE_URL);
   });
 
@@ -41,14 +43,37 @@ describe('LocalDatabaseUrlService', () => {
     const url = 'postgres://postgres:postgres@localhost:5432/scratch';
     const { service, guard } = await makeService({ LOCAL_DATABASE_URL: url });
 
-    expect(service.resolve()).toBe(url);
+    expect(service.resolve()).toBe(`${url}?client_min_messages=warning`);
     expect(guard.assertLocal).toHaveBeenCalledWith(url);
+  });
+
+  it('keeps the parameters LOCAL_DATABASE_URL already has', async () => {
+    const { service } = await makeService({
+      LOCAL_DATABASE_URL: 'postgres://p:p@[::1]:5433/db?sslmode=disable',
+    });
+
+    expect(service.resolve()).toBe(
+      'postgres://p:p@[::1]:5433/db?sslmode=disable&client_min_messages=warning',
+    );
+  });
+
+  it('silences NOTICEs even when LOCAL_DATABASE_URL asks for them', async () => {
+    const { service } = await makeService({
+      LOCAL_DATABASE_URL:
+        'postgres://p:p@localhost:5433/db?client_min_messages=notice',
+    });
+
+    expect(service.resolve()).toBe(
+      'postgres://p:p@localhost:5433/db?client_min_messages=warning',
+    );
   });
 
   it('treats an empty LOCAL_DATABASE_URL as unset', async () => {
     const { service } = await makeService({ LOCAL_DATABASE_URL: '' });
 
-    expect(service.resolve()).toBe(DEFAULT_LOCAL_DATABASE_URL);
+    expect(service.resolve()).toBe(
+      `${DEFAULT_LOCAL_DATABASE_URL}?client_min_messages=warning`,
+    );
   });
 
   it('refuses a URL the guard refuses', async () => {

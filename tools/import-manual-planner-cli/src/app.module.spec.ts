@@ -64,7 +64,6 @@ import { TpRosterSnapshotExtractorService } from './read-tp-roster-snapshots/tp-
 import { TpRosterSnapshotIndexService } from './read-tp-roster-snapshots/tp-roster-snapshot-index.service';
 import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-roster-snapshots-store.service';
 
-/** Every service the three subcommands reach, local and imported. */
 /** The services every run gets. */
 const EVIDENCE_SERVICES: readonly Type<unknown>[] = [
   ProcessRunnerService,
@@ -139,7 +138,9 @@ describe('AppModule', () => {
     for (const service of [...EVIDENCE_SERVICES, ...FILL_SERVICES]) {
       expect(moduleRef.get(service)).toBeInstanceOf(service);
     }
-    expect(moduleRef.get(DATABASE_URL)).toBe(DEFAULT_LOCAL_DATABASE_URL);
+    expect(moduleRef.get(DATABASE_URL)).toBe(
+      `${DEFAULT_LOCAL_DATABASE_URL}?client_min_messages=warning`,
+    );
   });
 
   it.each(['read-tp-feed-history', 'read-tp-roster-snapshots'])(

@@ -15,6 +15,12 @@ export type LocalDatabaseEnv = Readonly<Record<string, string | undefined>>;
  * docker-compose database `restore` writes to by default. backup-cli's config
  * file is not read, so the two tools stay independent. Any host but this
  * machine is refused before a connection is made.
+ *
+ * The URL it hands DbModule also sets `client_min_messages=warning`, which
+ * postgres-js sends as a connection parameter. Applying migrations raises
+ * NOTICEs (the migrator's `CREATE SCHEMA IF NOT EXISTS` does on every
+ * migrated database), and postgres-js prints each one to stdout, where only
+ * the CLI's JSON result belongs.
  */
 @Injectable()
 export class LocalDatabaseUrlService {
@@ -30,6 +36,8 @@ export class LocalDatabaseUrlService {
         ? DEFAULT_LOCAL_DATABASE_URL
         : fromEnv;
     this.guard.assertLocal(url);
-    return url;
+    const quiet = new URL(url);
+    quiet.searchParams.set('client_min_messages', 'warning');
+    return quiet.toString();
   }
 }

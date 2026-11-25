@@ -4,8 +4,9 @@
 [import-manual](../import-manual/index.md) batches filling in the data of
 incomplete TP players, and collects the evidence those plans rest on. It
 reads a local restore of a production backup read-only, the TP feed
-channel's history and the TP downloads, and changes no data itself: `tools/import-manual` applies the
-batch files it writes like any other batch (see
+channel's history and the TP downloads, and changes no data itself:
+`tools/import-manual` applies the batch files it writes like any other
+batch (see
 [Filling in missing players](../import-manual/filling-missing-players.md#generated-fills)).
 
 ## Subcommands
@@ -40,10 +41,15 @@ writes to (`postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl`). It
 does not read backup-cli's config file. `packages/cli-shared`'s
 `LocalDatabaseGuardService` refuses any host but `localhost`, `127.0.0.1` or
 `::1` before it connects. Connecting applies this checkout's pending
-migrations, so a backup older than the branch is brought up to date.
+migrations, so a backup older than the branch is brought up to date. The
+connection asks for `client_min_messages=warning`, so the NOTICEs
+migrating raises never reach stdout.
 
-Every read runs in one read-only `REPEATABLE READ` transaction, so the
-queries see one consistent snapshot. They are drizzle query-builder code
+The reads run in two read-only `REPEATABLE READ` transactions: one for
+the incomplete players the fills are planned from, then one for the
+complete players the `lastingInjuryRepairs` section is selected from.
+The queries within each see one consistent snapshot; the two read
+disjoint sets of players. They are drizzle query-builder code
 over `packages/db`'s schema, and the selection uses game-data's
 `INCOMPLETE_PLAYER_CRITERIA` itself, so it counts exactly the players
 `/debugincompleteimport` counts. A competition counts as ongoing when it has

@@ -29,8 +29,9 @@ const READ_ONLY_SNAPSHOT = {
  * paid advancements and rosters, skill names and categories, position
  * access, advancement costs and stat-reduction events, the competitions and
  * death times that decide whether they last, Big Guy positions, the TP ids
- * of skills and candidate positions, and the skills held with a variant;
- * separately, the complete players who may need a lasting-reduction repair.
+ * of skills and candidate positions, and the skills held with a variant.
+ * The complete players who may need a lasting-reduction repair are read
+ * separately, in a second such transaction.
  */
 @Injectable()
 export class IncompletePlayerFillQueriesService {
