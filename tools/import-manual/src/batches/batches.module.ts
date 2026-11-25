@@ -1,3 +1,4 @@
+import { ManualBatchModule } from '@blood-bowl-tracker/manual-batch';
 import { Module } from '@nestjs/common';
 
 import { DataFileModule } from '../data-file/data-file.module';
@@ -8,7 +9,7 @@ import { BatchLedgerService } from './batch-ledger.service';
 import { BatchRunnerService } from './batch-runner.service';
 
 @Module({
-  imports: [DataFileModule, ManualImportModule],
+  imports: [DataFileModule, ManualImportModule, ManualBatchModule],
   providers: [
     BatchCatalogService,
     BatchContentHashService,

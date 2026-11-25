@@ -1,7 +1,7 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { ManualBatchLayoutService } from '@blood-bowl-tracker/manual-batch';
 import { Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
 
@@ -20,6 +20,8 @@ import JSON5 from 'json5';
 @Injectable()
 export class ManualBatchReaderService {
   private readonly pooled = new Map<string, Promise<Map<string, unknown[]>>>();
+
+  constructor(private readonly layout: ManualBatchLayoutService) {}
 
   /**
    * Every entry of one top-level section, across every batch under
@@ -51,11 +53,9 @@ export class ManualBatchReaderService {
   /** Every top-level array section of every `.json5` file of every batch. */
   private async loadBatches(root: string): Promise<Map<string, unknown[]>> {
     const pooled = new Map<string, unknown[]>();
-    for (const batch of await this.names(root, (e) => e.isDirectory())) {
+    for (const batch of await this.layout.listBatchDirsLenient(root)) {
       const dir = join(root, batch);
-      for (const file of await this.names(dir, (e) =>
-        e.name.endsWith('.json5'),
-      )) {
+      for (const file of await this.layout.listJson5FilesLenient(dir)) {
         const contents = await this.load(join(dir, file));
         for (const [key, value] of Object.entries(contents)) {
           if (Array.isArray(value)) {
@@ -68,22 +68,6 @@ export class ManualBatchReaderService {
       }
     }
     return pooled;
-  }
-
-  /** The sorted names of `dir`'s entries passing `keep`; none if unreadable. */
-  private async names(
-    dir: string,
-    keep: (entry: Dirent) => boolean,
-  ): Promise<string[]> {
-    try {
-      const entries = await readdir(dir, { withFileTypes: true });
-      return entries
-        .filter(keep)
-        .map((entry) => entry.name)
-        .sort();
-    } catch {
-      return [];
-    }
   }
 
   /** One file, JSON5-parsed; {} when it is missing, malformed or no object. */

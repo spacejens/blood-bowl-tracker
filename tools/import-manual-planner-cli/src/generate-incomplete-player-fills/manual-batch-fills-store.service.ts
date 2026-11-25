@@ -1,22 +1,18 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
 import { join, posix, sep } from 'node:path';
 
 import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
-import { TP_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/domain-enums';
+import {
+  IncompletePlayerFillEntrySchema,
+  ManualBatchLayoutService,
+} from '@blood-bowl-tracker/manual-batch';
 import { Injectable } from '@nestjs/common';
-import JSON5 from 'json5';
 import { z } from 'zod';
 
 /** The manual-import batches, committed; one directory per batch. */
 export const MANUAL_BATCHES_DIR = 'tools/import-manual/data/batches';
 
 const batchFillsSchema = z.object({
-  incompletePlayerFills: z
-    .array(
-      z.object({ player: z.object({ system: z.string(), id: z.string() }) }),
-    )
-    .optional(),
+  incompletePlayerFills: z.array(IncompletePlayerFillEntrySchema).optional(),
 });
 
 /**
@@ -28,7 +24,10 @@ const batchFillsSchema = z.object({
 export class ManualBatchFillsStoreService {
   private root?: Promise<string>;
 
-  constructor(private readonly gitRoots: GitRootsService) {}
+  constructor(
+    private readonly gitRoots: GitRootsService,
+    private readonly layout: ManualBatchLayoutService,
+  ) {}
 
   /**
    * The batch a repo-relative `--out` path writes into: its directory
@@ -62,9 +61,8 @@ export class ManualBatchFillsStoreService {
   }
 
   private async batches(dir: string): Promise<string[]> {
-    let entries: Dirent[];
     try {
-      entries = await readdir(dir, { withFileTypes: true });
+      return (await this.layout.listBatches(dir)).map((batch) => batch.name);
     } catch (error) {
       if (this.errorCode(error) === 'ENOENT') {
         throw new Error(
@@ -74,46 +72,25 @@ export class ManualBatchFillsStoreService {
       }
       throw error;
     }
-    return entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
   }
 
   private async batchFills(batchDir: string): Promise<string[]> {
     const ids: string[] = [];
-    const files = (await readdir(batchDir, { withFileTypes: true })).filter(
-      (entry) => entry.isFile() && entry.name.endsWith('.json5'),
-    );
-    for (const file of files) {
-      const path = join(batchDir, file.name);
-      const text = await readFile(path, 'utf8');
-      if (!text.includes('incompletePlayerFills')) {
-        continue;
-      }
-      const parsed = batchFillsSchema.safeParse(this.parseJson5(text, path));
+    for (const name of await this.layout.listJson5Files(batchDir)) {
+      const path = join(batchDir, name);
+      const parsed = batchFillsSchema.safeParse(
+        await this.layout.readJson5(path),
+      );
       if (!parsed.success) {
         throw new Error(
           `${path} has no readable incompletePlayerFills: ${parsed.error.message}`,
         );
       }
       for (const entry of parsed.data.incompletePlayerFills ?? []) {
-        if (entry.player.system === TP_EXTERNAL_SYSTEM_NAME) {
-          ids.push(entry.player.id);
-        }
+        ids.push(entry.player.id);
       }
     }
     return ids;
-  }
-
-  private parseJson5(text: string, path: string): unknown {
-    try {
-      return JSON5.parse<unknown>(text);
-    } catch (error) {
-      throw new Error(
-        `${path} is not valid JSON5: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
-      );
-    }
   }
 
   private worktreeRoot(): Promise<string> {

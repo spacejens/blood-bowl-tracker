@@ -2,8 +2,13 @@ import {
   NAME_EXTERNAL_SYSTEM,
   TP_EXTERNAL_SYSTEM,
 } from '@blood-bowl-tracker/domain-enums';
+import {
+  IncompletePlayerFillEntrySchema,
+  LastingInjuryRepairEntrySchema,
+} from '@blood-bowl-tracker/manual-batch';
 import { Injectable } from '@nestjs/common';
 import JSON5 from 'json5';
+import { z } from 'zod';
 
 import type { FillEntry, LastingInjuryRepairEntry } from './fill-plan.types';
 
@@ -27,19 +32,33 @@ const HEADER = [
  * Renders planned fills as a manual-import batch file: the systems the
  * entries reference, then the entries.
  *
- * Pure formatting, with no I/O and no dependencies.
+ * Pure formatting and schema checking, with no I/O and no dependencies.
  */
 @Injectable()
 export class FillSectionRendererService {
   render(
     entries: readonly FillEntry[],
-    repairs: readonly LastingInjuryRepairEntry[],
+    repairEntries: readonly LastingInjuryRepairEntry[],
   ): string {
+    const fills = z.array(IncompletePlayerFillEntrySchema).safeParse(entries);
+    if (!fills.success) {
+      throw new Error(
+        `Generated incompletePlayerFills do not match the batch schema: ${fills.error.message}`,
+      );
+    }
+    const repairs = z
+      .array(LastingInjuryRepairEntrySchema)
+      .safeParse(repairEntries);
+    if (!repairs.success) {
+      throw new Error(
+        `Generated lastingInjuryRepairs do not match the batch schema: ${repairs.error.message}`,
+      );
+    }
     const body = JSON5.stringify(
       {
         externalSystems: [NAME_EXTERNAL_SYSTEM, TP_EXTERNAL_SYSTEM],
         incompletePlayerFills: entries,
-        lastingInjuryRepairs: repairs,
+        lastingInjuryRepairs: repairEntries,
       },
       { space: 2, quote: "'" },
     );

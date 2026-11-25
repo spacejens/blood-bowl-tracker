@@ -5,6 +5,7 @@ import {
 import { DbModule } from '@blood-bowl-tracker/db';
 import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
 import { ImportSharedModule } from '@blood-bowl-tracker/import-shared';
+import { ManualBatchModule } from '@blood-bowl-tracker/manual-batch';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
 import { ReadTpFilesModule } from '@blood-bowl-tracker/read-tp-files';
@@ -123,6 +124,7 @@ export class AppModule {
         DiscordRestModule,
         GameRulesModule,
         ImportSharedModule,
+        ManualBatchModule,
         ParseTpModule,
         ParseTpFeedModule,
         ReadTpFilesModule,

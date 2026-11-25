@@ -30,7 +30,8 @@ tools/import-manual/data/batches/
 ```
 
 A batch directory is named `NNN-<slug>`: a three-digit number and a lowercase
-hyphenated slug.
+hyphenated slug. The layout, the naming rule and the fill and repair schemas
+live in [manual-batch](../manual-batch/index.md).
 
 - Numbers order the batches and must be unique. A batch is applied after every
   lower-numbered one. Batch 002 references rows only the BBL and TP importers

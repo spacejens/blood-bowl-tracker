@@ -371,6 +371,8 @@ each file holds, and for the conventions to follow when adding to them.
 The data lives in numbered batch directories under
 `tools/import-manual/data/batches/` — see [Batches](batches.md) for the
 layout, the naming and ordering rules, and how a change becomes a new batch.
+The layout, the naming rule and the fill and repair schemas live in
+[manual-batch](../manual-batch/index.md).
 
 The batches are **committed to git** — unlike `tools/import-bbl/data` and
 `tools/import-tp/data`, which hold bulky regenerable scrapes and stay

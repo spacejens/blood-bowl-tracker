@@ -1,10 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { GitRootsService } from '@blood-bowl-tracker/cli-shared';
+import { ManualBatchLayoutService } from '@blood-bowl-tracker/manual-batch';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import {
@@ -12,57 +11,81 @@ import {
   ManualBatchFillsStoreService,
 } from './manual-batch-fills-store.service';
 
-function fills(...ids: string[]): string {
-  const entries = ids
-    .map((id) => `{ player: { system: 'tourplay.net', id: '${id}' } }`)
-    .join(', ');
-  return `// generated\n{ incompletePlayerFills: [${entries}] }\n`;
+const ROOT = '/checkout';
+const DIR = join(ROOT, MANUAL_BATCHES_DIR);
+
+function fillEntry(id: string, system = 'tourplay.net'): unknown {
+  return {
+    player: { system, id },
+    status: 'retired',
+    characteristics: { ma: 6, st: 3, ag: 3, av: 9 },
+    sppTotal: 0,
+    unspentSpp: 0,
+    startingSkills: [],
+    advancements: [],
+  };
+}
+
+function fills(...ids: string[]): unknown {
+  return { incompletePlayerFills: ids.map((id) => fillEntry(id)) };
+}
+
+function batch(name: string): { name: string; number: number; dir: string } {
+  return { name, number: Number(name.slice(0, 3)), dir: join(DIR, name) };
 }
 
 describe('ManualBatchFillsStoreService', () => {
   let service: ManualBatchFillsStoreService;
   let gitRoots: MockProxy<GitRootsService>;
-  let root: string;
+  let layout: MockProxy<ManualBatchLayoutService>;
 
   beforeEach(async () => {
-    root = mkdtempSync(join(tmpdir(), 'manual-batch-fills-'));
     gitRoots = mock<GitRootsService>();
     gitRoots.resolve.mockResolvedValue({
-      mainRoot: root,
-      worktreeRoot: root,
+      mainRoot: ROOT,
+      worktreeRoot: ROOT,
       isWorktree: false,
     });
+    layout = mock<ManualBatchLayoutService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         ManualBatchFillsStoreService,
         { provide: GitRootsService, useValue: gitRoots },
+        { provide: ManualBatchLayoutService, useValue: layout },
       ],
     }).compile();
     service = moduleRef.get(ManualBatchFillsStoreService);
   });
 
-  afterEach(() => {
-    rmSync(root, { recursive: true, force: true });
-  });
-
-  function put(batch: string, file: string, text: string): void {
-    const dir = join(root, MANUAL_BATCHES_DIR, batch);
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, file), text);
+  /** Seeds the layout: batch name to its files, each file to its parsed content. */
+  function seed(batches: Record<string, Record<string, unknown>>): void {
+    layout.listBatches.mockResolvedValue(Object.keys(batches).map(batch));
+    layout.listJson5Files.mockImplementation((dir) =>
+      Promise.resolve(Object.keys(batches[dir.slice(DIR.length + 1)])),
+    );
+    layout.readJson5.mockImplementation((path) => {
+      const rest = path.slice(DIR.length + 1).split('/');
+      return Promise.resolve(batches[rest[0]][rest[1]]);
+    });
   }
 
   it('collects the TP ids every batch fills', async () => {
-    put('007-low', 'incomplete-player-fills.json5', fills('1', '2'));
-    put('008-feed', 'incomplete-player-fills.json5', fills('3'));
+    seed({
+      '007-low': { 'f.json5': fills('1', '2') },
+      '008-feed': { 'f.json5': fills('3') },
+    });
 
     expect([...(await service.filledTpIds())].sort()).toEqual(['1', '2', '3']);
+    expect(layout.listBatches).toHaveBeenCalledWith(DIR);
   });
 
   it('reads only the batches named before the given one', async () => {
-    put('007-low', 'f.json5', fills('1'));
-    put('008-feed', 'f.json5', fills('2'));
-    put('009-injured', 'f.json5', fills('3'));
-    put('010-journeymen', 'f.json5', fills('4'));
+    seed({
+      '007-low': { 'f.json5': fills('1') },
+      '008-feed': { 'f.json5': fills('2') },
+      '009-injured': { 'f.json5': fills('3') },
+      '010-journeymen': { 'f.json5': fills('4') },
+    });
 
     expect([...(await service.filledTpIds('009-injured'))].sort()).toEqual([
       '1',
@@ -70,55 +93,62 @@ describe('ManualBatchFillsStoreService', () => {
     ]);
   });
 
-  it('ignores files without fills, fills of another system, and other files', async () => {
-    put('001-seed', 'skills.json5', '{ skills: [] }');
-    put(
-      '001-seed',
-      'teams.json5',
-      '// incompletePlayerFills come later\n{ teams: [] }',
-    );
-    put(
-      '007-low',
-      'f.json5',
-      "{ incompletePlayerFills: [{ player: { system: 'Name', id: 'Bob' } }, { player: { system: 'tourplay.net', id: '5' } }] }",
-    );
-    put('007-low', 'notes.txt', 'incompletePlayerFills');
-    writeFileSync(join(root, MANUAL_BATCHES_DIR, 'README.md'), 'x');
+  it('ignores files without fills', async () => {
+    seed({
+      '001-seed': { 'skills.json5': { skills: [] } },
+      '007-low': { 'f.json5': fills('5') },
+    });
 
     expect([...(await service.filledTpIds())]).toEqual(['5']);
   });
 
-  it('names a batch file that is not valid JSON5', async () => {
-    put('007-low', 'f.json5', '{ incompletePlayerFills: [');
-
-    await expect(service.filledTpIds()).rejects.toThrow(
-      /f\.json5 is not valid JSON5/,
-    );
-  });
-
   it('names a batch file whose fills have another shape', async () => {
-    put('007-low', 'f.json5', '{ incompletePlayerFills: [{ player: 5 }] }');
+    seed({
+      '007-low': { 'f.json5': { incompletePlayerFills: [{ player: 5 }] } },
+    });
 
     await expect(service.filledTpIds()).rejects.toThrow(
       /f\.json5 has no readable incompletePlayerFills/,
     );
   });
 
+  it('names a batch file whose fill entry fails the shared schema', async () => {
+    const bad = { ...(fillEntry('1') as object), characteristics: { ma: 0 } };
+    seed({ '007-low': { 'f.json5': { incompletePlayerFills: [bad] } } });
+
+    await expect(service.filledTpIds()).rejects.toThrow(
+      new RegExp(
+        `${DIR}/007-low/f\\.json5 has no readable incompletePlayerFills`,
+      ),
+    );
+  });
+
   it('tells when the batches directory is missing', async () => {
+    layout.listBatches.mockRejectedValue(
+      Object.assign(new Error('no such dir'), { code: 'ENOENT' }),
+    );
+
     await expect(service.filledTpIds()).rejects.toThrow(
       /import-manual\/data\/batches does not exist/,
     );
   });
 
   it('passes on another error reading the batches directory', async () => {
-    mkdirSync(join(root, 'tools/import-manual/data'), { recursive: true });
-    writeFileSync(join(root, MANUAL_BATCHES_DIR), 'not a directory');
+    layout.listBatches.mockRejectedValue(
+      Object.assign(new Error('not a directory'), { code: 'ENOTDIR' }),
+    );
 
-    await expect(service.filledTpIds()).rejects.toThrow(/ENOTDIR/);
+    await expect(service.filledTpIds()).rejects.toThrow(/not a directory/);
+  });
+
+  it('passes on an error that is not a system error', async () => {
+    layout.listBatches.mockRejectedValue('boom');
+
+    await expect(service.filledTpIds()).rejects.toBe('boom');
   });
 
   it('resolves the checkout root once', async () => {
-    put('007-low', 'f.json5', fills('1'));
+    seed({ '007-low': { 'f.json5': fills('1') } });
     await service.filledTpIds();
     await service.filledTpIds();
 

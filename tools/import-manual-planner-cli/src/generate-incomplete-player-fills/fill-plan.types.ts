@@ -15,6 +15,7 @@ import {
   type ReportedSkillStep,
   type RulesSetPricingInput,
 } from '@blood-bowl-tracker/game-rules';
+import type { LastingInjuryRepairEntry as SharedLastingInjuryRepairEntry } from '@blood-bowl-tracker/manual-batch';
 
 import type {
   TpFeedHistoryReport,
@@ -213,7 +214,12 @@ export type FillAdvancement =
   | { skill: NameRef; attributeValue?: string; source: FeedSelection }
   | { characteristic: PlayerCharacteristic };
 
-/** One `incompletePlayerFills` entry, as the batch file holds it. */
+/**
+ * One `incompletePlayerFills` entry, as the batch file holds it. The planner's
+ * shape is narrower than the batch format (an advancement's `source` is
+ * required); it is checked against manual-batch's
+ * `IncompletePlayerFillEntrySchema` when rendered.
+ */
 export interface FillEntry {
   player: { system: typeof TP_EXTERNAL_SYSTEM_NAME; id: string };
   /** A journeyman whose stored marker is set; his Loner is left to the server. */
@@ -233,9 +239,7 @@ export interface FillEntry {
 }
 
 /** One `lastingInjuryRepairs` entry, as the batch file holds it. */
-export interface LastingInjuryRepairEntry {
-  player: { system: typeof TP_EXTERNAL_SYSTEM_NAME; id: string };
-}
+export type LastingInjuryRepairEntry = SharedLastingInjuryRepairEntry;
 
 /**
  * The rules set the server compares a stored player against: the formats

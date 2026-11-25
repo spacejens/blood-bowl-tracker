@@ -1,3 +1,4 @@
+import { ManualBatchModule } from '@blood-bowl-tracker/manual-batch';
 import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
 import { ReadTpFilesModule } from '@blood-bowl-tracker/read-tp-files';
 import { ManualBatchReaderService } from '@blood-bowl-tracker/review-harness';
@@ -17,7 +18,7 @@ import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
  * every interpretation of what they return lives in a data-type module.
  */
 @Module({
-  imports: [BblMirrorReaderModule, ReadTpFilesModule],
+  imports: [BblMirrorReaderModule, ManualBatchModule, ReadTpFilesModule],
   providers: [
     BblRawPlayerPageLoaderService,
     BblPlayerSkillsCellService,

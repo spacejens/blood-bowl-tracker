@@ -53,6 +53,7 @@ Which side of the API each kind of workspace sits on. Unlike "Data flow" above, 
   - `packages/logging` — shared error-log shaping (see [logging](logging/index.md)).
   - `packages/import-shared` — the import rules bulk and live imports share (see [import-shared](import-shared/index.md)).
   - `packages/game-rules` — pure game rules (see [game-rules](game-rules/index.md)).
+  - `packages/manual-batch` — the manual-import batch layout and entry schemas (see [manual-batch](manual-batch/index.md)).
 
 ## Tool/app relationships
 
@@ -71,6 +72,7 @@ for the specifics. Only participants in that pipeline are listed.
 - **`packages/import-tp-live`** (TP import, server-side) — imports one TP roster, match, competition or official team list through `packages/game-data`; it backs both the `tp*.import` procedures and the bot's live imports, so a change reaches bulk and live imports together. See [import-tp-live](import-tp-live/index.md).
 - **`packages/import-shared`** (shared import rules) — the I/O-free rules bulk and live imports must apply identically, including the identity-critical Name ids. See [import-shared](import-shared/index.md).
 - **`packages/game-rules`** (shared game rules) — the advancement, lasting-reduction and incomplete-player rules `packages/game-data` and `tools/import-manual-planner-cli` both apply, so a rule change reaches the server and the planner together. See [game-rules](game-rules/index.md).
+- **`packages/manual-batch`** (shared batch layout) — the batch directory layout and the fill and repair entry schemas `tools/import-manual` applies and `tools/import-manual-planner-cli` writes, so a change to what an entry accepts reaches both. See [manual-batch](manual-batch/index.md).
 - **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once. See [import](import/index.md).
 - **`packages/config-loader`** (shared config loading) — how every config-reading tool reads its JSON5 file, not what it accepts. See [config-loader](config-loader/index.md).
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it. See [API](api/index.md#api-contract).
@@ -216,6 +218,7 @@ not shipped as part of any app).
 - **`packages/import`** — shared import orchestration for the `tools/import-*` CLIs. See [import](import/index.md).
 - **`packages/import-shared`** — the pure import rules bulk and live imports share. See [import-shared](import-shared/index.md).
 - **`packages/import-tp-live`** — server-side import of one TP roster, match, competition or official team list. See [import-tp-live](import-tp-live/index.md).
+- **`packages/manual-batch`** — the manual-import batch layout and the fill and repair entry schemas. See [manual-batch](manual-batch/index.md).
 - **`packages/logging`** — one consistent shape for logging a caught exception. See [logging](logging/index.md).
 - **`packages/parse-tp`** — reusable TP JSON parsing. See [parse-tp](parse-tp/index.md).
 - **`packages/parse-tp-feed`** — parsing of the TP feed's advancement reports. See [parse-tp-feed](parse-tp-feed/index.md).

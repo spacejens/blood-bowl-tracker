@@ -27,6 +27,7 @@
     "@blood-bowl-tracker/cli-shared": "workspace:*",
     "@blood-bowl-tracker/domain-enums": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
+    "@blood-bowl-tracker/manual-batch": "workspace:*",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
     "reflect-metadata": "^0.2.2"
