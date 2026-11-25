@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import {
   DatabaseUrlRedactorService,
+  LocalDatabaseGuardService,
   PgClientService,
   ProcessRunnerService,
   ProductionEnvFileService,
@@ -28,7 +29,6 @@ import { CreateBackupService } from './create-backup/create-backup.service';
 import { DownloadBackupService } from './download-backup/download-backup.service';
 import { PgDumpService } from './dump/pg-dump.service';
 import { LocalMigrationsService } from './migrations/local-migrations.service';
-import { LocalDatabaseGuardService } from './pg-client/local-database-guard.service';
 import { PruneBackupsService } from './prune-backups/prune-backups.service';
 import { PgRestoreService } from './restore/pg-restore.service';
 import { LocalDatabaseWipeService } from './restore-backup/local-database-wipe.service';

@@ -1535,9 +1535,15 @@ importers:
       '@blood-bowl-tracker/cli-shared':
         specifier: workspace:*
         version: link:../../packages/cli-shared
+      '@blood-bowl-tracker/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@blood-bowl-tracker/domain-enums':
         specifier: workspace:*
         version: link:../../packages/domain-enums
+      '@blood-bowl-tracker/game-data':
+        specifier: workspace:*
+        version: link:../../packages/game-data
       '@blood-bowl-tracker/parse-tp':
         specifier: workspace:*
         version: link:../../packages/parse-tp
@@ -1560,12 +1566,6 @@ importers:
         specifier: ^4.4.3
         version: 4.6.7
     devDependencies:
-      '@blood-bowl-tracker/db':
-        specifier: workspace:*
-        version: link:../../packages/db
-      '@blood-bowl-tracker/game-data':
-        specifier: workspace:*
-        version: link:../../packages/game-data
       '@nestjs/testing':
         specifier: ^12.0.0
         version: 12.6.0(@nestjs/common@12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.6.0)(@nestjs/platform-express@12.6.0)

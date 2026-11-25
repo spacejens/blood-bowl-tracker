@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { DEFAULT_LOCAL_DATABASE_URL } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -10,7 +11,6 @@ import {
   BACKUP_ENV,
   BackupConfigService,
   BackupEnv,
-  DEFAULT_LOCAL_DATABASE_URL,
 } from './backup-config.service';
 
 const FULL_FILE = `{

@@ -1,15 +1,18 @@
 import { Injectable } from '@nestjs/common';
 
+/** The docker-compose database (`docker-compose.yml`'s host port mapping). */
+export const DEFAULT_LOCAL_DATABASE_URL =
+  'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl';
+
 /** `URL.hostname` keeps the brackets around an IPv6 address. */
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /**
- * Guards every subcommand that writes into a database it is pointed at
- * (`verify`, `restore`): the target must be on this machine, with no
- * override, so a mistyped URL can never restore over a real database.
- * `restore-production` is deliberately not pointed at anything: it reads
- * production's URL from `apps/discord-bot/.env.production` and refuses a
- * real run without its confirmation phrase.
+ * Guards every command that is pointed at a database it must never mistake
+ * for a real one: backup-cli's `verify` and `restore`, which write into it,
+ * and import-manual-planner-cli's `generate-incomplete-player-fills`, which
+ * reads a restored backup from it. The target must be on this machine, with
+ * no override, so a mistyped URL can never reach a real database.
  */
 @Injectable()
 export class LocalDatabaseGuardService {
@@ -31,7 +34,7 @@ export class LocalDatabaseGuardService {
       url.searchParams.has('hostaddr')
     ) {
       throw new Error(
-        'Refusing to restore into a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
+        'Refusing to use a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
       );
     }
   }

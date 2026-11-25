@@ -1,10 +1,10 @@
 import { join } from 'node:path';
 
+import { LocalDatabaseGuardService } from '@blood-bowl-tracker/cli-shared';
 import { Injectable } from '@nestjs/common';
 
 import { DownloadBackupService } from '../download-backup/download-backup.service';
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
-import { LocalDatabaseGuardService } from '../pg-client/local-database-guard.service';
 import { PgRestoreService } from '../restore/pg-restore.service';
 import { TempDirService } from '../temp-dir/temp-dir.service';
 import { BackupChecksService, TableRowCounts } from './backup-checks.service';

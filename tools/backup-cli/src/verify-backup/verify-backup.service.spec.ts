@@ -1,10 +1,10 @@
+import { LocalDatabaseGuardService } from '@blood-bowl-tracker/cli-shared';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { DownloadBackupService } from '../download-backup/download-backup.service';
 import { LocalMigrationsService } from '../migrations/local-migrations.service';
-import { LocalDatabaseGuardService } from '../pg-client/local-database-guard.service';
 import { PgRestoreService } from '../restore/pg-restore.service';
 import { TempDirService } from '../temp-dir/temp-dir.service';
 import { BackupChecksService } from './backup-checks.service';

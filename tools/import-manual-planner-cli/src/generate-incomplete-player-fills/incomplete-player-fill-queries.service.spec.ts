@@ -1,43 +1,26 @@
+import { DB } from '@blood-bowl-tracker/db';
+import { mockDb, type MockDbResult } from '@blood-bowl-tracker/db/test-helpers';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mock, MockProxy } from 'vitest-mock-extended';
-import { ZodError } from 'zod';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import {
-  ADVANCEMENT_COSTS_SQL,
-  ATTRIBUTED_SKILLS_SQL,
-  BIG_GUY_POSITIONS_SQL,
-  CANDIDATES_SQL,
-  CONSEQUENCES_SQL,
-  DEATH_TIMES_SQL,
-  ERA_RULES_SETS_SQL,
-  FREE_SKILL_RISK_SQL,
-  INCOMPLETE_PLAYER_CONDITIONS,
-  LASTING_INJURY_REPAIRS_SQL,
-  ONGOING_COMPETITIONS_SQL,
-  PAID_ADVANCEMENTS_SQL,
-  POSITION_ACCESS_SQL,
-  POSITION_RULES_SETS_SQL,
-  POSITION_SKILLS_SQL,
-  REDUCTION_COUNT_COLUMNS,
-  SKILL_CATEGORIES_SQL,
-  SKILL_NAMES_SQL,
-  STAT_REDUCTION_EVENTS_SQL,
-  STORED_ADVANCEMENTS_SQL,
-  TEAM_COMPETITIONS_SQL,
-  TEAM_PLAYERS_CTE,
-  TEAM_PLAYERS_SQL,
-  TEAM_ROSTERS_SQL,
-  TP_POSITION_IDS_SQL,
-  TP_SKILL_IDS_SQL,
-} from './incomplete-player-fill.sql';
+import { CandidateMatchQueriesService } from './candidate-match-queries.service';
+import { CandidateQueriesService } from './candidate-queries.service';
+import { EraRulesQueriesService } from './era-rules-queries.service';
+import type { CandidateScopeRow } from './fill-query.types';
+import { FillQueryScopeService } from './fill-query-scope.service';
 import { IncompletePlayerFillQueriesService } from './incomplete-player-fill-queries.service';
-import { ProductionJsonQueryService } from './production-json-query.service';
+import { LastingInjuryRepairQueriesService } from './lasting-injury-repair-queries.service';
+import { LookupQueriesService } from './lookup-queries.service';
+import { PositionRulesQueriesService } from './position-rules-queries.service';
 
-const CANDIDATE = {
+const SNAPSHOT = { isolationLevel: 'repeatable read', accessMode: 'read only' };
+
+const CANDIDATE: CandidateScopeRow = {
   playerId: 1,
   tpId: '500',
   teamId: 20,
+  teamEraId: 21,
   positionId: 30,
   eraId: 4,
   sppTotal: 5,
@@ -50,27 +33,12 @@ const CANDIDATE = {
   passing: null,
   armour: 0,
 };
-const PRS = {
-  positionRulesSetId: 40,
-  positionId: 30,
-  eraId: 4,
-  rulesSetId: 7,
-  line: { ma: 6, st: 3, ag: 3, pa: 4, av: 9 },
-  formats: {
-    ma: 'bare',
-    st: 'bare',
-    ag: 'plus',
-    pa: 'plus_zero_legal',
-    av: 'plus',
-  },
+const SECOND: CandidateScopeRow = {
+  ...CANDIDATE,
+  playerId: 2,
+  tpId: '501',
+  teamEraId: 22,
 };
-const SKILL = {
-  positionRulesSetId: 40,
-  skillId: 100,
-  nameId: 'Block',
-  attributeValue: null,
-};
-
 const TEAM_PLAYER = {
   playerId: 1,
   teamId: 20,
@@ -83,578 +51,191 @@ const TEAM_PLAYER = {
   isJourneyman: true,
   isIncomplete: true,
 };
-const PAID = [
-  { playerId: 1, skillId: 200, attributeValue: '+1', characteristic: null },
-  { playerId: 1, skillId: null, attributeValue: null, characteristic: 'ma' },
-];
-const COST = {
-  eraId: 4,
-  rulesSetId: 7,
-  leagueId: null,
-  advancementNumber: 1,
-  advancementKind: 'chosen_primary_skill',
-  skillId: null,
-  sppCost: 6,
-};
-const REDUCTION = {
-  playerId: 2,
-  characteristic: 'ma',
-  competitionId: 50,
-  playedAt: '2024-03-01T19:00:00+00:00',
-};
-const TEAM_COMPETITION = {
-  playerId: 2,
-  competitionId: 50,
-  firstPlayedAt: '2024-02-01T19:00:00+00:00',
-  lastPlayedAt: '2024-04-01T19:00:00+00:00',
-};
-const ERA_RULES_SET = {
-  eraId: 4,
-  rulesSetId: 7,
-  lastingInjuriesNeverHeal: false,
-  cheapestCost: 6,
-};
-const DEATH_TIME = { playerId: 1, diedAt: '2024-03-15T19:00:00+00:00' };
-
-const REPAIR = {
-  player: { system: 'tourplay.net', id: '929761' },
-  line: { ma: 6, st: 3, ag: 3, pa: null, av: 8 },
-  increases: ['ma', 'av'],
-  context: {
-    formats: { ma: 'bare', st: 'bare', ag: 'plus', pa: 'absent', av: 'plus' },
-    baseline: { ma: 6, st: 3, ag: 3, pa: null, av: 9 },
-  },
-};
 
 describe('IncompletePlayerFillQueriesService', () => {
   let service: IncompletePlayerFillQueriesService;
-  let json: MockProxy<ProductionJsonQueryService>;
-  let results: Map<string, unknown[]>;
+  let database: MockDbResult;
+  let candidates: MockProxy<CandidateQueriesService>;
+  let matchQueries: MockProxy<CandidateMatchQueriesService>;
+  let positionRules: MockProxy<PositionRulesQueriesService>;
+  let eraRules: MockProxy<EraRulesQueriesService>;
+  let lookups: MockProxy<LookupQueriesService>;
+  let repairs: MockProxy<LastingInjuryRepairQueriesService>;
 
   beforeEach(async () => {
-    json = mock<ProductionJsonQueryService>();
-    results = new Map<string, unknown[]>([
-      [CANDIDATES_SQL, [CANDIDATE]],
-      [
-        CONSEQUENCES_SQL,
-        [
-          { playerId: 1, hasStatReduction: false, hasDeath: true },
-          { playerId: 2, hasStatReduction: true, hasDeath: false },
-          { playerId: 3, hasStatReduction: true, hasDeath: true },
-        ],
-      ],
-      [DEATH_TIMES_SQL, [DEATH_TIME]],
-      [STORED_ADVANCEMENTS_SQL, []],
-      [FREE_SKILL_RISK_SQL, [{ playerId: 9 }]],
-      [
-        ONGOING_COMPETITIONS_SQL,
-        [
-          { competitionId: 1, competitionName: 'Major Season 31', teamId: 20 },
-          { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: 21 },
-          { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: 20 },
-        ],
-      ],
-      [POSITION_RULES_SETS_SQL, [PRS]],
-      [POSITION_SKILLS_SQL, [SKILL]],
-      [ERA_RULES_SETS_SQL, [ERA_RULES_SET]],
-      [TEAM_PLAYERS_SQL, [TEAM_PLAYER]],
-      [TEAM_ROSTERS_SQL, [{ teamId: 20, rosterId: '24801' }]],
-      [PAID_ADVANCEMENTS_SQL, PAID],
-      [
-        SKILL_NAMES_SQL,
-        [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
-      ],
-      [
-        SKILL_CATEGORIES_SQL,
-        [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
-      ],
-      [
-        POSITION_ACCESS_SQL,
-        [
-          {
-            positionId: 30,
-            rulesSetId: 7,
-            category: 'agility',
-            access: 'primary',
-          },
-        ],
-      ],
-      [ADVANCEMENT_COSTS_SQL, [COST]],
-      [STAT_REDUCTION_EVENTS_SQL, [REDUCTION]],
-      [TEAM_COMPETITIONS_SQL, [TEAM_COMPETITION]],
-      [BIG_GUY_POSITIONS_SQL, [{ positionId: 30, eraId: 4 }]],
-      [TP_SKILL_IDS_SQL, [{ skillId: 200, masterId: '92' }]],
-      [TP_POSITION_IDS_SQL, [{ positionId: 30, tpPositionId: '288' }]],
-      [ATTRIBUTED_SKILLS_SQL, [{ skillId: 300 }]],
-      [LASTING_INJURY_REPAIRS_SQL, [REPAIR]],
+    database = mockDb();
+    candidates = mock<CandidateQueriesService>();
+    matchQueries = mock<CandidateMatchQueriesService>();
+    positionRules = mock<PositionRulesQueriesService>();
+    eraRules = mock<EraRulesQueriesService>();
+    lookups = mock<LookupQueriesService>();
+    repairs = mock<LastingInjuryRepairQueriesService>();
+    candidates.candidates.mockResolvedValue([CANDIDATE, SECOND]);
+    candidates.teamPlayers.mockResolvedValue([TEAM_PLAYER]);
+    candidates.storedAdvancements.mockResolvedValue([]);
+    candidates.paidAdvancements.mockResolvedValue([]);
+    candidates.freeSkillRiskPlayerIds.mockResolvedValue([9]);
+    matchQueries.consequences.mockResolvedValue([
+      { playerId: 1, hasStatReduction: false, hasDeath: true },
+      { playerId: 2, hasStatReduction: true, hasDeath: true },
     ]);
-    // Canned rows per statement; unknown SQL is a test bug, so fail loudly.
-    json.rows.mockImplementation((sql) => {
-      const rows = results.get(sql);
-      if (rows === undefined) {
-        throw new Error(`unexpected SQL: ${sql}`);
-      }
-      return Promise.resolve(rows);
-    });
+    matchQueries.deathTimes.mockResolvedValue([]);
+    matchQueries.statReductionEvents.mockResolvedValue([]);
+    matchQueries.teamCompetitions.mockResolvedValue([]);
+    positionRules.positionRulesSets.mockResolvedValue([]);
+    positionRules.positionSkills.mockResolvedValue([]);
+    positionRules.positionAccess.mockResolvedValue([]);
+    positionRules.bigGuyPositions.mockResolvedValue([]);
+    eraRules.eraRulesSets.mockResolvedValue([]);
+    eraRules.skillCategories.mockResolvedValue([]);
+    eraRules.advancementCosts.mockResolvedValue([]);
+    lookups.ongoingCompetitions.mockResolvedValue([
+      { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: 21 },
+      { competitionId: 1, competitionName: 'Major Season 31', teamId: 20 },
+      { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: 20 },
+    ]);
+    lookups.teamRosters.mockResolvedValue([{ teamId: 20, rosterId: '24801' }]);
+    lookups.skillNames.mockResolvedValue([]);
+    lookups.tpSkillIds.mockResolvedValue([]);
+    lookups.tpPositionIds.mockResolvedValue([]);
+    lookups.attributedSkillIds.mockResolvedValue([300]);
     const moduleRef = await Test.createTestingModule({
       providers: [
         IncompletePlayerFillQueriesService,
-        { provide: ProductionJsonQueryService, useValue: json },
+        // Pure and dependency-free: passed real, so the scoped ids are the real ones.
+        FillQueryScopeService,
+        { provide: DB, useValue: database.db },
+        { provide: CandidateQueriesService, useValue: candidates },
+        { provide: CandidateMatchQueriesService, useValue: matchQueries },
+        { provide: PositionRulesQueriesService, useValue: positionRules },
+        { provide: EraRulesQueriesService, useValue: eraRules },
+        { provide: LookupQueriesService, useValue: lookups },
+        { provide: LastingInjuryRepairQueriesService, useValue: repairs },
       ],
     }).compile();
     service = moduleRef.get(IncompletePlayerFillQueriesService);
   });
 
-  it('loads every query into the planner input', async () => {
-    await expect(service.load()).resolves.toEqual({
-      candidates: [CANDIDATE],
-      statReductionPlayerIds: [2, 3],
-      deathPlayerIds: [1, 3],
-      deathTimes: [DEATH_TIME],
-      storedAdvancements: [],
-      freeSkillRiskPlayerIds: [9],
-      ongoingTeamIds: [20, 21],
-      ongoingCompetitions: [
-        { competitionId: 1, name: 'Major Season 31', teamCount: 1 },
-        { competitionId: 2, name: 'Ogretoberfest 14', teamCount: 2 },
-      ],
-      positionRulesSets: [PRS],
-      positionSkills: [SKILL],
-      eraRulesSets: [ERA_RULES_SET],
-      teamPlayers: [TEAM_PLAYER],
-      teamRosters: [{ teamId: 20, rosterId: '24801' }],
-      paidAdvancements: PAID,
-      skillNames: [{ skillId: 200, skillName: 'Dodge', nameId: 'Dodge' }],
-      skillCategories: [{ skillId: 200, rulesSetId: 7, category: 'agility' }],
-      positionAccess: [
-        {
-          positionId: 30,
-          rulesSetId: 7,
-          category: 'agility',
-          access: 'primary',
-        },
-      ],
-      advancementCosts: [COST],
-      statReductionEvents: [REDUCTION],
-      teamCompetitions: [TEAM_COMPETITION],
-      bigGuyPositions: [{ positionId: 30, eraId: 4 }],
-      tpSkillIds: [{ skillId: 200, masterId: '92' }],
-      tpPositionIds: [{ positionId: 30, tpPositionId: '288' }],
-      attributedSkillIds: [300],
-    });
-  });
+  it('reads everything in one read-only repeatable-read transaction', async () => {
+    await service.load();
 
-  it('names skills and candidate positions by their tourplay.net ids', () => {
-    expect(TP_SKILL_IDS_SQL).toContain('skills_external_ids');
-    expect(TP_SKILL_IDS_SQL).toContain("es.name = 'tourplay.net'");
-    expect(TP_POSITION_IDS_SQL).toContain('positions_external_ids');
-    expect(TP_POSITION_IDS_SQL).toContain("es.name = 'tourplay.net'");
-    expect(TP_POSITION_IDS_SQL).toContain('SELECT position_id FROM candidates');
-  });
-
-  it('finds skills held with a variant by a player or a position', () => {
-    expect(ATTRIBUTED_SKILLS_SQL).toContain('player_advancements');
-    expect(ATTRIBUTED_SKILLS_SQL).toContain('position_rules_set_skills');
-    expect(ATTRIBUTED_SKILLS_SQL).toContain('attribute_value IS NOT NULL');
-  });
-
-  it('finds Big Guy positions by keyword name, per candidate era', () => {
-    expect(BIG_GUY_POSITIONS_SQL).toContain("k.name = 'Big Guy'");
-    expect(BIG_GUY_POSITIONS_SQL).toContain('position_rules_set_keywords');
-    expect(BIG_GUY_POSITIONS_SQL).toContain(
-      'SELECT position_id, era_id FROM candidates',
+    expect(database.transaction).toHaveBeenCalledTimes(1);
+    expect(database.transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      SNAPSHOT,
     );
+    expect(candidates.candidates).toHaveBeenCalledWith(database.db);
   });
 
-  it('finds team rosters by their tourplay.net external id', () => {
-    expect(TEAM_ROSTERS_SQL).toContain("es.name = 'tourplay.net'");
-    expect(TEAM_ROSTERS_SQL).toContain('teams_external_ids');
-  });
-
-  it("selects each rules set's own costs and the era league's", () => {
-    expect(ADVANCEMENT_COSTS_SQL).toContain(
-      'ac.league_id IS NULL OR ac.league_id = e.league_id',
-    );
-  });
-
-  it("times each candidate's death by its earliest match", () => {
-    expect(DEATH_TIMES_SQL).toContain("me.consequence_type = 'death'");
-    expect(DEATH_TIMES_SQL).toContain('min(m.played_at) AS "diedAt"');
-    expect(DEATH_TIMES_SQL).toContain('JOIN candidates c');
-  });
-
-  it('gives no death time to a candidate a later match event names', () => {
-    expect(DEATH_TIMES_SQL).toContain('NOT EXISTS');
-    expect(DEATH_TIMES_SQL).toContain('later.acting_player_id');
-    expect(DEATH_TIMES_SQL).toContain('later.consequence_player_id');
-    expect(DEATH_TIMES_SQL).toContain('lm.played_at > ');
-  });
-
-  it('gives each team competition its first and last match', () => {
-    expect(TEAM_COMPETITIONS_SQL).toContain(
-      'min(m.played_at) AS "firstPlayedAt"',
-    );
-    expect(TEAM_COMPETITIONS_SQL).toContain(
-      'max(m.played_at) AS "lastPlayedAt"',
-    );
-  });
-
-  it("reads whether lasting injuries never heal under each rules set of the team players' eras", () => {
-    expect(ERA_RULES_SETS_SQL).toContain(
-      'rs.lasting_injuries_never_heal AS "lastingInjuriesNeverHeal"',
-    );
-    expect(ERA_RULES_SETS_SQL).toContain(
-      'GROUP BY ers.era_id, ers.rules_set_id, rs.lasting_injuries_never_heal',
-    );
-    expect(ERA_RULES_SETS_SQL).not.toContain('rs.name');
-  });
-
-  it('selects every stat-reduction consequence type', () => {
-    for (const type of [
-      'stat_reduction_ma',
-      'stat_reduction_st',
-      'stat_reduction_ag',
-      'stat_reduction_pa',
-      'stat_reduction_av',
-    ]) {
-      expect(STAT_REDUCTION_EVENTS_SQL).toContain(`'${type}'`);
-      expect(TEAM_COMPETITIONS_SQL).toContain(`'${type}'`);
-      expect(CONSEQUENCES_SQL).toContain(`'${type}'`);
-    }
-  });
-
-  it('skips removed position access rows', () => {
-    expect(POSITION_ACCESS_SQL).toContain('prsc.removed = false');
-  });
-
-  it.each([
-    [
-      'an unknown characteristic',
-      STAT_REDUCTION_EVENTS_SQL,
-      { ...REDUCTION, characteristic: 'xx' },
-    ],
-    [
-      'an unreadable match date',
-      STAT_REDUCTION_EVENTS_SQL,
-      { ...REDUCTION, playedAt: 'soon' },
-    ],
-    [
-      'an unreadable last match date',
-      TEAM_COMPETITIONS_SQL,
-      { ...TEAM_COMPETITION, lastPlayedAt: 'soon' },
-    ],
-    [
-      'an unreadable first match date',
-      TEAM_COMPETITIONS_SQL,
-      { ...TEAM_COMPETITION, firstPlayedAt: 'soon' },
-    ],
-    [
-      'an unreadable death date',
-      DEATH_TIMES_SQL,
-      { ...DEATH_TIME, diedAt: 'soon' },
-    ],
-    [
-      'a rules set without a healing flag',
-      ERA_RULES_SETS_SQL,
-      { ...ERA_RULES_SET, lastingInjuriesNeverHeal: null },
-    ],
-    [
-      'an unknown advancement kind',
-      ADVANCEMENT_COSTS_SQL,
-      { ...COST, advancementKind: 'bribe' },
-    ],
-    [
-      'an unknown skill access',
-      POSITION_ACCESS_SQL,
-      {
-        positionId: 30,
-        rulesSetId: 7,
-        category: 'agility',
-        access: 'tertiary',
-      },
-    ],
-    [
-      'an unknown paid characteristic',
-      PAID_ADVANCEMENTS_SQL,
-      { ...PAID[1], characteristic: 'xx' },
-    ],
-    [
-      'a TP skill id that is empty',
-      TP_SKILL_IDS_SQL,
-      { skillId: 200, masterId: '' },
-    ],
-    [
-      'a TP position id that is not text',
-      TP_POSITION_IDS_SQL,
-      { positionId: 30, tpPositionId: 288 },
-    ],
-    [
-      'a team player without a journeyman marker',
-      TEAM_PLAYERS_SQL,
-      { ...TEAM_PLAYER, isJourneyman: null },
-    ],
-    [
-      'a team player without an incomplete flag',
-      TEAM_PLAYERS_SQL,
-      { ...TEAM_PLAYER, isIncomplete: null },
-    ],
-  ])('rejects %s', async (_name, sql, row) => {
-    results.set(sql, [row]);
-
-    await expect(service.load()).rejects.toBeInstanceOf(ZodError);
-  });
-
-  it("selects only non-star TP players of the candidates' teams as team players", () => {
-    const teamPlayers = TEAM_PLAYERS_CTE.slice(
-      TEAM_PLAYERS_CTE.indexOf('team_players AS ('),
-    );
-
-    expect(teamPlayers).toContain("es.name = 'tourplay.net'");
-    expect(teamPlayers).toContain('pos.is_star_player = false');
-    expect(teamPlayers).toContain(
-      'te.team_id IN (SELECT team_id FROM candidates)',
-    );
-    expect(TEAM_PLAYERS_SQL).toContain('FROM team_players');
-  });
-
-  it('flags each team player incomplete by exactly the conditions that select candidates', () => {
-    const teamPlayers = TEAM_PLAYERS_CTE.slice(
-      TEAM_PLAYERS_CTE.indexOf('team_players AS ('),
-    );
-
-    expect(teamPlayers).toContain(
-      `(${INCOMPLETE_PLAYER_CONDITIONS.map(
-        (condition) => `p.${condition}`,
-      ).join(' OR ')}) AS is_incomplete`,
-    );
-    expect(TEAM_PLAYERS_SQL).toContain('is_incomplete AS "isIncomplete"');
-  });
-
-  it('selects only paid advancements that are still held', () => {
-    expect(PAID_ADVANCEMENTS_SQL).toContain('pa.removed = false');
-    expect(PAID_ADVANCEMENTS_SQL).toContain("pa.source <> 'starting'");
-    expect(PAID_ADVANCEMENTS_SQL).toContain('pa.is_free_extra = false');
-    expect(PAID_ADVANCEMENTS_SQL).toContain(
-      'JOIN team_players tp ON tp.player_id = pa.player_id',
-    );
-  });
-
-  it("prices the team players' eras and positions, not only the candidates'", () => {
-    for (const sql of [
-      ERA_RULES_SETS_SQL,
-      SKILL_CATEGORIES_SQL,
-      POSITION_ACCESS_SQL,
-      ADVANCEMENT_COSTS_SQL,
-    ]) {
-      const filter = sql.slice(TEAM_PLAYERS_CTE.length);
-
-      expect(filter).toContain('FROM team_players');
-      expect(filter).not.toContain('FROM candidates)');
-    }
-  });
-
-  it('selects only incomplete, non-star TP players', () => {
-    expect(CANDIDATES_SQL).toContain("es.name = 'tourplay.net'");
-    expect(CANDIDATES_SQL).toContain('pos.is_star_player = false');
-    for (const condition of INCOMPLETE_PLAYER_CONDITIONS) {
-      expect(CANDIDATES_SQL).toContain(`p.${condition}`);
-    }
-  });
-
-  it('runs with no ongoing competition, skipping no team', async () => {
-    results.set(ONGOING_COMPETITIONS_SQL, []);
-
+  it('assembles the planner rows', async () => {
     const rows = await service.load();
 
-    expect(rows.ongoingTeamIds).toEqual([]);
-    expect(rows.ongoingCompetitions).toEqual([]);
-    expect(rows.candidates).toEqual([CANDIDATE]);
+    for (const row of rows.candidates) {
+      expect(row).not.toHaveProperty('teamEraId');
+    }
+    expect(rows.candidates.map((row) => row.playerId)).toEqual([1, 2]);
+    expect(rows.statReductionPlayerIds).toEqual([2]);
+    expect(rows.deathPlayerIds).toEqual([1, 2]);
+    expect(rows.freeSkillRiskPlayerIds).toEqual([9]);
+    expect(rows.teamPlayers).toEqual([TEAM_PLAYER]);
+    expect(rows.teamRosters).toEqual([{ teamId: 20, rosterId: '24801' }]);
+    expect(rows.attributedSkillIds).toEqual([300]);
+    expect(rows.ongoingTeamIds).toEqual([21, 20]);
+  });
+
+  it('lists ongoing competitions by name, then id, with their team counts', async () => {
+    const rows = await service.load();
+
+    expect(rows.ongoingCompetitions).toEqual([
+      { competitionId: 1, name: 'Major Season 31', teamCount: 1 },
+      { competitionId: 2, name: 'Ogretoberfest 14', teamCount: 2 },
+    ]);
   });
 
   it('lists same-named ongoing competitions apart, by id', async () => {
-    results.set(ONGOING_COMPETITIONS_SQL, [
-      { competitionId: 9, competitionName: 'Cup', teamId: 20 },
-      { competitionId: 3, competitionName: 'Cup', teamId: 21 },
-      { competitionId: 3, competitionName: 'Cup', teamId: 22 },
-      { competitionId: 5, competitionName: 'Ale League', teamId: 20 },
+    lookups.ongoingCompetitions.mockResolvedValue([
+      { competitionId: 8, competitionName: 'Cup', teamId: 20 },
+      { competitionId: 7, competitionName: 'Cup', teamId: 21 },
     ]);
 
     const rows = await service.load();
 
     expect(rows.ongoingCompetitions).toEqual([
-      { competitionId: 5, name: 'Ale League', teamCount: 1 },
-      { competitionId: 3, name: 'Cup', teamCount: 2 },
-      { competitionId: 9, name: 'Cup', teamCount: 1 },
+      { competitionId: 7, name: 'Cup', teamCount: 1 },
+      { competitionId: 8, name: 'Cup', teamCount: 1 },
     ]);
-    expect(rows.ongoingTeamIds).toEqual([20, 21, 22]);
   });
 
-  it('refuses an ongoing-competition row with no team', async () => {
-    results.set(ONGOING_COMPETITIONS_SQL, [
-      { competitionId: 1, competitionName: 'Major Season 31', teamId: 20 },
-      { competitionId: 2, competitionName: 'Ogretoberfest 14', teamId: null },
+  it('runs with no ongoing competition, skipping no team', async () => {
+    lookups.ongoingCompetitions.mockResolvedValue([]);
+
+    const rows = await service.load();
+
+    expect(rows.ongoingTeamIds).toEqual([]);
+    expect(rows.ongoingCompetitions).toEqual([]);
+  });
+
+  it("scopes the candidate queries by the candidates' ids", async () => {
+    await service.load();
+
+    const tx = database.db;
+    expect(candidates.teamPlayers).toHaveBeenCalledWith(tx, [20]);
+    expect(matchQueries.consequences).toHaveBeenCalledWith(tx, [1, 2]);
+    expect(positionRules.positionRulesSets).toHaveBeenCalledWith(tx, [
+      { positionId: 30, eraId: 4 },
     ]);
-
-    await expect(service.load()).rejects.toBeInstanceOf(ZodError);
-    expect(json.rows).toHaveBeenCalledTimes(1);
+    expect(lookups.tpPositionIds).toHaveBeenCalledWith(tx, [30]);
+    expect(lookups.teamRosters).toHaveBeenCalledWith(tx, [20]);
   });
 
-  it('counts both enrolled teams and teams in matches as ongoing', () => {
-    expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.competition_teams');
-    expect(ONGOING_COMPETITIONS_SQL).toContain('game_data.match_teams');
-  });
+  it("scopes the pricing queries by the team players' eras and positions", async () => {
+    await service.load();
 
-  it('treats a TP competition with no end date as ongoing, whatever its name', () => {
-    expect(ONGOING_COMPETITIONS_SQL).toContain('c.end_date IS NULL');
-    expect(ONGOING_COMPETITIONS_SQL).toContain(
-      'game_data.competitions_external_ids',
-    );
-    expect(ONGOING_COMPETITIONS_SQL).toContain("es.name = 'tourplay.net'");
-    expect(ONGOING_COMPETITIONS_SQL).toContain('ce.competition_id = c.id');
-    expect(ONGOING_COMPETITIONS_SQL).not.toContain('c.name IN');
-  });
-
-  it('treats an award of a skill-granting trophy, or one that records a skill, as a free-skill risk', () => {
-    expect(FREE_SKILL_RISK_SQL).toContain(
-      'JOIN game_data.trophies t ON t.id = ta.trophy_id',
-    );
-    expect(FREE_SKILL_RISK_SQL).toContain(
-      'JOIN candidates c ON c.player_id = ta.player_id',
-    );
-    expect(FREE_SKILL_RISK_SQL).toContain(
-      'WHERE t.grants_skill = true OR ta.granted_skill_id IS NOT NULL',
-    );
-  });
-
-  it("scopes position skills to the candidates' positions in their eras", () => {
-    expect(POSITION_SKILLS_SQL).toContain(
-      'WHERE (prs.position_id, ers.era_id) IN',
-    );
-  });
-
-  it('refuses a row of the wrong shape', async () => {
-    results.set(CANDIDATES_SQL, [{ ...CANDIDATE, tpId: 500 }]);
-
-    await expect(service.load()).rejects.toThrow();
-  });
-
-  it('refuses an unknown characteristic format', async () => {
-    results.set(POSITION_RULES_SETS_SQL, [
-      { ...PRS, formats: { ...PRS.formats, ag: 'minus' } },
+    const tx = database.db;
+    expect(eraRules.eraRulesSets).toHaveBeenCalledWith(tx, [4]);
+    expect(eraRules.advancementCosts).toHaveBeenCalledWith(tx, [4]);
+    expect(positionRules.positionAccess).toHaveBeenCalledWith(tx, [
+      { positionId: 30, eraId: 4 },
     ]);
+    expect(candidates.paidAdvancements).toHaveBeenCalledWith(tx, {
+      teamIds: [20],
+      playerIds: [1],
+    });
+  });
 
-    await expect(service.load()).rejects.toThrow();
+  it('reads team competitions only for candidates with a stat reduction', async () => {
+    await service.load();
+
+    expect(matchQueries.teamCompetitions).toHaveBeenCalledWith(database.db, [
+      { playerId: 2, teamEraId: 22 },
+    ]);
   });
 
   it('passes on a query failure', async () => {
-    json.rows.mockRejectedValue(
-      new Error('Production query failed (exit 3): boom'),
+    candidates.storedAdvancements.mockRejectedValue(
+      new Error('connection lost'),
     );
 
-    await expect(service.load()).rejects.toThrow('boom');
+    await expect(service.load()).rejects.toThrow('connection lost');
   });
 
-  describe('loadLastingInjuryRepairCandidates', () => {
-    it('loads the repair candidates', async () => {
-      await expect(
-        service.loadLastingInjuryRepairCandidates(),
-      ).resolves.toEqual([REPAIR]);
-    });
+  it('reads the lasting-injury repair candidates in their own read-only snapshot', async () => {
+    const repair = {
+      player: { system: 'tourplay.net' as const, id: '929761' },
+      line: { ma: 6, st: 3, ag: 3, pa: null, av: 8 },
+      increases: [],
+      context: null,
+    };
+    repairs.candidates.mockResolvedValue([repair]);
 
-    it('loads a candidate whose era has no start line or no rules set', async () => {
-      const noBaseline = {
-        ...REPAIR,
-        context: { ...REPAIR.context, baseline: null },
-      };
-      const noRulesSet = { ...REPAIR, context: null };
-      results.set(LASTING_INJURY_REPAIRS_SQL, [noBaseline, noRulesSet]);
+    await expect(service.loadLastingInjuryRepairCandidates()).resolves.toEqual([
+      repair,
+    ]);
 
-      await expect(
-        service.loadLastingInjuryRepairCandidates(),
-      ).resolves.toEqual([noBaseline, noRulesSet]);
-    });
-
-    it('refuses an entry of another system', async () => {
-      results.set(LASTING_INJURY_REPAIRS_SQL, [
-        { ...REPAIR, player: { system: 'tloeg.bbleague.se', id: '47' } },
-      ]);
-
-      await expect(
-        service.loadLastingInjuryRepairCandidates(),
-      ).rejects.toBeInstanceOf(ZodError);
-    });
-
-    it('refuses an unknown increase', async () => {
-      results.set(LASTING_INJURY_REPAIRS_SQL, [
-        { ...REPAIR, increases: ['MA'] },
-      ]);
-
-      await expect(
-        service.loadLastingInjuryRepairCandidates(),
-      ).rejects.toBeInstanceOf(ZodError);
-    });
-
-    it("reads the player's active characteristic increases", () => {
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain('adv.removed = false');
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        "adv.source = 'characteristic'",
-      );
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        'lower(adv.characteristic::text)',
-      );
-    });
-
-    it('resolves the rules set as PositionRulesSetsService.findCharacteristicsContext does', () => {
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        'WHERE ers.era_id = te.era_id',
-      );
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        'AND prs.position_id = p.position_id',
-      );
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        'ORDER BY (prs.id IS NULL) ASC, ers.id DESC',
-      );
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain('LIMIT 1');
-    });
-
-    it('selects complete, non-star TP players', () => {
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain("es.name = 'tourplay.net'");
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        'pos.is_star_player = false',
-      );
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        `AND NOT (${INCOMPLETE_PLAYER_CONDITIONS.map(
-          (condition) => `p.${condition}`,
-        ).join(' OR ')})`,
-      );
-    });
-
-    it('selects players with no reduction stored', () => {
-      expect(REDUCTION_COUNT_COLUMNS).toEqual([
-        'move_reduction_count',
-        'strength_reduction_count',
-        'agility_reduction_count',
-        'passing_reduction_count',
-        'armour_reduction_count',
-      ]);
-      for (const column of REDUCTION_COUNT_COLUMNS) {
-        expect(LASTING_INJURY_REPAIRS_SQL).toContain(`p.${column} = 0`);
-      }
-    });
-
-    it('selects players with a recorded stat reduction', () => {
-      for (const type of [
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_pa',
-        'stat_reduction_av',
-      ]) {
-        expect(LASTING_INJURY_REPAIRS_SQL).toContain(`'${type}'`);
-      }
-      expect(LASTING_INJURY_REPAIRS_SQL).toContain(
-        'me.consequence_player_id = p.id',
-      );
-    });
+    expect(database.transaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      SNAPSHOT,
+    );
+    expect(repairs.candidates).toHaveBeenCalledWith(database.db);
   });
 });
