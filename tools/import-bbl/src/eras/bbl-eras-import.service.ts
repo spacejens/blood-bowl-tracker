@@ -1,3 +1,4 @@
+import type { Era } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
@@ -7,7 +8,6 @@ import {
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
-  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -21,23 +21,26 @@ export class BblErasImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
-    private readonly lookup: ReferenceLookupService,
   ) {}
 
   /**
-   * Import the configured eras (BBL_ERAS), each referencing its league and
-   * its rules sets. Both are resolved server-side, by external id, against
-   * whatever the leagues and rules-sets steps upserted moments earlier in the
-   * same run -- one batched lookup per kind for the whole run, not one per
-   * era. Each era is keyed by its name under both the BBL and Name external
-   * systems. Eras whose league or a rules set does not resolve are skipped
-   * with a recorded error. Idempotent.
+   * Attach the BBL external id to every configured era (BBL_ERAS). The era
+   * itself is curated (batch 001), league, dates and rules sets included:
+   * this step finds it by its Name external id and adds the same name under
+   * the BBL system, sending nothing else. An era missing from the catalog
+   * fails with the server's missing-field error, recorded for that era.
+   *
+   * Returns every upserted era keyed by its configured name. The upsert
+   * answers with the curated era, so later steps read its dates and rules-set
+   * names from this map instead of from the config. Idempotent.
    */
   async importEras(): Promise<{
     result: ImportResult;
+    erasByName: Map<string, Era>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const erasByName = new Map<string, Era>();
 
     let eras: EraConfig[];
     try {
@@ -56,6 +59,7 @@ export class BblErasImportService {
       );
       return {
         result: this.importResults.result({ imported, errors }),
+        erasByName,
       };
     }
 
@@ -67,97 +71,37 @@ export class BblErasImportService {
       errors.push(bootstrap.error);
       return {
         result: this.importResults.result({ imported, errors }),
+        erasByName,
       };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
 
-    const leagueRefs = [
-      ...new Set(
-        eras
-          .map((era) => era.leagueName)
-          .filter((name): name is string => name !== undefined),
-      ),
-    ].map((name) => ({ externalSystemId: bblSystemId, externalId: name }));
-    const rulesSetRefs = [
-      ...new Set(eras.flatMap((era) => era.identity.rulesSets)),
-    ].map((name) => ({ externalSystemId: bblSystemId, externalId: name }));
-
-    // One round trip per kind for the whole run: every era's league and rules
-    // sets were upserted moments ago by the two preceding steps, so they are
-    // already in the database and resolvable by the same external ids those
-    // steps wrote.
-    const leagueIds = await this.lookup.lookupMap('league', leagueRefs);
-    const rulesSetIds = await this.lookup.lookupMap('rulesSet', rulesSetRefs);
-
     for (const era of eras) {
-      const leagueId =
-        era.leagueName === undefined
-          ? undefined
-          : leagueIds.get(
-              this.lookup.keyOf({
-                externalSystemId: bblSystemId,
-                externalId: era.leagueName,
-              }),
-            );
-      if (leagueId === undefined) {
-        errors.push(
-          this.importResults.error({
-            item: era,
-            message: `Cannot import era "${era.identity.name}": its league "${era.leagueName ?? '(unset)'}" could not be resolved.`,
-          }),
-        );
-        continue;
-      }
-
-      const eraRulesSetIds: number[] = [];
-      let unresolved: string | undefined;
-      for (const name of era.identity.rulesSets) {
-        const id = rulesSetIds.get(
-          this.lookup.keyOf({
-            externalSystemId: bblSystemId,
-            externalId: name,
-          }),
-        );
-        if (id === undefined) {
-          unresolved = name;
-          break;
-        }
-        eraRulesSetIds.push(id);
-      }
-      if (unresolved !== undefined) {
-        errors.push(
-          this.importResults.error({
-            item: era,
-            message: `Cannot import era "${era.identity.name}": its rules set "${unresolved}" could not be resolved.`,
-          }),
-        );
-        continue;
-      }
-
-      const upsertedEra = await this.erasImport.upsert(
+      const upserted = await this.erasImport.upsert(
         {
-          name: era.identity.name,
-          leagueId,
-          rulesSetIds: eraRulesSetIds,
-          startDate: era.dates.startDate,
-          endDate: era.dates.endDate,
+          // The contract's default, spelled out because the upsert type
+          // requires it: an empty list links no rules set and leaves the
+          // curated era's links alone.
+          rulesSetIds: [],
           externalIds: [
-            { externalSystemId: bblSystemId, externalId: era.identity.name },
             {
               externalSystemId: nameSystemId,
               externalId: this.nameExternalId.forEra(era.identity.name),
             },
+            { externalSystemId: bblSystemId, externalId: era.identity.name },
           ],
         },
         errors,
       );
-      if (upsertedEra) {
+      if (upserted) {
         imported += 1;
+        erasByName.set(era.identity.name, upserted);
       }
     }
 
     return {
       result: this.importResults.result({ imported, errors }),
+      erasByName,
     };
   }
 }

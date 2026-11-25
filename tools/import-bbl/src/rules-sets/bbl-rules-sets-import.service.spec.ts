@@ -1,3 +1,4 @@
+import type { Era } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
@@ -10,7 +11,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { type EraConfig, EraConfigService } from '../eras/era-config.service';
+import { era } from '../shared/curated-era.test-helpers';
 import { BblRulesSetsImportService } from './bbl-rules-sets-import.service';
 
 /**
@@ -37,7 +38,6 @@ function resultArgs(importResults: MockProxy<ImportResultService>): {
 }
 
 interface Mocks {
-  eraConfig: MockProxy<EraConfigService>;
   rulesSetsImport: MockProxy<RulesSetsImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   importResults: MockProxy<ImportResultService>;
@@ -63,51 +63,21 @@ function makeRulesSetRecord(id: number) {
   };
 }
 
-const twoErasSharingNothing: EraConfig[] = [
-  {
-    identity: {
-      name: 'Living rulebook',
-      rulesSets: ['Living rulebook'],
-    },
-    dates: {
-      startDate: '2011-09-09',
-      endDate: '2021-09-01',
-      autoAssignByDate: true,
-    },
-    players: {
-      firstPlayerId: 1,
-      autoAssignByPlayerId: true,
-    },
-  },
-  {
-    identity: {
-      name: 'BB2020',
-      rulesSets: ['BB2020'],
-    },
-    dates: {
-      startDate: '2021-09-01',
-      autoAssignByDate: true,
-    },
-    players: {
-      firstPlayerId: 5001,
-      autoAssignByPlayerId: true,
-    },
-  },
-];
+/** The curated eras the eras step hands over, keyed by configured name. */
+function erasOf(...eras: Era[]): Map<string, Era> {
+  return new Map(eras.map((e) => [e.name, e]));
+}
+
+/** The First era as batch 001 curates it: CRP, then CRP+, then BB2016. */
+const firstEraOnly = erasOf(
+  era({ name: 'First era', rulesSetNames: ['CRP', 'CRP+', 'BB2016'] }),
+);
 
 describe('BblRulesSetsImportService', () => {
   let service: BblRulesSetsImportService;
   let mocks: Mocks;
 
-  /**
-   * Builds the service under test through a TestingModule with every
-   * collaborator mocked. Deterministic collaborators (name resolution, error
-   * building) mirror the real production logic so a regression in the service
-   * under test still fails these tests.
-   */
   beforeEach(async () => {
-    const eraConfig = mock<EraConfigService>();
-
     const rulesSetsImport = mock<RulesSetsImportService>();
 
     const bootstrap = mock<ExternalSystemBootstrapService>();
@@ -120,19 +90,11 @@ describe('BblRulesSetsImportService', () => {
     nameExternalId.forRulesSet.mockImplementation((name) => name);
 
     const importResults = mock<ImportResultService>();
-    // `error` is a pure identity field copy with no branching or formatting, so
-    // there is no algorithm here that can drift out of sync with the real
-    // ImportResultService — exempt from the canned-response rule.
-    importResults.error.mockImplementation((args) => ({
-      item: args.item,
-      message: args.message,
-    }));
     importResults.result.mockReturnValue(CANNED_RESULT);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblRulesSetsImportService,
-        { provide: EraConfigService, useValue: eraConfig },
         { provide: RulesSetsImportService, useValue: rulesSetsImport },
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
         { provide: NameExternalIdService, useValue: nameExternalId },
@@ -141,145 +103,86 @@ describe('BblRulesSetsImportService', () => {
     }).compile();
 
     service = moduleRef.get(BblRulesSetsImportService);
-    mocks = {
-      eraConfig,
-      rulesSetsImport,
-      bootstrap,
-      importResults,
-    };
+    mocks = { rulesSetsImport, bootstrap, importResults };
   });
 
-  it('upserts each distinct rules set once with its name under BBL and Name', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
-    mocks.rulesSetsImport.upsert
-      .mockResolvedValueOnce(makeRulesSetRecord(100))
-      .mockResolvedValueOnce(makeRulesSetRecord(200));
-
-    await service.importRulesSets();
-
-    expect(resultArgs(mocks.importResults).imported).toBe(2);
-    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
-      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
-      { name: 'Name', category: 'bookkeeping' },
-    ]);
-    expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(2);
-    expect(mocks.rulesSetsImport.upsert).toHaveBeenNthCalledWith(
-      1,
-      {
-        name: 'Living rulebook',
-        externalIds: [
-          { externalSystemId: 1, externalId: 'Living rulebook' },
-          { externalSystemId: 2, externalId: 'Living rulebook' },
-        ],
-      },
-      expect.any(Array),
-    );
-  });
-
-  it('dedupes a rules set shared by multiple eras, upserting it once', async () => {
-    const eras: EraConfig[] = [
-      {
-        identity: { name: 'Era A', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-      {
-        identity: { name: 'Era B', rulesSets: ['BB2020'] },
-        dates: { startDate: '2022-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-      },
-    ];
-    mocks.eraConfig.getEras.mockReturnValue(eras);
-    mocks.rulesSetsImport.upsert.mockResolvedValue(makeRulesSetRecord(200));
-
-    await service.importRulesSets();
-
-    expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(1);
-    expect(resultArgs(mocks.importResults).imported).toBe(1);
-  });
-
-  it('imports the distinct rules-set names across all eras (flattened)', async () => {
-    const eras: EraConfig[] = [
-      {
-        identity: { name: 'Era A', rulesSets: ['CRP', 'CRP+'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: {
-          firstPlayerId: 1,
-          lastPlayerId: 5000,
-          autoAssignByPlayerId: true,
-        },
-      },
-      {
-        identity: { name: 'Era B', rulesSets: ['CRP+', 'BB2016'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-      },
-    ];
-    mocks.eraConfig.getEras.mockReturnValue(eras);
+  it("attaches the BBL id to each of the eras' curated rules sets, found by its Name id", async () => {
     mocks.rulesSetsImport.upsert
       .mockResolvedValueOnce(makeRulesSetRecord(10))
       .mockResolvedValueOnce(makeRulesSetRecord(20))
       .mockResolvedValueOnce(makeRulesSetRecord(30));
 
-    const outcome = await service.importRulesSets();
+    await service.importRulesSets(firstEraOnly);
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    expect(mocks.rulesSetsImport.upsert).toHaveBeenCalledTimes(3);
-    const upsertedNames = mocks.rulesSetsImport.upsert.mock.calls.map(
-      (c) => (c[0] as { name: string }).name,
+    expect(mocks.rulesSetsImport.upsert.mock.calls.map((c) => c[0])).toEqual(
+      ['CRP', 'CRP+', 'BB2016'].map((name) => ({
+        externalIds: [
+          { externalSystemId: 2, externalId: name },
+          { externalSystemId: 1, externalId: name },
+        ],
+      })),
     );
-    expect(new Set(upsertedNames)).toEqual(new Set(['CRP', 'CRP+', 'BB2016']));
-    expect(
-      mocks.rulesSetsImport.upsert.mock.calls.every(
-        (c) => !('races' in (c[0] as Record<string, unknown>)),
-      ),
-    ).toBe(true);
-    expect(outcome.rulesSetsByName.size).toBe(3);
-    expect(resultArgs(mocks.importResults).imported).toBe(3);
+    expect(resultArgs(mocks.importResults)).toEqual({
+      imported: 3,
+      errors: [],
+    });
   });
 
-  it('records an error and maps no id when a rules set upsert fails', async () => {
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ]);
-    mocks.rulesSetsImport.upsert.mockImplementation((_data, errors) => {
-      errors.push({ item: {}, message: 'boom' });
-      return Promise.resolve(undefined);
-    });
+  it('upserts a rules set shared by several eras once, in first-seen order', async () => {
+    mocks.rulesSetsImport.upsert.mockResolvedValue(makeRulesSetRecord(1));
 
-    await service.importRulesSets();
-
-    expect(resultArgs(mocks.importResults).imported).toBe(0);
-  });
-
-  it('records one error and imports nothing when BBL_ERAS is unset', async () => {
-    mocks.eraConfig.getEras.mockImplementation(() => {
-      throw new Error('BBL_ERAS is not set.');
-    });
-
-    await service.importRulesSets();
+    await service.importRulesSets(
+      erasOf(
+        era({ name: 'First era', rulesSetNames: ['CRP', 'CRP+', 'BB2016'] }),
+        era({ name: 'GBBL 1', rulesSetNames: ['BB2016'] }),
+        era({ name: 'Second era', rulesSetNames: ['BB2020'] }),
+        era({ name: 'Third era', rulesSetNames: ['BB2020'] }),
+      ),
+    );
 
     expect(
-      resultArgs(mocks.importResults).errors.some((e) =>
-        e.message.includes('BBL_ERAS'),
+      mocks.rulesSetsImport.upsert.mock.calls.map(
+        (c) => c[0].externalIds[0].externalId,
       ),
-    ).toBe(true);
+    ).toEqual(['CRP', 'CRP+', 'BB2016', 'BB2020']);
+  });
+
+  it('upserts nothing when no era was imported', async () => {
+    await service.importRulesSets(new Map());
+
     expect(mocks.rulesSetsImport.upsert).not.toHaveBeenCalled();
+    expect(resultArgs(mocks.importResults)).toEqual({
+      imported: 0,
+      errors: [],
+    });
+  });
+
+  it('leaves a rules set whose upsert fails out of the map, keeping only its upsert error', async () => {
+    const missingField = {
+      item: { externalIds: [] },
+      message: 'Failed to import rules set: name is required',
+    };
+    mocks.rulesSetsImport.upsert
+      .mockImplementationOnce((_data, errors) => {
+        errors.push(missingField);
+        return Promise.resolve(undefined);
+      })
+      .mockResolvedValue(makeRulesSetRecord(20));
+
+    const outcome = await service.importRulesSets(firstEraOnly);
+
+    expect([...outcome.rulesSetsByName.keys()]).toEqual(['CRP+', 'BB2016']);
+    expect(resultArgs(mocks.importResults)).toEqual({
+      imported: 2,
+      errors: [missingField],
+    });
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
@@ -288,7 +191,7 @@ describe('BblRulesSetsImportService', () => {
       },
     });
 
-    await service.importRulesSets();
+    const outcome = await service.importRulesSets(firstEraOnly);
 
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
@@ -300,28 +203,18 @@ describe('BblRulesSetsImportService', () => {
       externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'],
     });
     expect(mocks.rulesSetsImport.upsert).not.toHaveBeenCalled();
+    expect(outcome.rulesSetsByName.size).toBe(0);
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(twoErasSharingNothing);
-    mocks.rulesSetsImport.upsert
-      .mockResolvedValueOnce(makeRulesSetRecord(100))
-      .mockResolvedValueOnce(makeRulesSetRecord(200));
+    mocks.rulesSetsImport.upsert.mockResolvedValue(makeRulesSetRecord(100));
 
-    const { result } = await service.importRulesSets();
+    const { result } = await service.importRulesSets(firstEraOnly);
 
     expect(result).toBe(CANNED_RESULT);
   });
 
-  it('returns each upserted rules set keyed by name, carrying its formats', async () => {
-    const eras: EraConfig[] = [
-      {
-        identity: { name: 'First era', rulesSets: ['CRP', 'BB2020'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ];
-    mocks.eraConfig.getEras.mockReturnValue(eras);
+  it('returns each upserted rules set keyed by name, carrying its curated formats', async () => {
     mocks.rulesSetsImport.upsert
       .mockResolvedValueOnce({
         ...makeRulesSetRecord(10),
@@ -334,27 +227,13 @@ describe('BblRulesSetsImportService', () => {
         passingFormat: 'plus' as const,
       });
 
-    const outcome = await service.importRulesSets();
+    const outcome = await service.importRulesSets(
+      erasOf(era({ name: 'First era', rulesSetNames: ['CRP', 'BB2020'] })),
+    );
 
     expect(outcome.rulesSetsByName.get('CRP')?.id).toBe(10);
     expect(outcome.rulesSetsByName.get('CRP')?.passingFormat).toBe('absent');
     expect(outcome.rulesSetsByName.get('BB2020')?.id).toBe(20);
     expect(outcome.rulesSetsByName.get('BB2020')?.passingFormat).toBe('plus');
-  });
-
-  it('omits a rules set whose upsert failed from the returned map', async () => {
-    const eras: EraConfig[] = [
-      {
-        identity: { name: 'First era', rulesSets: ['CRP'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ];
-    mocks.eraConfig.getEras.mockReturnValue(eras);
-    mocks.rulesSetsImport.upsert.mockResolvedValue(undefined);
-
-    const outcome = await service.importRulesSets();
-
-    expect(outcome.rulesSetsByName.size).toBe(0);
   });
 });

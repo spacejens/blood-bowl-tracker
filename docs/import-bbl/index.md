@@ -44,33 +44,30 @@ under the `tloeg.bbleague.se` external system (`BBL_EXTERNAL_SYSTEM_NAME` in
 
 - `leagues` — an array of the leagues the BBL data covers. Each entry has a
   `name` and an `eras` array. The BBL data mirror covers a single league
-  whose name is not present in the data, so league names are supplied here. Each
-  league name is used as that league's external ID under both the
-  `tloeg.bbleague.se` and `Name` external systems. Rules sets and eras are not present in the source
-  data, so they are supplied here. **Nota bene: era names must be unique across
-  all leagues**, since they feed a single flat era map downstream.
+  whose name is not present in the data, so league names are supplied here. The
+  leagues, eras and rules sets themselves are curated in
+  `tools/import-manual/data/batches/001-initial-seed`; this config holds only
+  their names and the BBL-specific mapping. **Nota bene: era names must be
+  unique across all leagues**, since they feed a single flat era map
+  downstream.
   - `name` — the name of a league the BBL data covers.
 
 ### leagues[].eras
 
 `eras` — a JSON array describing the eras a league played through. Each
-entry is grouped into six parts:
+entry is grouped into six parts. An era's dates and rules sets are curated
+in batch 001, not set here; a config that still carries `rulesSets`,
+`startDate` or `endDate` keeps loading, with those keys ignored.
 
-- `identity` — `name` and `rulesSets` (a non-empty array of the rules set
-  names the era spans, in chronological order — most eras list a single
-  rules set, but an era can span several, e.g.
-  `["CRP", "CRP+", "BB2016"]`).
-- `dates` — `startDate` (required, ISO `YYYY-MM-DD`), `endDate` (optional
-  — omit for an era still ongoing), and `autoAssignByDate` (required
-  boolean). When `autoAssignByDate` is `false`, the era is excluded from
-  the automatic match-date → era resolution scan (its `startDate`/
-  `endDate` are still imported); the era is then only ever reached through
-  its competition override lists.
+- `identity` — `name`, which the eras step finds the curated era by.
+- `dates` — `autoAssignByDate` (required boolean). When it is `false`, the
+  era is excluded from the automatic match-date → era resolution scan,
+  which reads the curated era's dates; the era is then only ever reached
+  through its competition override lists.
 - `players` — `firstPlayerId` (required, positive integer, only when
   `autoAssignByPlayerId` is `true`; optional otherwise), `lastPlayerId`
-  (optional, following the same still-ongoing rule as `endDate` — when
-  `lastPlayerId` is omitted, the era matches any pid `>= firstPlayerId`
-  with no upper bound), `autoAssignByPlayerId` (required boolean), and
+  (optional — when it is omitted, the era matches any pid
+  `>= firstPlayerId` with no upper bound), `autoAssignByPlayerId` (required boolean), and
   `playerIdOverrides` (an optional array of pids explicitly assigned to
   this era, checked before the range bounds — BBL player ids are only
   roughly chronological, so a handful of players drafted right at an era
@@ -141,11 +138,11 @@ in only one era, across all eras; a team code in only one era's
 `teamCodeOverrides`;
 a match id in only one `matches.merges` pair across all eras; a match
 id in only one `matches.categoryOverrides` entry across all eras; and a
-match id in only one `matches.resultOverrides` entry across all eras. Rules
-sets and eras are not present in the source data, so they are supplied
-here. Each era's rules set names and each era name are used as external
-IDs under both the BBL external system (`tloeg.bbleague.se`) and the `Name`
-external system.
+match id in only one `matches.resultOverrides` entry across all eras.
+Leagues, eras and rules sets are not present in the source data; they are
+curated in batch 001 and keyed by name under the `Name` external system.
+The league, era and rules-set steps attach each name as a BBL external id
+(`tloeg.bbleague.se`) to those curated rows.
 
 ## Run it
 

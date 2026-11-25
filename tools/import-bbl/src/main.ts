@@ -29,19 +29,19 @@ import { BblMissingTrophyAwardsImportService } from './trophy-awards/bbl-missing
 import { BblTrophyAwardsImportService } from './trophy-awards/bbl-trophy-awards-import.service';
 
 async function run(app: INestApplicationContext): Promise<ImportRunSummary> {
-  // Bootstrap order: the league is foundational; rules sets and eras come
-  // from config and must exist before entities that reference them. The
-  // eras step resolves each era's league and rules sets server-side, by
-  // external id, so a league or rules set must be upserted here before an
-  // era referencing it can resolve.
+  // Bootstrap order: leagues, eras and rules sets are curated (batch 001);
+  // these three steps only attach the BBL external id to the curated rows,
+  // found by their Name ids. The eras step answers with each curated era's
+  // dates and rules-set names, which the rules-sets step, the competitions'
+  // date scan, the players and the position race-eras then read.
   const leagueOutcome = await app.get(BblLeaguesImportService).importLeagues();
+  const erasOutcome = await app.get(BblErasImportService).importEras();
   const rulesSetsOutcome = await app
     .get(BblRulesSetsImportService)
-    .importRulesSets();
-  const eraOutcome = await app.get(BblErasImportService).importEras();
+    .importRulesSets(erasOutcome.erasByName);
   const competitionOutcome = await app
     .get(BblCompetitionsImportService)
-    .importCompetitions();
+    .importCompetitions({ erasByName: erasOutcome.erasByName });
   const matchOutcome = await app
     .get(BblMatchesImportService)
     .importMatches(competitionOutcome.competitionsByBblId);
@@ -64,6 +64,7 @@ async function run(app: INestApplicationContext): Promise<ImportRunSummary> {
     teamsByCode: teamOutcome.teamsByCode,
     racesByBblId: raceOutcome.racesByBblId,
     rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
+    erasByName: erasOutcome.erasByName,
   });
   const positionRaceErasOutcome = await app
     .get(BblPositionRaceErasImportService)
@@ -71,6 +72,7 @@ async function run(app: INestApplicationContext): Promise<ImportRunSummary> {
       positionRaceCandidates: positionOutcome.positionRaceCandidates,
       racesByBblId: raceOutcome.racesByBblId,
       rulesSetsByName: rulesSetsOutcome.rulesSetsByName,
+      erasByName: erasOutcome.erasByName,
       eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
       positionsUsedByEra: playerOutcome.positionsUsedByEra,
     });
@@ -177,8 +179,8 @@ async function run(app: INestApplicationContext): Promise<ImportRunSummary> {
 
   const results = [
     leagueOutcome.result,
+    erasOutcome.result,
     rulesSetsOutcome.result,
-    eraOutcome.result,
     competitionOutcome.result,
     matchOutcome.result,
     coachOutcome.result,

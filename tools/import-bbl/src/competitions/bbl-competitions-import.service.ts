@@ -1,4 +1,4 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { Era, UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { CompetitionType } from '@blood-bowl-tracker/domain-enums';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
@@ -50,12 +50,28 @@ export interface BblCompetitionEntry {
   competitionGroupId: number;
 }
 
+interface ImportCompetitionsOptions {
+  /**
+   * The curated eras the eras step returned, keyed by configured name. The
+   * match-date scan reads each era's date range from here.
+   */
+  erasByName: ReadonlyMap<string, Era>;
+}
+
 interface ResolveTypeAndEraOptions {
   competition: BblCompetition;
   dates: Date[];
   eras: EraConfig[];
   eraIds: Map<string, number>;
+  erasByName: ReadonlyMap<string, Era>;
   errors: ImportError[];
+}
+
+interface ResolveEraIdOptions {
+  date: Date;
+  eras: EraConfig[];
+  eraIds: Map<string, number>;
+  erasByName: ReadonlyMap<string, Era>;
 }
 
 interface ResolvedCompetition {
@@ -93,13 +109,13 @@ export class BblCompetitionsImportService {
    * Import every competition listed in the master dropdown on the se/sr pages.
    * A competition's type (season/cup) and era are derived from its match dates
    * (from its p=ma&so=s&s=<id> page): span <= 3 days => cup, else season; the
-   * earliest match date, matched against the configured era date ranges, gives
-   * the era. Each competition is keyed by its numeric BBL id (the `s` value)
+   * earliest match date, matched against the curated date ranges of the
+   * configured eras, gives the era. Each competition is keyed by its numeric BBL id (the `s` value)
    * under the BBL external system.
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
    */
-  async importCompetitions(): Promise<{
+  async importCompetitions({ erasByName }: ImportCompetitionsOptions): Promise<{
     result: ImportResult;
     competitionsByBblId: Map<string, UpsertCompetition>;
     competitionEntriesByBblId: Map<string, BblCompetitionEntry>;
@@ -186,6 +202,7 @@ export class BblCompetitionsImportService {
         dates: datesByCompetitionId.get(competition.bblId) ?? [],
         eras,
         eraIds,
+        erasByName,
         errors,
       });
       if (resolved === undefined) {
@@ -285,8 +302,8 @@ export class BblCompetitionsImportService {
    * how playerIdOverrides pins a player to an era) — this is the only path
    * for a competition with a genuinely empty match list. Otherwise the era
    * and type are derived from the match dates: no dates => skip; span <= 3
-   * days => cup, else season; earliest date matched against the configured
-   * era ranges. An overridden competition takes its dates from its matches
+   * days => cup, else season; earliest date matched against the curated
+   * ranges of the configured eras. An overridden competition takes its dates from its matches
    * when it has any, and otherwise from that override's own startDate/
    * endDate; with neither, it is skipped with a recorded error.
    */
@@ -295,6 +312,7 @@ export class BblCompetitionsImportService {
     dates,
     eras,
     eraIds,
+    erasByName,
     errors,
   }: ResolveTypeAndEraOptions): ResolvedCompetition | undefined {
     const match = this.findOverride(competition.bblId, eras);
@@ -336,16 +354,17 @@ export class BblCompetitionsImportService {
     const range = this.dateRange.computeRange(dates);
     const type = this.competitionType.fromSpanDays(range.spanDays);
 
-    const { eraName, eraId } = this.resolveEraId(
-      range.earliestDate,
+    const { eraName, eraId } = this.resolveEraId({
+      date: range.earliestDate,
       eras,
       eraIds,
-    );
+      erasByName,
+    });
     if (eraId === undefined) {
       const message =
         eraName === undefined
           ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in no configured era.`
-          : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in the configured era "${eraName}", which could not be resolved (its rules set may have failed to import).`;
+          : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in the configured era "${eraName}", which could not be resolved.`;
       errors.push(this.importResults.error({ item: competition, message }));
       return undefined;
     }
@@ -423,27 +442,37 @@ export class BblCompetitionsImportService {
   }
 
   /**
-   * Find the configured era whose [startDate, endDate) range (start inclusive,
-   * end exclusive; an omitted endDate is open-ended) contains the given date,
-   * and resolve its name to a DB id. ISO date strings compare correctly
+   * Find the first configured era whose curated [startDate, endDate) range
+   * (start inclusive, end exclusive; a null endDate is open-ended) contains
+   * the given date, and resolve its name to a DB id. Config array order
+   * decides ties; an era with autoAssignByDate false, or one the eras step
+   * did not return, is skipped. ISO date strings compare correctly
    * lexicographically. `eraName` is the name of the era whose date range
    * contains the date (undefined if none does); `eraId` is that era's known
    * DB id (undefined if no era's range contains the date, or if it does but
-   * the era has no known id — e.g. its rules set failed to import earlier).
+   * the era has no known id).
    */
-  private resolveEraId(
-    date: Date,
-    eras: EraConfig[],
-    eraIds: Map<string, number>,
-  ): { eraName: string | undefined; eraId: number | undefined } {
+  private resolveEraId({
+    date,
+    eras,
+    eraIds,
+    erasByName,
+  }: ResolveEraIdOptions): {
+    eraName: string | undefined;
+    eraId: number | undefined;
+  } {
     const day = this.toIsoDay(date);
     for (const era of eras) {
       if (era.dates.autoAssignByDate === false) {
         continue;
       }
+      const curated = erasByName.get(era.identity.name);
+      if (curated === undefined) {
+        continue;
+      }
       if (
-        day >= era.dates.startDate &&
-        (era.dates.endDate === undefined || day < era.dates.endDate)
+        day >= curated.startDate &&
+        (curated.endDate === null || day < curated.endDate)
       ) {
         return {
           eraName: era.identity.name,

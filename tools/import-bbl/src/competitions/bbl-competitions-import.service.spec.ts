@@ -2,10 +2,12 @@ import { BBL_EXTERNAL_SYSTEM_NAME } from '@blood-bowl-tracker/import';
 import { describe, expect, it } from 'vitest';
 
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
+import { era } from '../shared/curated-era.test-helpers';
 import {
   BBL_SYSTEM_ID,
   CANNED_PAGE_PARSE_ERROR,
   CANNED_RESULT,
+  erasByName,
   makeService,
   matchesByCompetition,
   page,
@@ -20,7 +22,7 @@ describe('BblCompetitionsImportService', () => {
     );
     mocks.listParser.extractCompetitions.mockReturnValue([]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(1);
     expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('era', [
@@ -47,7 +49,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(42),
     );
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(mocks.dateRange.computeRange).toHaveBeenCalledWith(dates);
     expect(
@@ -80,7 +82,9 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(42),
     );
 
-    const { competitionsByBblId } = await service.importCompetitions();
+    const { competitionsByBblId } = await service.importCompetitions({
+      erasByName,
+    });
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
@@ -133,7 +137,7 @@ describe('BblCompetitionsImportService', () => {
     });
 
     const { competitionsByBblId, competitionEntriesByBblId } =
-      await service.importCompetitions();
+      await service.importCompetitions({ erasByName });
 
     expect(competitionEntriesByBblId.get('1')).toEqual({
       upsert: competitionsByBblId.get('1'),
@@ -160,7 +164,9 @@ describe('BblCompetitionsImportService', () => {
       undefined,
     );
 
-    const { competitionEntriesByBblId } = await service.importCompetitions();
+    const { competitionEntriesByBblId } = await service.importCompetitions({
+      erasByName,
+    });
 
     expect(competitionEntriesByBblId.size).toBe(0);
   });
@@ -186,7 +192,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(7),
     );
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
@@ -205,7 +211,7 @@ describe('BblCompetitionsImportService', () => {
       { bblId: '9', name: 'In Progress' },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -235,7 +241,7 @@ describe('BblCompetitionsImportService', () => {
       spanDays: 152,
     });
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -245,6 +251,67 @@ describe('BblCompetitionsImportService', () => {
     expect(errors.some((e) => e.message.includes('no configured era'))).toBe(
       true,
     );
+  });
+
+  it("dates a competition by the curated era's dates the eras step returned", async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '1', name: 'Major Season 1' },
+    ]);
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+      matchesByCompetition({ '1': [new Date(Date.UTC(2011, 11, 7))] }),
+    );
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(42),
+    );
+
+    // The canned range starts 2011-12-07; the curated BB2020 era starts
+    // before that and the curated Living rulebook era ends before it.
+    await service.importCompetitions({
+      erasByName: new Map([
+        [
+          'Living rulebook',
+          era({ name: 'Living rulebook', endDate: '2011-12-01' }),
+        ],
+        ['BB2020', era({ name: 'BB2020', startDate: '2011-12-01' })],
+      ]),
+    });
+
+    expect(
+      mocks.competitionsImport.upsertCompetitionResult,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ eraId: 200 }),
+      expect.any(Array),
+    );
+  });
+
+  it('leaves an era the eras step did not return out of the date scan', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '1', name: 'Major Season 1' },
+    ]);
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+      matchesByCompetition({ '1': [new Date(Date.UTC(2011, 11, 7))] }),
+    );
+
+    await service.importCompetitions({
+      erasByName: new Map([
+        ['BB2020', era({ name: 'BB2020', startDate: '2021-09-01' })],
+      ]),
+    });
+
+    expect(
+      mocks.competitionsImport.upsertCompetitionResult,
+    ).not.toHaveBeenCalled();
+    expect(
+      resultArgs(mocks.importResults).errors.some((e) =>
+        e.message.includes('falls in no configured era'),
+      ),
+    ).toBe(true);
   });
 
   it('skips and records a distinct error when the matched era could not be resolved', async () => {
@@ -264,9 +331,9 @@ describe('BblCompetitionsImportService', () => {
       }),
     );
     // "Living rulebook" matches by date, but the lookup resolves nothing,
-    // simulating its rules set having failed to import earlier in the run.
+    // simulating its era having failed to import earlier in the run.
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -306,7 +373,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(1),
     );
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
@@ -338,7 +405,7 @@ describe('BblCompetitionsImportService', () => {
       upsertedCompetition(1),
     );
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
@@ -359,7 +426,7 @@ describe('BblCompetitionsImportService', () => {
       },
     });
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
@@ -383,7 +450,9 @@ describe('BblCompetitionsImportService', () => {
       throw new Error('era config is malformed');
     });
 
-    const { competitionsByBblId } = await service.importCompetitions();
+    const { competitionsByBblId } = await service.importCompetitions({
+      erasByName,
+    });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -407,7 +476,7 @@ describe('BblCompetitionsImportService', () => {
       throw new Error('bad se page');
     });
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     // readCompetitionList returns undefined on a parse failure, and the
     // caller treats an undefined result the same as "no se or sr page was
@@ -435,7 +504,7 @@ describe('BblCompetitionsImportService', () => {
     );
     mocks.listParser.extractCompetitions.mockReturnValue([]);
 
-    const { result } = await service.importCompetitions();
+    const { result } = await service.importCompetitions({ erasByName });
 
     expect(result).toBe(CANNED_RESULT);
   });

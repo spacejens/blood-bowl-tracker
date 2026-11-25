@@ -1,4 +1,8 @@
-import type { RaceEraRef, RulesSet } from '@blood-bowl-tracker/api-contract';
+import type {
+  Era,
+  RaceEraRef,
+  RulesSet,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
@@ -19,6 +23,11 @@ export interface SyncPositionRaceErasOptions {
   racesByBblId: Map<string, { id: number; name: string }>;
   /** Every rules set the rules-sets step upserted, with its declared formats. */
   rulesSetsByName: Map<string, RulesSet>;
+  /**
+   * The curated eras the eras step returned, keyed by configured name, for
+   * the rules sets each era spans.
+   */
+  erasByName: ReadonlyMap<string, Era>;
   eraIdsByRaceId: Map<number, Set<number>>;
   positionsUsedByEra: Set<string>;
 }
@@ -48,6 +57,7 @@ export class BblPositionRaceErasImportService {
     positionRaceCandidates,
     racesByBblId,
     rulesSetsByName,
+    erasByName,
     eraIdsByRaceId,
     positionsUsedByEra,
   }: SyncPositionRaceErasOptions): Promise<{
@@ -97,10 +107,11 @@ export class BblPositionRaceErasImportService {
       }
     }
 
-    // Era db id -> the rules sets that era spans. An era covering a rules-set
-    // change (e.g. CRP, CRP+, BB2016) yields one entry per rules set, each of
-    // which gets the same scraped characteristics — BBL has no other source
-    // for the older ones.
+    // Era db id -> the rules sets that era spans, as the curated era links
+    // them. An era covering a rules-set change (e.g. CRP, CRP+, BB2016)
+    // yields one entry per rules set, each of which gets the same scraped
+    // characteristics — BBL has no other source for the older ones. An era
+    // the eras step did not return spans no rules set here.
     const rulesSetIdsByEraId = new Map<number, Set<number>>();
     const unresolvedRulesSetsByEraId = new Map<number, Set<string>>();
     for (const era of eras) {
@@ -113,7 +124,8 @@ export class BblPositionRaceErasImportService {
         ids = new Set<number>();
         rulesSetIdsByEraId.set(eraId, ids);
       }
-      for (const name of era.identity.rulesSets) {
+      for (const name of erasByName.get(era.identity.name)?.rulesSetNames ??
+        []) {
         const rulesSet = rulesSetsByName.get(name);
         if (rulesSet === undefined) {
           let missing = unresolvedRulesSetsByEraId.get(eraId);

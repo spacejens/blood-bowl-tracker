@@ -1,9 +1,7 @@
 import { COMPETITION_TYPES } from '@blood-bowl-tracker/domain-enums';
 import {
-  isoDateSchema,
   nonBlankStringSchema,
   optionalIsoDateSchema,
-  rulesSetsSchema,
 } from '@blood-bowl-tracker/import';
 import { z } from 'zod';
 
@@ -17,17 +15,19 @@ const NOT_A_POSITIVE_INTEGER_ARRAY =
 const NOT_A_NON_EMPTY_STRING_ARRAY =
   'must be an array of non-empty strings when present.';
 
+/**
+ * Neither `identitySchema` nor `datesSchema` is strict: zod strips unknown
+ * keys, so a config that still carries an era's `rulesSets`, `startDate` or
+ * `endDate` keeps loading, with those keys dropped. An era's dates and rules
+ * sets are the curated catalog's (batch 001), not this config's.
+ */
 const identitySchema = z.object(
-  { name: nonBlankStringSchema, rulesSets: rulesSetsSchema },
+  { name: nonBlankStringSchema },
   { error: NOT_AN_OBJECT },
 );
 
 const datesSchema = z.object(
-  {
-    startDate: isoDateSchema,
-    endDate: optionalIsoDateSchema,
-    autoAssignByDate: z.boolean({ error: NOT_A_BOOLEAN }),
-  },
+  { autoAssignByDate: z.boolean({ error: NOT_A_BOOLEAN }) },
   { error: NOT_AN_OBJECT },
 );
 

@@ -23,12 +23,13 @@ export class BblLeaguesImportService {
   ) {}
 
   /**
-   * Import every league the BBL data covers. Names come from the leagues[]
-   * config (not parsed from the data); each is used as that league's external
-   * ID under two systems: BBL (canonical) and Name (cross-tool matching). The
-   * eras import resolves each era's league server-side, by that same external
-   * id, once this step has upserted it. Idempotent: re-running upserts
-   * existing leagues.
+   * Attach the BBL external id to every league the BBL data covers. Names
+   * come from the leagues[] config (not parsed from the data). The league
+   * itself is curated (batch 001): this step finds it by its Name external
+   * id and adds the same name under the BBL system, sending no name of its
+   * own. A league missing from the catalog fails with the server's
+   * missing-field error, recorded for that league, and the step moves on to
+   * the next. Idempotent.
    */
   async importLeagues(): Promise<{
     result: ImportResult;
@@ -71,13 +72,12 @@ export class BblLeaguesImportService {
     for (const name of names) {
       const league = await this.leaguesImport.upsert(
         {
-          name,
           externalIds: [
-            { externalSystemId: bblSystemId, externalId: name },
             {
               externalSystemId: nameSystemId,
               externalId: this.nameExternalId.forLeague(name),
             },
+            { externalSystemId: bblSystemId, externalId: name },
           ],
         },
         errors,

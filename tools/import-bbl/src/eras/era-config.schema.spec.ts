@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { eraConfigSchema, leaguesShellSchema } from './era-config.schema';
 
 const VALID_ERA = {
-  identity: { name: 'First era', rulesSets: ['CRP'] },
-  dates: { startDate: '2011-09-09', autoAssignByDate: true },
+  identity: { name: 'First era' },
+  dates: { autoAssignByDate: true },
   players: { autoAssignByPlayerId: true, firstPlayerId: 1 },
 };
 
@@ -59,45 +59,29 @@ describe('eraConfigSchema', () => {
   it('rejects a blank identity.name', () => {
     const result = eraConfigSchema.safeParse({
       ...VALID_ERA,
-      identity: { name: ' ', rulesSets: ['CRP'] },
+      identity: { name: ' ' },
     });
     expect(result.error?.issues[0].path).toEqual(['identity', 'name']);
   });
 
-  it('rejects an empty identity.rulesSets', () => {
-    const result = eraConfigSchema.safeParse({
+  it('parses a config still carrying rulesSets, startDate and endDate, dropping those keys', () => {
+    const parsed = eraConfigSchema.parse({
       ...VALID_ERA,
-      identity: { name: 'E', rulesSets: [] },
+      identity: { name: 'First era', rulesSets: ['CRP', 'CRP+', 'BB2016'] },
+      dates: {
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        autoAssignByDate: true,
+      },
     });
-    expect(result.error?.issues[0].path).toEqual(['identity', 'rulesSets']);
-    expect(result.error?.issues[0].message).toBe(
-      'must be a non-empty array of non-empty strings.',
-    );
-  });
-
-  it('rejects a bad dates.startDate and a bad dates.endDate', () => {
-    expect(
-      eraConfigSchema.safeParse({
-        ...VALID_ERA,
-        dates: { startDate: '2011-02-30', autoAssignByDate: true },
-      }).error?.issues[0].path,
-    ).toEqual(['dates', 'startDate']);
-    expect(
-      eraConfigSchema.safeParse({
-        ...VALID_ERA,
-        dates: {
-          startDate: '2011-09-09',
-          endDate: 'later',
-          autoAssignByDate: true,
-        },
-      }).error?.issues[0].path,
-    ).toEqual(['dates', 'endDate']);
+    expect(parsed.identity).toEqual({ name: 'First era' });
+    expect(parsed.dates).toEqual({ autoAssignByDate: true });
   });
 
   it('rejects a non-boolean dates.autoAssignByDate', () => {
     const result = eraConfigSchema.safeParse({
       ...VALID_ERA,
-      dates: { startDate: '2011-09-09', autoAssignByDate: 'yes' },
+      dates: { autoAssignByDate: 'yes' },
     });
     expect(result.error?.issues[0].path).toEqual(['dates', 'autoAssignByDate']);
     expect(result.error?.issues[0].message).toBe('must be a boolean.');

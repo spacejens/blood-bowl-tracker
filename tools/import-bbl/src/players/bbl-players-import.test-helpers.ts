@@ -1,4 +1,5 @@
 import type {
+  Era,
   RulesSet,
   TeamEra,
   UpsertTeam,
@@ -18,6 +19,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
 import { CharacteristicNotationConversionService } from '../shared/characteristic-notation-conversion.service';
+import { era } from '../shared/curated-era.test-helpers';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import type { BblPage } from '../source/bbl-page.types';
@@ -101,8 +103,8 @@ const positionIdsByExternalId = new Map<string, number>([['33-7', 200]]);
 
 export const defaultEras: EraConfig[] = [
   {
-    identity: { name: 'LRB', rulesSets: ['LRB'] },
-    dates: { startDate: '2011-09-09', autoAssignByDate: true },
+    identity: { name: 'LRB' },
+    dates: { autoAssignByDate: true },
     players: {
       firstPlayerId: 1,
       lastPlayerId: 9999,
@@ -316,6 +318,34 @@ const rulesSetsByName = new Map<string, RulesSet>([
 ]);
 
 /**
+ * The curated eras the eras step hands over, keyed by configured name, each
+ * listing the single rules set "LRB". Covers every era name these specs
+ * configure, so by default each era validates against "LRB"; a test about
+ * the era's rules sets passes its own map.
+ */
+export function erasByNameOf(
+  names: string[],
+  rulesSetNames: string[] = ['LRB'],
+): Map<string, Era> {
+  return new Map(names.map((name) => [name, era({ name, rulesSetNames })]));
+}
+
+const erasByName = erasByNameOf([
+  'LRB',
+  'Second',
+  'Regular',
+  'Stunty',
+  'GBBL 1',
+  'Pid Era',
+  'Team Era',
+  'Main',
+  'Side',
+  'Disabled',
+  'Enabled',
+  'Pinned',
+]);
+
+/**
  * The default `importPlayers` options every test in this package's player
  * specs passes. Collected here so a new required option is added once, not
  * at every call site; a test needing a variant spreads and overrides it
@@ -325,4 +355,5 @@ export const importOptions = {
   teamsByCode,
   racesByBblId,
   rulesSetsByName,
+  erasByName,
 };

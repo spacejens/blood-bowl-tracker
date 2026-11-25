@@ -4,6 +4,7 @@ import type { EraConfig } from '../eras/era-config.service';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import {
   eraIdsByName,
+  erasByName,
   erasConfig,
   makeService,
   matchesByCompetition,
@@ -35,12 +36,8 @@ describe('BblCompetitionsImportService overrides', () => {
     );
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: {
           overrides: [
@@ -51,7 +48,7 @@ describe('BblCompetitionsImportService overrides', () => {
       },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(resultArgs(mocks.importResults).errors).toHaveLength(0);
     expect(
@@ -79,8 +76,8 @@ describe('BblCompetitionsImportService overrides', () => {
     );
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: {
           overrides: [
@@ -95,7 +92,7 @@ describe('BblCompetitionsImportService overrides', () => {
       },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(1);
@@ -129,8 +126,8 @@ describe('BblCompetitionsImportService overrides', () => {
     );
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: {
           overrides: [{ bblId: '74', type: 'season', startDate: '2023-07-01' }],
@@ -138,7 +135,7 @@ describe('BblCompetitionsImportService overrides', () => {
       },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const upsertArg =
       mocks.competitionsImport.upsertCompetitionResult.mock.calls[0][0];
@@ -155,14 +152,14 @@ describe('BblCompetitionsImportService overrides', () => {
     ]);
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -184,17 +181,17 @@ describe('BblCompetitionsImportService overrides', () => {
     ]);
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
     // "BB2020" is matched by the competitions.overrides entry, but the
-    // lookup resolves nothing, simulating its rules set having failed to
-    // import earlier in the run.
+    // lookup resolves nothing, simulating the era having failed to import
+    // earlier in the run.
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(0);
@@ -225,17 +222,13 @@ describe('BblCompetitionsImportService overrides', () => {
     );
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: {
           overrides: [
@@ -250,7 +243,9 @@ describe('BblCompetitionsImportService overrides', () => {
       },
     ]);
 
-    const { competitionsByBblId } = await service.importCompetitions();
+    const { competitionsByBblId } = await service.importCompetitions({
+      erasByName,
+    });
 
     const { imported, errors } = resultArgs(mocks.importResults);
     expect(imported).toBe(1);
@@ -296,23 +291,19 @@ describe('BblCompetitionsImportService overrides', () => {
     );
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
@@ -350,23 +341,19 @@ describe('BblCompetitionsImportService overrides', () => {
     );
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '33', type: 'cup' }] },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
       },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
@@ -409,27 +396,19 @@ describe('BblCompetitionsImportService overrides', () => {
     );
     mocks.eraConfig.getEras.mockReturnValue([
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
       {
-        identity: { name: 'Stunty', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Stunty' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
     ]);
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
@@ -450,21 +429,13 @@ describe('BblCompetitionsImportService overrides', () => {
     // it. Its own override-listed competition still resolves to it.
     const overrideOnlyEras: EraConfig[] = [
       {
-        identity: { name: 'Main', rulesSets: ['BB2020'] },
-        dates: {
-          startDate: '2016-01-01',
-          endDate: '2017-01-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Main' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
       {
-        identity: { name: 'Side', rulesSets: ['CRP'] },
-        dates: {
-          startDate: '2016-01-01',
-          endDate: '2017-01-01',
-          autoAssignByDate: false,
-        },
+        identity: { name: 'Side' },
+        dates: { autoAssignByDate: false },
         players: { autoAssignByPlayerId: false },
         competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
@@ -503,7 +474,9 @@ describe('BblCompetitionsImportService overrides', () => {
       .mockResolvedValueOnce(upsertedCompetition(1))
       .mockResolvedValueOnce(upsertedCompetition(30));
 
-    const { competitionsByBblId } = await service.importCompetitions();
+    const { competitionsByBblId } = await service.importCompetitions({
+      erasByName,
+    });
 
     // The plain dated competition lands in Main (the only auto-assign era).
     expect(competitionsByBblId.get('1')?.eraId).toBe(100);
@@ -517,12 +490,8 @@ describe('BblCompetitionsImportService overrides', () => {
       ...erasConfig,
       {
         leagueName: 'GBBL',
-        identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
-        dates: {
-          startDate: '2019-08-03',
-          endDate: '2019-11-13',
-          autoAssignByDate: false,
-        },
+        identity: { name: 'GBBL 1' },
+        dates: { autoAssignByDate: false },
         players: { autoAssignByPlayerId: false },
         competitions: { overrides: [{ bblId: '55', type: 'season' }] },
         teams: { teamCodeOverrides: ['fes2'] },
@@ -550,7 +519,7 @@ describe('BblCompetitionsImportService overrides', () => {
       upsertedCompetition(1),
     );
 
-    await service.importCompetitions();
+    await service.importCompetitions({ erasByName });
 
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
