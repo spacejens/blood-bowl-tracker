@@ -1,26 +1,23 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-
 import { TpFilesReaderService } from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
+import type { TpTeamsFixture } from './tp-files-fixtures.test-helpers';
+import { stubTpFiles } from './tp-files-fixtures.test-helpers';
 import { TpRawStarPlayerIndexService } from './tp-raw-star-player-index.service';
 
-let dir: string;
+/**
+ * The canned files the mocked reader lists and reads, in the order added: the
+ * order a test states is the order the reader's sorted listing would give.
+ */
+let teams: TpTeamsFixture[];
 
 function writeRulesSet(rulesSet: string, contents: unknown): void {
-  const rulesSetDir = join(dir, 'teams', rulesSet);
-  mkdirSync(rulesSetDir, { recursive: true });
-  writeFileSync(
-    join(rulesSetDir, 'rosters_masters.json'),
-    JSON.stringify(contents),
-    'utf8',
-  );
+  teams.push({ rulesSet, name: 'rosters_masters.json', body: contents });
 }
 
 const WOOD_ELF = {
@@ -58,24 +55,20 @@ const ELDRIL = {
   availableLeagues: 256,
 };
 
-beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'review-star-player-tp-'));
-});
-
-afterEach(() => {
-  rmSync(dir, { recursive: true, force: true });
-});
-
 describe('TpRawStarPlayerIndexService', () => {
   let service: TpRawStarPlayerIndexService;
+  let tpFiles: MockProxy<TpFilesReaderService>;
 
   beforeEach(async () => {
+    teams = [];
     const config = mock<StarPlayerReviewConfigService>();
-    config.getDataDir.mockReturnValue(dir);
+    config.getDataDir.mockReturnValue('/data/tp');
+    tpFiles = mock<TpFilesReaderService>();
+    stubTpFiles(tpFiles, { teams });
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRawStarPlayerIndexService,
-        TpFilesReaderService,
+        { provide: TpFilesReaderService, useValue: tpFiles },
         { provide: StarPlayerReviewConfigService, useValue: config },
         StarPlayerNameMatcherService,
       ],
@@ -170,14 +163,14 @@ describe('TpRawStarPlayerIndexService', () => {
     ]);
   });
 
-  it('orders entries by rules-set name regardless of write order', async () => {
-    writeRulesSet('BB2025', {
-      rosterMasters: [WOOD_ELF],
-      starplayerMasters: [ELDRIL],
-    });
+  it('keeps entries in the order the reader lists the rules sets', async () => {
     writeRulesSet('BB2020', {
       rosterMasters: [WOOD_ELF],
       starplayerMasters: [{ ...ELDRIL, cost: 200000 }],
+    });
+    writeRulesSet('BB2025', {
+      rosterMasters: [WOOD_ELF],
+      starplayerMasters: [ELDRIL],
     });
 
     const star = await service.starFor('Eldril Sidewinder');
@@ -188,24 +181,24 @@ describe('TpRawStarPlayerIndexService', () => {
     ]);
   });
 
-  it('orders files within a rules set by file name regardless of write order', async () => {
-    const rulesSetDir = join(dir, 'teams', 'BB2025');
-    mkdirSync(rulesSetDir, { recursive: true });
-    writeFileSync(
-      join(rulesSetDir, 'zzz_last.json'),
-      JSON.stringify({
-        rosterMasters: [WOOD_ELF],
-        starplayerMasters: [{ ...ELDRIL, position: 'Zed Zebra' }],
-      }),
-      'utf8',
-    );
-    writeFileSync(
-      join(rulesSetDir, 'aaa_first.json'),
-      JSON.stringify({
-        rosterMasters: [WOOD_ELF],
-        starplayerMasters: [{ ...ELDRIL, position: 'Aaron Apple' }],
-      }),
-      'utf8',
+  it('indexes the files within a rules set in the order the reader lists them', async () => {
+    teams.push(
+      {
+        rulesSet: 'BB2025',
+        name: 'aaa_first.json',
+        body: {
+          rosterMasters: [WOOD_ELF],
+          starplayerMasters: [{ ...ELDRIL, position: 'Aaron Apple' }],
+        },
+      },
+      {
+        rulesSet: 'BB2025',
+        name: 'zzz_last.json',
+        body: {
+          rosterMasters: [WOOD_ELF],
+          starplayerMasters: [{ ...ELDRIL, position: 'Zed Zebra' }],
+        },
+      },
     );
 
     expect(await service.allNames()).toEqual(['Aaron Apple', 'Zed Zebra']);
@@ -247,9 +240,11 @@ describe('TpRawStarPlayerIndexService', () => {
   });
 
   it('skips a file that is not readable JSON', async () => {
-    const rulesSetDir = join(dir, 'teams', 'BB2025');
-    mkdirSync(rulesSetDir, { recursive: true });
-    writeFileSync(join(rulesSetDir, 'broken.json'), '{ not json', 'utf8');
+    teams.push({
+      rulesSet: 'BB2025',
+      name: 'broken.json',
+      body: new Error('Failed to parse TP file broken.json: { not json'),
+    });
 
     expect(await service.allNames()).toEqual([]);
   });
@@ -276,9 +271,13 @@ describe('TpRawStarPlayerIndexService', () => {
   });
 
   it('propagates a non-ENOENT error reading the teams directory', async () => {
-    writeFileSync(join(dir, 'teams'), 'not a directory', 'utf8');
+    tpFiles.listTeamsRulesSets.mockRejectedValue(
+      Object.assign(new Error('ENOTDIR: not a directory'), {
+        code: 'ENOTDIR',
+      }),
+    );
 
-    await expect(service.allNames()).rejects.toThrow();
+    await expect(service.allNames()).rejects.toThrow(/ENOTDIR/);
   });
 
   it("reads a star entry's skill refs with their attribute values", async () => {
@@ -463,8 +462,9 @@ describe('TpRawStarPlayerIndexService', () => {
     });
 
     await service.starFor('Eldril Sidewinder');
-    rmSync(join(dir, 'teams'), { recursive: true, force: true });
+    teams.length = 0;
 
     expect(await service.starFor('Eldril Sidewinder')).not.toBeNull();
+    expect(tpFiles.listTeamsRulesSets).toHaveBeenCalledTimes(1);
   });
 });

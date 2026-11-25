@@ -13,7 +13,10 @@ tools share. It has no CLI entry point of its own.
   [backup-cli](../backup-cli/index.md) and
   [workflow-lint](../workflow-lint/index.md). It runs before any Nest context
   exists, the bootstrap case of `CLAUDE.md`'s "Service vs. loose function"
-  (case 3).
+  (case 3). It takes the tool's root module as a class or a dynamic module,
+  and creates the context with abortOnError off, so a provider that fails
+  while the context starts (a refused or unreachable database, say) is
+  reported as the JSON error like any other failure.
 - **`runApp`** — the single-run driver for the CLIs that take no
   subcommand. It boots a Nest application context with logging off, runs the
   tool's work against it, and closes the context even when that work throws.
@@ -36,13 +39,17 @@ tools share. It has no CLI entry point of its own.
 - **Postgres tooling** — the guarded `psql`/`pg_dump`/`pg_restore` runner
   (`PgClientService`), with connection-string redaction
   (`DatabaseUrlRedactorService`).
+- **Local database guard** — `LocalDatabaseGuardService`, which refuses
+  any connection string whose host is not `localhost`, `127.0.0.1` or `::1`
+  (a `host` or `hostaddr` query parameter is refused too), and
+  `DEFAULT_LOCAL_DATABASE_URL`, the docker-compose database.
+  `backup-cli`'s `verify` and `restore` and `import-manual-planner-cli`'s
+  `generate-incomplete-player-fills` use both.
 - **Read-only production queries** — `RunProductionQueryService`, in
   `ProductionQueryModule`: one query from the caller, run against
   production's `DATABASE_URL` in a read-only transaction with a statement
-  timeout and a process deadline, psql meta-commands refused, optionally
-  tuples-only. `production-ops-cli`'s `run-production-query` and
-  `import-manual-planner-cli`'s `generate-incomplete-player-fills` both use
-  it.
+  timeout and a process deadline, psql meta-commands refused.
+  `production-ops-cli`'s `run-production-query` uses it.
 - **Discord REST** — `DiscordRestService`, in `DiscordRestModule`: the
   discord.js `REST` client, built once per process with the production bot
   token, returning Discord's responses verbatim and never printing the

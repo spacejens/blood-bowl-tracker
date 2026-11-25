@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 
+import { DEFAULT_LOCAL_DATABASE_URL } from '@blood-bowl-tracker/cli-shared';
 import { createConfigLoaderServiceBase } from '@blood-bowl-tracker/config-loader';
 import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -30,10 +31,6 @@ const DEFAULT_RETENTION_DAYS = 30;
 
 /** The daily backup's interval plus one missed or delayed run of slack. */
 const DEFAULT_MAX_AGE_HOURS = 36;
-
-/** The docker-compose database (`docker-compose.yml`'s host port mapping). */
-export const DEFAULT_LOCAL_DATABASE_URL =
-  'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl';
 
 export type BackupEnv = Readonly<Record<string, string | undefined>>;
 

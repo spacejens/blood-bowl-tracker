@@ -1,3 +1,4 @@
+import type { DynamicModule } from '@nestjs/common';
 import { INestApplicationContext, Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -11,8 +12,11 @@ export interface RunCliOptions<TSubcommand extends string, TArgs> {
   readonly argv: readonly string[];
   /** The tool's full subcommand list, used for validation and usage text. */
   readonly subcommands: readonly TSubcommand[];
-  /** The tool's Nest root module. */
-  readonly module: Type<unknown>;
+  /**
+   * The tool's Nest root module: a module class, or a DynamicModule such as
+   * one built for the subcommand.
+   */
+  readonly module: Type<unknown> | DynamicModule;
   /**
    * Reads the subcommand's arguments. Called synchronously before the Nest
    * context is created, because reading stdin must finish first.
@@ -98,6 +102,9 @@ export async function runCli<TSubcommand extends string, TArgs>(
     const args = options.readArgs(subcommand);
     const app = await NestFactory.createApplicationContext(options.module, {
       logger: false,
+      // Without this Nest exits the process itself when a provider throws
+      // during initialization, and with logging off that exit prints nothing.
+      abortOnError: false,
     });
     let result: unknown;
     try {
