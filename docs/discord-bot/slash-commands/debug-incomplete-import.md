@@ -43,11 +43,13 @@ Star players are never counted, whatever their data looks like: a player
 whose position is a star player position is left out, so a team is only
 listed for its regular players.
 
-The criteria are kept as one named list, `INCOMPLETE_PLAYER_CRITERIA` in
-`packages/game-data/src/players/incomplete-player-criteria.ts`, so a newly
-discovered kind of gap is a one-line addition. The manual import that
+The criteria are kept as one declarative list, `INCOMPLETE_PLAYER_GAPS` in
+`packages/game-rules/src/players/incomplete-player-gaps.ts`, so a newly
+discovered kind of gap is a one-line addition. game-data renders the list as
+SQL. The manual import that
 [fills in a missing player's data](../../import-manual/filling-missing-players.md)
-uses the same list, so the two always agree on what counts as incomplete.
+and the manual-import planner use the same list, so they always agree on what
+counts as incomplete.
 
 ## The reply
 

@@ -14,3 +14,8 @@ export { AdvancementSpendRangeService } from './advancements/advancement-spend-r
 export { GameRulesModule } from './game-rules.module';
 export type { LastingReductionInput } from './lasting-reductions/lasting-reduction.service';
 export { LastingReductionService } from './lasting-reductions/lasting-reduction.service';
+export type {
+  IncompletePlayerColumn,
+  IncompletePlayerGap,
+} from './players/incomplete-player-gaps';
+export { INCOMPLETE_PLAYER_GAPS } from './players/incomplete-player-gaps';
