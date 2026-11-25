@@ -280,8 +280,8 @@ recorded batch has been renamed or removed.
 
 Two exceptions have been made. Batch 009 (see its entry) was extended so a
 scratch import can apply it. Batch 001 was extended once to carry the league,
-era and rules-set catalog the importer configs used to hold: the leagues'
-`Name` ids, each era's rules sets, and the rules sets in their own file.
+era and rules-set catalog: the leagues' `Name` ids, each era's rules sets, and
+the rules sets in their own file.
 Production already held exactly that data, so only its ledger hash changed. A
 batch that a scratch import cannot apply may be extended so it carries the
 data production already holds, when no later batch can do it (a fill must run

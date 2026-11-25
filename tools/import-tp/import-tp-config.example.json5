@@ -30,10 +30,10 @@
   // in TP's data (only an opaque numeric rule-set code is), so they are
   // curated in tools/import-manual/data/batches/001-initial-seed.
   league: {
-    // Name of the league the TP data covers: a league in the curated
-    // catalog (tools/import-manual/data/batches/001-initial-seed/leagues.json5),
-    // found by its Name id.
-    name: '<league name>',
+    // Name of the league the TP data covers. It must be a league in batch
+    // 001's leagues.json5 (tools/import-manual/data/batches/001-initial-seed),
+    // found by its Name id; tLoEG is the only league TP data can use.
+    name: 'tLoEG',
 
     // The eras the data covers, by their curated names (eras.json5 in the
     // same batch holds their dates and rules sets), and which data

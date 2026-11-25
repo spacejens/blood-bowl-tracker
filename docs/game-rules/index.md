@@ -38,9 +38,8 @@ re-exports the services, so its consumers keep their imports.
 
 ## Why it is shared
 
-The planner tool used to carry its own copy of this pricing logic, and a drift
-spec kept the copy in step with `packages/game-data`. One shared package
-removes the copy and the spec.
+The planner and the server apply these rules from this one package, so neither
+carries a copy that could drift.
 
 ## Dependencies
 
