@@ -1,8 +1,11 @@
-import type { Dirent } from 'node:fs';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -53,42 +56,33 @@ function writeRosterWithTemplate(master: Record<string, unknown>): void {
   ]);
 }
 
-type EntriesFn = (dir: string) => Promise<Dirent[]>;
-
 /**
- * Forces the service's directory scan to visit `targetDir`'s entries in
- * exactly `order`, regardless of what the real `readdir` call returns. The
- * production code relies on `readdir` order to break roster-conflict ties
- * (see `absorbRoster`), and that order is filesystem-dependent — write order
- * does not reliably control it, so a test that only writes files in a chosen
- * order cannot discriminate between the two directions. Pinning the scan
- * order directly is the only portable way to exercise both directions of the
- * guard.
+ * Forces the service's file scan to visit one competition's files in exactly
+ * `order`, regardless of the sorted order the reader returns. The production
+ * code relies on scan order to break roster-conflict ties (see
+ * `absorbRoster`), so pinning it is the only way to exercise both directions
+ * of the guard.
  */
-function withOrderedEntries(
-  targetService: TpRawPlayerIndexService,
-  targetDir: string,
+function withOrderedFiles(
+  reader: TpFilesReaderService,
+  location: { era: string; competition: string },
   order: string[],
 ): void {
-  const proto = Object.getPrototypeOf(targetService) as { entries: EntriesFn };
-  const original = proto.entries.bind(targetService);
-  vi.spyOn(
-    targetService as unknown as { entries: EntriesFn },
-    'entries',
-  ).mockImplementation(async (targetPath: string) => {
-    const result = await original(targetPath);
-    if (targetPath !== targetDir) {
-      return result;
-    }
-    const byName = new Map(result.map((entry) => [entry.name, entry]));
-    return order.map((name) => {
-      const entry = byName.get(name);
-      if (entry === undefined) {
-        throw new Error(`entries() did not return ${name} for ${targetPath}`);
+  const original = reader.listFiles.bind(reader);
+  vi.spyOn(reader, 'listFiles').mockImplementation(
+    async (dataDir, era, competition) => {
+      const result = await original(dataDir, era, competition);
+      if (era !== location.era || competition !== location.competition) {
+        return result;
       }
-      return entry;
-    });
-  });
+      for (const name of order) {
+        if (!result.includes(name)) {
+          throw new Error(`listFiles() did not return ${name}`);
+        }
+      }
+      return order;
+    },
+  );
 }
 
 function matchFile(options: {
@@ -126,6 +120,7 @@ function matchFile(options: {
 
 describe('TpRawPlayerIndexService', () => {
   let service: TpRawPlayerIndexService;
+  let reader: TpFilesReaderService;
   let config: MockProxy<ReviewPlayerConfigService>;
 
   beforeEach(async () => {
@@ -134,10 +129,13 @@ describe('TpRawPlayerIndexService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRawPlayerIndexService,
+        TpFilesReaderService,
+        TpFileNameService,
         { provide: ReviewPlayerConfigService, useValue: config },
       ],
     }).compile();
     service = moduleRef.get(TpRawPlayerIndexService);
+    reader = moduleRef.get(TpFilesReaderService);
   });
 
   it('aggregates a player across every match file they appear in', async () => {
@@ -403,7 +401,7 @@ describe('TpRawPlayerIndexService', () => {
         totalStarPlayerPoints: 26,
       },
     ]);
-    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
+    withOrderedFiles(reader, { era: 'fourth-era', competition: 'season-30' }, [
       'match_1.json',
       'rosters_500.json',
       'rosters_700.json',
@@ -450,7 +448,7 @@ describe('TpRawPlayerIndexService', () => {
         totalStarPlayerPoints: 3,
       },
     ]);
-    withOrderedEntries(service, join(dir, 'fourth-era', 'season-30'), [
+    withOrderedFiles(reader, { era: 'fourth-era', competition: 'season-30' }, [
       'match_1.json',
       'rosters_700.json',
       'rosters_500.json',
@@ -844,5 +842,21 @@ describe('TpRawPlayerIndexService', () => {
     writeMatch(1, matchWithStatus({ state: 'dead', isActive: 'no' }));
 
     expect((await service.aggregateFor('2477481'))?.matchStatus).toBeNull();
+  });
+
+  it('does not index a roster file under teams/, which is not an era', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 7, events: [] }));
+    mkdirSync(join(dir, 'teams', 'BB2020'), { recursive: true });
+    writeFileSync(
+      join(dir, 'teams', 'BB2020', 'rosters_1.json'),
+      JSON.stringify({
+        lineUps: [{ id: 2477481, ma: 9, st: 9, ag: 9, pa: 9, av: 9 }],
+      }),
+      'utf8',
+    );
+
+    const player = await service.aggregateFor('2477481');
+
+    expect(player?.move).toBeNull();
   });
 });

@@ -2,6 +2,10 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -22,6 +26,8 @@ describe('TpRawMatchFileLoaderService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRawMatchFileLoaderService,
+        TpFilesReaderService,
+        TpFileNameService,
         { provide: ReviewMatchConfigService, useValue: config },
       ],
     }).compile();
@@ -80,7 +86,7 @@ describe('TpRawMatchFileLoaderService', () => {
   it('throws a descriptive error when the match file is not valid JSON', async () => {
     await writeMatch(join('era', 'comp'), 'match_5.json', 'not json');
     await expect(service.loadMatchFile('5')).rejects.toThrow(
-      /Failed to parse TP match file .*match_5\.json/,
+      /Failed to parse TP file .*match_5\.json/,
     );
   });
 

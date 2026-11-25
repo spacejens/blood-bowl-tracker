@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { TpFilesReaderService } from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -74,6 +75,7 @@ describe('TpRawStarPlayerIndexService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRawStarPlayerIndexService,
+        TpFilesReaderService,
         { provide: StarPlayerReviewConfigService, useValue: config },
         StarPlayerNameMatcherService,
       ],

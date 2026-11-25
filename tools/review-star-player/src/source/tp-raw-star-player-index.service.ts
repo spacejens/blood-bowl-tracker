@@ -1,14 +1,11 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
+import {
+  TP_TEAMS_DIR,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { StarPlayerReviewConfigService } from '../config/review-star-player-config.service';
 import { StarPlayerNameMatcherService } from '../shared/star-player-name-matcher.service';
-
-/** The folder under the TP data root holding one subfolder per rules set. */
-const TEAMS_DIR = 'teams';
 
 /**
  * The `teamRosterType` values marking a roster as one of the rules set's real
@@ -152,6 +149,7 @@ export class TpRawStarPlayerIndexService {
   constructor(
     private readonly config: StarPlayerReviewConfigService,
     private readonly names: StarPlayerNameMatcherService,
+    private readonly tpFiles: TpFilesReaderService,
   ) {}
 
   async starFor(name: string): Promise<TpRawStarPlayer | null> {
@@ -183,18 +181,19 @@ export class TpRawStarPlayerIndexService {
 
   private async buildIndex(): Promise<Map<string, TpRawStarPlayer>> {
     const stars = new Map<string, TpRawStarPlayer>();
-    const teamsDir = join(this.config.getDataDir('tp'), TEAMS_DIR);
-    for (const rulesSet of await this.subdirectories(teamsDir)) {
-      const rulesSetDir = join(teamsDir, rulesSet.name);
-      for (const entry of await this.entries(rulesSetDir)) {
-        if (entry.isFile() && entry.name.endsWith('.json')) {
-          const file = await this.readJson(join(rulesSetDir, entry.name));
-          this.absorb(stars, {
-            rulesSet: rulesSet.name,
-            stars: this.arrayProperty(file, 'starplayerMasters'),
-            rosters: this.arrayProperty(file, 'rosterMasters'),
-          });
-        }
+    const dataDir = this.config.getDataDir('tp');
+    for (const rulesSet of await this.tpFiles.listTeamsRulesSets(dataDir)) {
+      for (const name of await this.tpFiles.listTeamsFiles(dataDir, rulesSet)) {
+        const file = await this.readOrNull(dataDir, [
+          TP_TEAMS_DIR,
+          rulesSet,
+          name,
+        ]);
+        this.absorb(stars, {
+          rulesSet,
+          stars: this.arrayProperty(file, 'starplayerMasters'),
+          rosters: this.arrayProperty(file, 'rosterMasters'),
+        });
       }
     }
     return stars;
@@ -358,27 +357,15 @@ export class TpRawStarPlayerIndexService {
     return Array.isArray(property) ? property : [];
   }
 
-  private async readJson(path: string): Promise<unknown> {
+  /** One file's JSON, or null when it is missing or unparseable. */
+  private async readOrNull(
+    dataDir: string,
+    segments: readonly string[],
+  ): Promise<unknown> {
     try {
-      return JSON.parse(await readFile(path, 'utf8')) as unknown;
+      return (await this.tpFiles.readJson(dataDir, segments))?.content ?? null;
     } catch {
       return null;
-    }
-  }
-
-  private async subdirectories(dir: string): Promise<Dirent[]> {
-    return (await this.entries(dir)).filter((entry) => entry.isDirectory());
-  }
-
-  private async entries(dir: string): Promise<Dirent[]> {
-    try {
-      const entries = await readdir(dir, { withFileTypes: true });
-      return entries.sort((a, b) => a.name.localeCompare(b.name));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
-      throw error;
     }
   }
 }

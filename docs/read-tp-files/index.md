@@ -26,7 +26,12 @@ It carries no [parse-tp](../parse-tp/index.md) logic, no configuration and no
 interpretation of a file's contents. Which files matter and what they mean stay
 with each consumer, so sharing this package shares no interpretation.
 
-[import-tp](../import-tp/index.md) reads its files through it.
+[import-tp](../import-tp/index.md), [download-tp](../download-tp/index.md) (for its
+layout constants) and the review tools
+([review-match](../review-match/index.md),
+[review-player](../review-player/index.md),
+[review-race](../review-race/index.md),
+[review-star-player](../review-star-player/index.md)) read their files through it.
 
 Like [read-bbl-mirror](../read-bbl-mirror/index.md), it depends on no other
 workspace package.

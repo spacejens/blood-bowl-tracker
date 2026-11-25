@@ -1,4 +1,5 @@
 import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
+import { ReadTpFilesModule } from '@blood-bowl-tracker/read-tp-files';
 import { ManualBatchReaderService } from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
@@ -29,7 +30,7 @@ const SOURCES = [
 ];
 
 @Module({
-  imports: [BblMirrorReaderModule],
+  imports: [BblMirrorReaderModule, ReadTpFilesModule],
   providers: SOURCES,
   exports: SOURCES,
 })

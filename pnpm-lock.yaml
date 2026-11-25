@@ -1816,6 +1816,9 @@ importers:
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror
+      '@blood-bowl-tracker/read-tp-files':
+        specifier: workspace:*
+        version: link:../../packages/read-tp-files
       '@blood-bowl-tracker/review-harness':
         specifier: workspace:*
         version: link:../../packages/review-harness
@@ -1871,6 +1874,9 @@ importers:
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror
+      '@blood-bowl-tracker/read-tp-files':
+        specifier: workspace:*
+        version: link:../../packages/read-tp-files
       '@blood-bowl-tracker/review-harness':
         specifier: workspace:*
         version: link:../../packages/review-harness
@@ -1929,6 +1935,9 @@ importers:
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror
+      '@blood-bowl-tracker/read-tp-files':
+        specifier: workspace:*
+        version: link:../../packages/read-tp-files
       '@blood-bowl-tracker/review-harness':
         specifier: workspace:*
         version: link:../../packages/review-harness
@@ -1984,6 +1993,9 @@ importers:
       '@blood-bowl-tracker/read-bbl-mirror':
         specifier: workspace:*
         version: link:../../packages/read-bbl-mirror
+      '@blood-bowl-tracker/read-tp-files':
+        specifier: workspace:*
+        version: link:../../packages/read-tp-files
       '@blood-bowl-tracker/review-harness':
         specifier: workspace:*
         version: link:../../packages/review-harness

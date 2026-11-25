@@ -1,15 +1,12 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import type { RawCharacteristicIncreases } from './bbl-player-skills-cell.service';
 import { TpSkillMasterNamesService } from './tp-skill-master-names.service';
-
-/** `rosters_<id>.json` — TP's per-team roster file; captures the id. */
-const ROSTER_FILENAME = /^rosters_(\d+)\.json$/;
 
 /** One skill on a TP roster entry or its position template. */
 export interface TpRawPlayerSkill {
@@ -105,7 +102,7 @@ interface IndexedLineUp {
  *
  * Two snapshots that disagree while sharing the exact same
  * `totalStarPlayerPoints` are an anomaly TP gives no further signal to
- * resolve — `entries()` sorts the scan deterministically so which one wins is
+ * resolve — the sorted file listings make which one wins
  * at least reproducible across runs and platforms, but it is still an
  * arbitrary pick, not a verified "more recent" one. This tool surfaces
  * disagreements between the raw and imported sides; it does not also try to
@@ -127,6 +124,8 @@ export class TpRawPlayerSkillsIndexService {
   constructor(
     private readonly config: ReviewPlayerConfigService,
     private readonly skillMasterNames: TpSkillMasterNamesService,
+    private readonly tpFiles: TpFilesReaderService,
+    private readonly names: TpFileNameService,
   ) {}
 
   async advancementsFor(
@@ -152,14 +151,23 @@ export class TpRawPlayerSkillsIndexService {
   private async buildIndex(): Promise<Map<number, IndexedLineUp>> {
     const players = new Map<number, IndexedLineUp>();
     const dataDir = this.config.getDataDir('tp');
-    for (const era of await this.subdirectories(dataDir)) {
-      const eraDir = join(dataDir, era.name);
-      for (const competition of await this.subdirectories(eraDir)) {
-        const competitionDir = join(eraDir, competition.name);
-        for (const entry of await this.entries(competitionDir)) {
-          const match = ROSTER_FILENAME.exec(entry.name);
-          if (entry.isFile() && match !== null) {
-            const body = await this.readJson(join(competitionDir, entry.name));
+    // Listings are sorted, so which of two equal snapshots wins is reproducible.
+    for (const era of await this.tpFiles.listEras(dataDir)) {
+      for (const competition of await this.tpFiles.listCompetitions(
+        dataDir,
+        era,
+      )) {
+        for (const name of await this.tpFiles.listFiles(
+          dataDir,
+          era,
+          competition,
+        )) {
+          if (this.names.classify(name).kind === 'rosters') {
+            const body = await this.readOrNull(dataDir, [
+              era,
+              competition,
+              name,
+            ]);
             await this.absorb(players, body);
           }
         }
@@ -327,34 +335,15 @@ export class TpRawPlayerSkillsIndexService {
       : undefined;
   }
 
-  private async readJson(path: string): Promise<unknown> {
+  /** One file's JSON, or null when it is missing or unparseable. */
+  private async readOrNull(
+    dataDir: string,
+    segments: readonly string[],
+  ): Promise<unknown> {
     try {
-      return JSON.parse(await readFile(path, 'utf8')) as unknown;
+      return (await this.tpFiles.readJson(dataDir, segments))?.content ?? null;
     } catch {
       return null;
-    }
-  }
-
-  private async subdirectories(dir: string): Promise<Dirent[]> {
-    return (await this.entries(dir)).filter((entry) => entry.isDirectory());
-  }
-
-  /**
-   * Directory entries, or none when the directory is absent — sorted by name
-   * so the scan order (and, with it, which of two equal-`totalStarPlayerPoints`
-   * roster snapshots for the same line-up id wins a tie) is reproducible
-   * across platforms and runs, rather than whatever order the filesystem
-   * happens to return. `readdir` itself makes no ordering guarantee.
-   */
-  private async entries(dir: string): Promise<Dirent[]> {
-    try {
-      const entries = await readdir(dir, { withFileTypes: true });
-      return entries.sort((a, b) => a.name.localeCompare(b.name));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
-      throw error;
     }
   }
 }

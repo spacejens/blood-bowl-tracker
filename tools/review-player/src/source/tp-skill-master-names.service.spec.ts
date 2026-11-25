@@ -2,6 +2,10 @@ import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -25,6 +29,8 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpSkillMasterNamesService,
+      TpFilesReaderService,
+      TpFileNameService,
       { provide: ReviewPlayerConfigService, useValue: config },
     ],
   }).compile();
@@ -89,6 +95,8 @@ describe('TpSkillMasterNamesService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpSkillMasterNamesService,
+        TpFilesReaderService,
+        TpFileNameService,
         { provide: ReviewPlayerConfigService, useValue: config },
       ],
     }).compile();
@@ -115,6 +123,8 @@ describe('TpSkillMasterNamesService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpSkillMasterNamesService,
+        TpFilesReaderService,
+        TpFileNameService,
         { provide: ReviewPlayerConfigService, useValue: config },
       ],
     }).compile();

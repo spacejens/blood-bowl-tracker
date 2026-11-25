@@ -25,7 +25,7 @@ purpose, so a wrong curated cost or a wrong derivation shows up as a
 difference instead of agreeing with itself.
 Locating and byte-decoding a BBL mirror file is shared on a similar basis, via
 [`packages/read-bbl-mirror`](../read-bbl-mirror/index.md): it carries no BBL-page-type awareness or HTML
-parsing, so depending on it does not weaken the boundary above.
+parsing, so depending on it does not weaken the boundary above. Locating, listing and parsing download-tp's files is shared via [`packages/read-tp-files`](../read-tp-files/index.md), which carries no TP file interpretation. Its listings leave out `teams/`, so the official team list is never read as an era.
 Walking the curated keyword batches is shared via
 `packages/review-harness`'s `ManualBatchReaderService`. It shapes no entry, so
 every reading of what a curated keyword means still happens in this tool; it only

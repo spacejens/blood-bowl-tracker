@@ -1,7 +1,11 @@
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -20,6 +24,7 @@ function defaultMasters(): MockProxy<TpSkillMasterNamesService> {
 async function makeService(
   files: Record<string, unknown>,
   masters: MockProxy<TpSkillMasterNamesService> = defaultMasters(),
+  extraFiles: Record<string, unknown> = {},
 ): Promise<TpRawPlayerSkillsIndexService> {
   const root = await mkdtemp(join(tmpdir(), 'review-player-tp-skills-'));
   const competitionDir = join(root, 'fourth-era', 'a-cup');
@@ -27,12 +32,18 @@ async function makeService(
   for (const [name, body] of Object.entries(files)) {
     await writeFile(join(competitionDir, name), JSON.stringify(body), 'utf8');
   }
+  for (const [relativePath, body] of Object.entries(extraFiles)) {
+    await mkdir(dirname(join(root, relativePath)), { recursive: true });
+    await writeFile(join(root, relativePath), JSON.stringify(body), 'utf8');
+  }
   const config: MockProxy<ReviewPlayerConfigService> =
     mock<ReviewPlayerConfigService>();
   config.getDataDir.mockReturnValue(root);
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpRawPlayerSkillsIndexService,
+      TpFilesReaderService,
+      TpFileNameService,
       { provide: ReviewPlayerConfigService, useValue: config },
       { provide: TpSkillMasterNamesService, useValue: masters },
     ],
@@ -200,6 +211,8 @@ describe('TpRawPlayerSkillsIndexService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TpRawPlayerSkillsIndexService,
+        TpFilesReaderService,
+        TpFileNameService,
         { provide: ReviewPlayerConfigService, useValue: config },
         { provide: TpSkillMasterNamesService, useValue: defaultMasters() },
       ],
@@ -628,5 +641,27 @@ describe('TpRawPlayerSkillsIndexService', () => {
     const service = await makeService({});
 
     expect(await service.sppFiguresFor('abc')).toBeNull();
+  });
+
+  it('does not index a roster file under teams/, which is not an era', async () => {
+    const service = await makeService({}, defaultMasters(), {
+      'teams/BB2020/rosters_1.json': {
+        lineUps: [
+          {
+            id: 77,
+            ma: 6,
+            st: 3,
+            ag: 3,
+            pa: 4,
+            av: 9,
+            skills: [
+              { skillMasterId: 261, skillMaster: { id: 261, name: 'Guard' } },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(await service.advancementsFor('77')).toBeNull();
   });
 });

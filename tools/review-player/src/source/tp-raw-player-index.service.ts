@@ -1,16 +1,10 @@
-import type { Dirent } from 'node:fs';
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
-
-/** `match_<id>.json` — TP's per-match file, one per competition directory. */
-const MATCH_FILENAME = /^match_(\d+)\.json$/;
-
-/** `rosters_<id>.json` — TP's per-team roster file, one per team per competition. */
-const ROSTERS_FILENAME = /^rosters_(\d+)\.json$/;
 
 /** The two rosters a TP `match_<id>.json` embeds its line-ups under. */
 const INSCRIPTION_KEYS = ['inscriptionLocal', 'inscriptionVisitor'] as const;
@@ -210,7 +204,11 @@ interface MatchSource {
 export class TpRawPlayerIndexService {
   private index: Promise<Map<number, Accumulator>> | undefined;
 
-  constructor(private readonly config: ReviewPlayerConfigService) {}
+  constructor(
+    private readonly config: ReviewPlayerConfigService,
+    private readonly tpFiles: TpFilesReaderService,
+    private readonly names: TpFileNameService,
+  ) {}
 
   async aggregateFor(externalId: string): Promise<TpRawPlayerAggregate | null> {
     const lineUpId = Number(externalId);
@@ -225,18 +223,23 @@ export class TpRawPlayerIndexService {
     const players = new Map<number, Accumulator>();
     const characteristics = new Map<number, RawCharacteristics>();
     const dataDir = this.config.getDataDir('tp');
-    for (const era of await this.subdirectories(dataDir)) {
-      const eraDir = join(dataDir, era.name);
-      for (const competition of await this.subdirectories(eraDir)) {
-        const competitionDir = join(eraDir, competition.name);
-        for (const entry of await this.entries(competitionDir)) {
-          if (entry.isFile()) {
-            await this.absorbFile({
-              players,
-              characteristics,
-              file: { dir: competitionDir, name: entry.name },
-            });
-          }
+    // Listings are sorted, so which of two equal snapshots wins is reproducible.
+    for (const era of await this.tpFiles.listEras(dataDir)) {
+      for (const competition of await this.tpFiles.listCompetitions(
+        dataDir,
+        era,
+      )) {
+        for (const name of await this.tpFiles.listFiles(
+          dataDir,
+          era,
+          competition,
+        )) {
+          await this.absorbFile({
+            dataDir,
+            players,
+            characteristics,
+            file: { era, competition, name },
+          });
         }
       }
     }
@@ -244,36 +247,32 @@ export class TpRawPlayerIndexService {
     return players;
   }
 
-  private async readJsonFile(path: string): Promise<unknown> {
-    try {
-      return JSON.parse(await readFile(path, 'utf8')) as unknown;
-    } catch {
-      return null;
-    }
-  }
-
   /** One directory entry: a match file, a roster file, or neither. */
   private async absorbFile(input: {
+    dataDir: string;
     players: Map<number, Accumulator>;
     characteristics: Map<number, RawCharacteristics>;
-    file: { dir: string; name: string };
+    file: { era: string; competition: string; name: string };
   }): Promise<void> {
-    const { players, characteristics, file } = input;
-    const matched = MATCH_FILENAME.exec(file.name);
-    const rosterMatch = ROSTERS_FILENAME.exec(file.name);
-    if (matched === null && rosterMatch === null) {
+    const { dataDir, players, characteristics, file } = input;
+    const kind = this.names.classify(file.name);
+    if (kind.kind !== 'match' && kind.kind !== 'rosters') {
       return;
     }
-    const body = await this.readJsonFile(join(file.dir, file.name));
+    const body = await this.readOrNull(dataDir, [
+      file.era,
+      file.competition,
+      file.name,
+    ]);
     if (body === null) {
       return;
     }
-    if (matched !== null) {
+    if (kind.kind === 'match') {
       this.absorb(players, body, {
-        matchId: Number(matched[1]),
+        matchId: Number(kind.matchId),
         fileName: file.name,
       });
-    } else if (rosterMatch !== null) {
+    } else {
       this.absorbRoster(characteristics, body, file.name);
     }
   }
@@ -418,8 +417,8 @@ export class TpRawPlayerIndexService {
    *
    * Two snapshots that disagree while sharing the exact same
    * `totalStarPlayerPoints` are an anomaly TP gives no further signal to
-   * resolve — `entries()` sorts the scan deterministically so which one wins
-   * is at least reproducible across runs and platforms, but it is still an
+   * resolve — the sorted file listings make which one wins
+   * at least reproducible across runs and platforms, but it is still an
    * arbitrary pick, not a verified "more recent" one. This tool surfaces
    * disagreements between the raw and imported sides; it does not also try to
    * arbitrate between two raw sources that disagree with each other.
@@ -608,26 +607,15 @@ export class TpRawPlayerIndexService {
       : undefined;
   }
 
-  private async subdirectories(dir: string): Promise<Dirent[]> {
-    return (await this.entries(dir)).filter((entry) => entry.isDirectory());
-  }
-
-  /**
-   * Directory entries, or none when the directory is absent — sorted by name
-   * so the scan order (and, with it, which of two equal-`totalStarPlayerPoints`
-   * roster snapshots for the same line-up id wins a tie) is reproducible
-   * across platforms and runs, rather than whatever order the filesystem
-   * happens to return. `readdir` itself makes no ordering guarantee.
-   */
-  private async entries(dir: string): Promise<Dirent[]> {
+  /** One file's JSON, or null when it is missing or unparseable. */
+  private async readOrNull(
+    dataDir: string,
+    segments: readonly string[],
+  ): Promise<unknown> {
     try {
-      const entries = await readdir(dir, { withFileTypes: true });
-      return entries.sort((a, b) => a.name.localeCompare(b.name));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
-      throw error;
+      return (await this.tpFiles.readJson(dataDir, segments))?.content ?? null;
+    } catch {
+      return null;
     }
   }
 }
