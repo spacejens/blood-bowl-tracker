@@ -8,7 +8,8 @@ the tool is configured and run, and [Data layout](index.md#data-layout) for how
 the batches are laid out on disk.
 
 Files below are named by the batch that holds them; batches 001 and 002 are
-historical and never edited (see [Batches](batches.md)).
+historical and never edited (with the exceptions [Batches](batches.md)
+lists).
 
 ## Known batch 001 dedup files
 
@@ -17,11 +18,12 @@ records the BBL and TP importers would otherwise create as separate,
 duplicate rows because the two source systems name or key the same
 real-world entity differently:
 
-- `leagues.json5` — the two real leagues, tLoEG and GBBL. This
-  file exists ahead of the BBL/TP importers so `competition-groups.json5` (see
-  below) has a league to reference. Its external ids deliberately match BBL's
-  own `tloeg.bbleague.se` convention exactly, so BBL's later league upsert
-  resolves onto these same rows instead of creating duplicates.
+- `leagues.json5` — the league catalog: the two real leagues, tLoEG and
+  GBBL, each keyed by its plain name under the `Name` system (alongside its
+  `tloeg.bbleague.se` id). The BBL and TP importers find a league by that
+  `Name` id and attach only their own source id, so the TP data imports into
+  tLoEG, the same league as BBL's tLoEG data. `competition-groups.json5` (see
+  below) references these leagues in the same batch.
 - `competition-groups.json5` — the curated catalog of competition groups:
   the recurring tracks (Major Season, Minor Season, Chaos Cup,
   Ogretoberfest, and so on) that `competitions.json5` and `trophies.json5`
@@ -30,11 +32,17 @@ real-world entity differently:
   the sole source of the catalog.
   Every group also carries a required `namePattern` that TP competition
   import uses to classify a brand-new instance automatically.
-- `eras.json5` — the 8 eras the BBL and TP configs define, copied verbatim
-  from `tools/import-bbl/import-bbl-config.json5` and
-  `tools/import-tp/import-tp-config.json5`, which remain authoritative. It
-  exists here purely so `competitions.json5` in the same batch has an era to
-  reference.
+- `eras.json5` — the authoritative era catalog: the 8 eras' names, league,
+  dates and rules sets, each era keyed by its plain name under the `Name`
+  system. The order of an era's rules sets matters: where one has to be
+  chosen, the last-listed one is preferred. The BBL and TP importer configs
+  hold only era names and source-specific mapping, and find each era by its
+  `Name` id. `competitions.json5` in the same batch references these eras.
+- `rules-sets.json5` — the rules-set catalog: the six rules sets CRP, CRP+,
+  BB2016, BB2020, DB2021 and BB2025, each keyed under the `Name` system by its
+  **bare name** (`CRP`, not `name:crp`), with the format of each position
+  characteristic. The BBL and TP importers attach their own source ids to
+  these rows. No other file in the batch declares rules sets.
 - `competitions.json5` — every known competition instance, each with its
   curated [competition group](index.md#competition-groups) and the real
   data needed to create the row. Classification has to happen
@@ -61,10 +69,9 @@ real-world entity differently:
   deliberately left unmerged rather than guessed at, for the same reason
   `races-and-positions.json5` leaves ambiguous position renames unpaired: a
   wrong guess would silently conflate two different star players' rows.
-- `spp-award-values.json5` — the standardised SPP award table, plus the
-  rules-set rows it references. It declares rules sets under
-  the `Name` system by their **bare name** (`CRP`, not `name:crp`), so the
-  BBL/TP importers' later upserts match the same rows.
+- `spp-award-values.json5` — the standardised SPP award table. It declares no
+  rules sets itself: it references the ones `rules-sets.json5` declares, by
+  bare name under the `Name` system.
 - `trophies.json5` — the curated catalog of known trophies,
   split between team and player recipients, from BBL's own `p=tt`/`p=ppr`
   legend pages plus the TP-only Ogretoberfest and the three Dungeon Bowl
@@ -253,10 +260,10 @@ downloaded data should see few or no "no curated category for rules set"
 [`skills.json5`](#known-batch-001-dedup-files) does not curate
 CRP/CRP+/BB2016 categories for every skill name — but BBL is deliberately
 excluded from writing to those three rules sets (see
-[import-bbl/file-format.md](../import-bbl/file-format.md)), and TP's own
-config (`tools/import-tp/import-tp-config.json5`) only defines `BB2020`,
-`DB2021`, and `BB2025` as rules sets, so neither importer can ever produce a
-curation-gap error for CRP, CRP+, or BB2016.
+[import-bbl/file-format.md](../import-bbl/file-format.md)), and the TP eras'
+curated rules sets in `eras.json5` (Third era, Second Dungeon Bowl era and
+Fourth era) are only `BB2020`, `DB2021` and `BB2025`, so neither importer can
+ever produce a curation-gap error for CRP, CRP+, or BB2016.
 
 The gap this error guards against is an ongoing one, not a one-time backlog:
 as `download-tp` and BBL scraping pick up new skills over time — a newly

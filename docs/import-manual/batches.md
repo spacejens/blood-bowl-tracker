@@ -62,7 +62,8 @@ incomplete, through the `incompletePlayerFills` section; see
 The curated data as it
 stood when batches were introduced: 001 holds the records the BBL and TP
 importers should find already registered and match against, 002 the cleanup
-that needs the rows those importers create. What each file is for is
+that needs the rows those importers create. Batch 001 also holds the league,
+era and rules-set catalog. What each file is for is
 described in [Curated data files](curated-files.md).
 
 ### 003-reset-curated-names
@@ -277,12 +278,26 @@ of external ids. The importer refuses to run when an
 applied batch's content no longer matches what was recorded, and when a
 recorded batch has been renamed or removed.
 
-The one exception so far is batch 009 (see its entry). A batch that a scratch
-import cannot apply may be extended so it carries the data production already
-holds, when no later batch can do it (a fill must run before the same batch's
-repairs). Production's recorded hash is then updated once by hand, with an
-`update` that matches the batch's name and old hash, the new hash computed by
-`BatchContentHashService`.
+Two exceptions have been made. Batch 009 (see its entry) was extended so a
+scratch import can apply it. Batch 001 was extended once to carry the league,
+era and rules-set catalog the importer configs used to hold: the leagues'
+`Name` ids, each era's rules sets, and the rules sets in their own file.
+Production already held exactly that data, so only its ledger hash changed. A
+batch that a scratch import cannot apply may be extended so it carries the
+data production already holds, when no later batch can do it (a fill must run
+before the same batch's repairs). In every such case production's recorded
+hash is updated once by hand, with an update that matches the batch's name and
+old hash, the new hash computed by `BatchContentHashService`:
+
+```sql
+UPDATE game_data.manual_import_batches
+SET content_hash = '<new hash>'
+WHERE name = '<batch name>' AND content_hash = '<old hash>';
+```
+
+The update must land before the next `apply` against that database, or the
+run fails on the changed batch. A database restored from a backup taken before
+the update brings the old hash with it and needs the same update.
 
 Editing comments or formatting in an applied batch is harmless: the recorded
 content hash is computed over the parsed content (SHA-256 of its canonical

@@ -1,26 +1,28 @@
-// The two real leagues.
+// The league catalog: the two real leagues.
 //
-// These exist here, ahead of the BBL and TP importers, because
-// competition-groups.json5 needs a league to reference and it runs in this
-// same batch -- ahead of tools/import-bbl's own config-driven league creation.
-//
-// The external id deliberately matches BBL's own convention exactly
-// (BblLeaguesImportService keys a league by its plain name under the
-// `tloeg.bbleague.se` system), so BBL's later upsert resolves onto these very
-// rows and adds its "Name" external id to them rather than creating
-// duplicates.
+// Each league is keyed by its plain name under the synthetic "Name" system.
+// The BBL and TP importers find a league by that id and attach only their own
+// source id to it, so tLoEG is the one league that both BBL's tLoEG data and
+// the TP data import into.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
   ],
   leagues: [
     {
       name: 'tLoEG',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'tLoEG' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+        { system: 'Name', id: 'tLoEG' },
+      ],
     },
     {
       name: 'GBBL',
-      externalIds: [{ system: 'tloeg.bbleague.se', id: 'GBBL' }],
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'GBBL' },
+        { system: 'Name', id: 'GBBL' },
+      ],
     },
   ],
 }
