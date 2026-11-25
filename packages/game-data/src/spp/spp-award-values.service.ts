@@ -44,10 +44,10 @@ export interface ResolveSppValueOptions {
  * `era_rules_sets`) and the team (→ its race). That is one join chain and one
  * query instead of two, and it is the same era the match belongs to.
  *
- * An era may list several rules sets. Within every era configured today
- * (`tools/import-bbl/import-bbl-config.json5`,
- * `tools/import-tp/import-tp-config.json5`) all of an era's rules sets carry
- * identical SPP values, so any matching row is the right answer. A genuinely
+ * An era may list several rules sets. Within every era in the catalog
+ * (`tools/import-manual/data/batches/001-initial-seed/eras.json5`, its rules
+ * sets in `rules-sets.json5`) all of an era's rules sets carry identical SPP
+ * values, so any matching row is the right answer. A genuinely
  * mixed-value era, where an event's award would depend on which of the
  * era's rules sets it resolved to, is deliberately not modelled.
  *

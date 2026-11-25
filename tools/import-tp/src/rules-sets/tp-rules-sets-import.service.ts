@@ -32,7 +32,8 @@ export class TpRulesSetsImportService {
    * system, sending nothing else. The TP id matters: the official team lists
    * resolve a rules set by its TP external id. A rules set missing from the
    * catalog fails with the server's missing-field error, recorded for that
-   * rules set. Idempotent.
+   * rules set. A rules set whose every era failed to import is not in
+   * `erasByName`, so it gets no TP id from this step. Idempotent.
    */
   async importRulesSets(erasByName: ReadonlyMap<string, Era>): Promise<{
     result: ImportResult;

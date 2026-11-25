@@ -30,7 +30,8 @@ export class BblRulesSetsImportService {
    * step returned, in first-seen order. Each is found by its Name external id
    * and gets the same name under the BBL system, sending nothing else. A rules
    * set missing from the catalog fails with the server's missing-field error,
-   * recorded for that rules set. Idempotent.
+   * recorded for that rules set. A rules set whose every era failed to import is not in
+   * `erasByName`, so it gets no BBL id from this step. Idempotent.
    */
   async importRulesSets(erasByName: ReadonlyMap<string, Era>): Promise<{
     result: ImportResult;

@@ -211,6 +211,7 @@ export async function runSourceStandIn(
     .select({ id: eras.id })
     .from(eras)
     .where(eq(eras.name, 'Third era'));
+  if (era === undefined) throw new Error('Third era not seeded');
   const standInTeam = await client.teams.upsert({
     name: 'Stand-in Team',
     raceId: resent.raceId,

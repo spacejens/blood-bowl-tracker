@@ -53,6 +53,16 @@ To run an import against production:
    which is correct for the local config but wrong for the production one —
    the tunnel listens on `3001`.
 
+   The BBL and TP configs also hold only era names plus source-specific
+   mapping: BBL's `autoAssignByDate` flags, competition overrides and
+   player, team, match and position mapping; TP's per-era `dataSubdir` and
+   its league name (`tLoEG`). The league, era and rules-set catalog (names,
+   dates, rules sets) is curated in `tools/import-manual`'s batch 001, so
+   every era and league name in these configs must be one that batch
+   curates, and batch 001 must be applied before BBL or TP runs. An older
+   config that still has `identity.rulesSets`, `dates.startDate` or
+   `dates.endDate` keys still loads; those keys are ignored.
+
 2. Build the tools:
 
    ```bash

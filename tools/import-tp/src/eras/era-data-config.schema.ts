@@ -8,8 +8,8 @@ const NOT_A_NON_EMPTY_ERAS_ARRAY = 'must be a non-empty array of eras.';
  * One entry of `league.eras`: the era's curated name and the directory its
  * downloaded files live in. The era's dates and rules sets are the curated
  * catalog's (batch 001), not this config's. Neither object is strict: zod
- * strips unknown keys, so a config that still carries an era's
- * `identity.rulesSets` or `dates` keeps loading, with those keys dropped.
+ * strips unknown keys, so an era's `identity.rulesSets` or `dates` keys in a
+ * config are accepted and dropped.
  * Messages carry only the tail -- ConfigErrorMessageService prepends the
  * `TP_ERAS[i]` location.
  */

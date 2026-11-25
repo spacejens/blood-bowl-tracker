@@ -42,12 +42,14 @@ tools/import-manual-planner-cli/data
 tools/production-ops-cli/data
 
 # tools/import-bbl real configs, local and production (the committed template
-# for both is import-bbl-config.example.json5)
+# for both is import-bbl-config.example.json5). They hold connection settings,
+# era names and source-specific mapping; the league, era and rules-set catalog
+# is curated in tools/import-manual's batch 001.
 tools/import-bbl/import-bbl-config.json5
 tools/import-bbl/import-bbl-config.production.json5
 
 # tools/import-tp real configs, local and production (the committed template
-# for both is import-tp-config.example.json5)
+# for both is import-tp-config.example.json5). Same split as import-bbl's.
 tools/import-tp/import-tp-config.json5
 tools/import-tp/import-tp-config.production.json5
 
