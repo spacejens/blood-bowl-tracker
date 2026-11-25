@@ -369,7 +369,8 @@ the rest of these nested roster bodies remains unhandled), `scoreResume
 `scheduledDate` (and `scoreResume.startInstant`, which tracks it closely) is
 the closest thing to "when the match was actually played" anywhere in TP's
 data; there is no tournament- or era-level date-boundary field, so the era
-date ranges configured in `import-tp-config.json5` were derived by scanning
-every `match_*.json` under each era's directory for the earliest/latest
-`scheduledDate` (a one-off manual step during initial config setup, not
-something the import tool itself does).
+date ranges, which live in batch 001's `eras.json5`
+(`tools/import-manual/data/batches/001-initial-seed`), were derived by
+scanning every `match_*.json` under each era's directory for the earliest/latest
+`scheduledDate` (a one-off manual step, not something the import tool itself
+does).

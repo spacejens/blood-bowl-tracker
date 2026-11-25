@@ -1,4 +1,5 @@
 import type {
+  Era,
   RulesSet,
   UpsertRulesSet,
 } from '@blood-bowl-tracker/api-contract';
@@ -7,19 +8,15 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
-  NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
   RulesSetsImportService,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import { EraDataConfigService } from '../eras/era-data-config.service';
-
 @Injectable()
 export class TpRulesSetsImportService {
   constructor(
-    private readonly eraConfig: EraDataConfigService,
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly nameExternalId: NameExternalIdService,
@@ -27,13 +24,17 @@ export class TpRulesSetsImportService {
   ) {}
 
   /**
-   * Import the rule sets the TP league played under. Rule sets are not named in
-   * TP's data (only an opaque numeric code is), so their names are the distinct
-   * rulesSets values across the configured eras. Each is keyed by its name
-   * under both the TP and Name external systems. The eras import resolves
-   * each rule set's id itself, server-side, by external id. Idempotent.
+   * Attach the TP external id to every rules set the TP eras played under.
+   * Rules sets are not named in TP's data (only an opaque numeric code is),
+   * and are curated (batch 001): their names are the distinct `rulesSetNames`
+   * across the curated eras the eras step returned, in first-seen order. Each
+   * is found by its Name external id and gets the same name under the TP
+   * system, sending nothing else. The TP id matters: the official team lists
+   * resolve a rules set by its TP external id. A rules set missing from the
+   * catalog fails with the server's missing-field error, recorded for that
+   * rules set. Idempotent.
    */
-  async importRulesSets(): Promise<{
+  async importRulesSets(erasByName: ReadonlyMap<string, Era>): Promise<{
     result: ImportResult;
     /**
      * Every rules set this step upserted, keyed by name, carrying the five
@@ -48,28 +49,9 @@ export class TpRulesSetsImportService {
     const errors: ImportError[] = [];
     const rulesSetsByName = new Map<string, RulesSet>();
 
-    let names: string[];
-    try {
-      names = [
-        ...new Set(this.eraConfig.getEras().flatMap((e) => e.rulesSets)),
-      ];
-    } catch (error) {
-      errors.push(
-        this.importResults.error({
-          item: {
-            externalSystems: [
-              TP_EXTERNAL_SYSTEM_NAME,
-              NAME_EXTERNAL_SYSTEM_NAME,
-            ],
-          },
-          message: error instanceof Error ? error.message : String(error),
-        }),
-      );
-      return {
-        result: this.importResults.result({ imported, errors }),
-        rulesSetsByName,
-      };
-    }
+    const names = [
+      ...new Set([...erasByName.values()].flatMap((e) => e.rulesSetNames)),
+    ];
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
@@ -86,13 +68,12 @@ export class TpRulesSetsImportService {
 
     for (const name of names) {
       const rulesSetData: UpsertRulesSet = {
-        name,
         externalIds: [
-          { externalSystemId: tpSystemId, externalId: name },
           {
             externalSystemId: nameSystemId,
             externalId: this.nameExternalId.forRulesSet(name),
           },
+          { externalSystemId: tpSystemId, externalId: name },
         ],
       };
       const rulesSet = await this.rulesSetsImport.upsert(rulesSetData, errors);

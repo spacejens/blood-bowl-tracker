@@ -11,16 +11,10 @@ import {
 } from './era-data-config.schema';
 
 export interface EraDataConfig {
-  /** The era's display name in the database (identity.name). */
+  /** The era's curated name in batch 001's catalog (identity.name). */
   name: string;
   /** The subdirectory under dataDir holding this era's TP files. */
   dataSubdir: string;
-  /** Rule set names this era spans, in chronological order (non-empty). */
-  rulesSets: string[];
-  /** ISO YYYY-MM-DD start date (required). */
-  startDate: string;
-  /** ISO YYYY-MM-DD end date; omitted for an era still ongoing. */
-  endDate?: string;
 }
 
 @Injectable()
@@ -32,10 +26,10 @@ export class EraDataConfigService {
 
   /**
    * The eras to import, supplied via `league.eras` in import-tp-config.json5.
-   * Each entry maps an era's identity (name + rule sets) and dates to the data
-   * subdirectory holding its downloaded TP files. Rule sets and dates are not
-   * present in TP's data, so they are config-supplied (same as import-bbl).
-   * Names and subdirs must each be unique across all entries.
+   * Each entry maps an era's curated name to the data subdirectory holding
+   * its downloaded TP files. The era's dates and rules sets are curated in
+   * batch 001, so the config does not carry them. Names and subdirs must
+   * each be unique across all entries.
    */
   getEras(): EraDataConfig[] {
     const league = configGroupSchema.parse(this.config.get('league'));
@@ -44,8 +38,7 @@ export class EraDataConfigService {
       throw new Error(
         'league.eras is not set in import-tp-config.json5. Set it to an ' +
           'array of the eras the league played through, e.g. ' +
-          "[{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, " +
-          "dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }].",
+          "[{ identity: { name: 'Fourth era' }, dataSubdir: 'fourth-era' }].",
       );
     }
     const shell = eraDataShellSchema.safeParse(raw);
@@ -65,11 +58,6 @@ export class EraDataConfigService {
       return {
         name: parsed.data.identity.name,
         dataSubdir: parsed.data.dataSubdir,
-        rulesSets: parsed.data.identity.rulesSets,
-        startDate: parsed.data.dates.startDate,
-        ...(parsed.data.dates.endDate !== undefined
-          ? { endDate: parsed.data.dates.endDate }
-          : {}),
       };
     });
 

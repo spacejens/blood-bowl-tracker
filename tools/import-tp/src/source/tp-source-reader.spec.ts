@@ -67,8 +67,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const files = await collect(reader.files());
@@ -94,8 +92,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const [file] = await collect(reader.files());
@@ -112,8 +108,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const [file] = await collect(reader.files());
@@ -131,8 +125,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const files = await collect(reader.files());
@@ -153,8 +145,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const files = await collect(reader.files());
@@ -174,8 +164,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const seen: string[] = [];
@@ -198,8 +186,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const seen: string[] = [];
@@ -221,8 +207,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     const seen: string[] = [];
@@ -238,8 +222,6 @@ describe('TpSourceReader', () => {
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
       },
     ]);
     await expect(collect(reader.files())).rejects.toThrow(
@@ -250,8 +232,6 @@ describe('TpSourceReader', () => {
   const fourthEra: EraDataConfig = {
     name: 'Fourth era',
     dataSubdir: 'fourth-era',
-    rulesSets: ['BB2020'],
-    startDate: '2020-11-28',
   };
 
   it('never surfaces the teams directory, even alongside configured eras', async () => {

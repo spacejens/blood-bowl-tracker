@@ -34,14 +34,14 @@ import { SkillMasterNameCollectionService } from './source/skill-master-name-col
 import { TpMissingTrophyAwardsImportService } from './trophy-awards/tp-missing-trophy-awards-import.service';
 
 async function run(app: INestApplicationContext): Promise<ImportRunSummary> {
-  // Bootstrap order still matters: the league and rule sets must be
-  // upserted before eras, which resolve both server-side, by external id,
-  // against whatever these two prior steps just wrote.
+  // The league, eras and rules sets are curated (batch 001); these steps only
+  // attach TP's ids to them. The eras step answers with the curated eras, so
+  // it runs before the rules-sets step, which reads their rules-set names.
   const leagueOutcome = await app.get(TpLeaguesImportService).importLeague();
+  const eraOutcome = await app.get(TpErasImportService).importEras();
   const rulesSetsOutcome = await app
     .get(TpRulesSetsImportService)
-    .importRulesSets();
-  const eraOutcome = await app.get(TpErasImportService).importEras();
+    .importRulesSets(eraOutcome.erasByName);
 
   // Every competition directory is scanned once, up front: its tournament,
   // its era and its parsed matches feed the match-snapshot pass below, long
@@ -280,8 +280,8 @@ async function run(app: INestApplicationContext): Promise<ImportRunSummary> {
 
   const results = [
     leagueOutcome.result,
-    rulesSetsOutcome.result,
     eraOutcome.result,
+    rulesSetsOutcome.result,
     competitionSources.result,
     coachOutcome.result,
     rosterCollectionResult,

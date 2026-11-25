@@ -8,18 +8,10 @@ import { ImportTpConfigService } from '../config/import-tp-config.service';
 import { EraDataConfigService } from './era-data-config.service';
 
 const validLeague = {
-  name: 'tLoEGBBL',
+  name: 'tLoEG',
   eras: [
-    {
-      identity: { name: 'Third era', rulesSets: ['LRB6'] },
-      dates: { startDate: '2013-01-01', endDate: '2016-12-31' },
-      dataSubdir: 'third-era',
-    },
-    {
-      identity: { name: 'Fourth era', rulesSets: ['BB2020'] },
-      dates: { startDate: '2020-11-28' },
-      dataSubdir: 'fourth-era',
-    },
+    { identity: { name: 'Third era' }, dataSubdir: 'third-era' },
+    { identity: { name: 'Fourth era' }, dataSubdir: 'fourth-era' },
   ],
 };
 
@@ -50,19 +42,24 @@ describe('EraDataConfigService', () => {
   it('parses a valid league.eras array into a flat shape', () => {
     withLeague(validLeague);
     expect(service.getEras()).toEqual([
-      {
-        name: 'Third era',
-        dataSubdir: 'third-era',
-        rulesSets: ['LRB6'],
-        startDate: '2013-01-01',
-        endDate: '2016-12-31',
-      },
-      {
-        name: 'Fourth era',
-        dataSubdir: 'fourth-era',
-        rulesSets: ['BB2020'],
-        startDate: '2020-11-28',
-      },
+      { name: 'Third era', dataSubdir: 'third-era' },
+      { name: 'Fourth era', dataSubdir: 'fourth-era' },
+    ]);
+  });
+
+  it('still loads an era carrying the stale rulesSets and dates keys, ignoring them', () => {
+    withLeague({
+      name: 'tLoEG',
+      eras: [
+        {
+          identity: { name: 'Third era', rulesSets: ['LRB6'] },
+          dates: { startDate: '2013-01-01', endDate: '2016-12-31' },
+          dataSubdir: 'third-era',
+        },
+      ],
+    });
+    expect(service.getEras()).toEqual([
+      { name: 'Third era', dataSubdir: 'third-era' },
     ]);
   });
 
@@ -86,13 +83,7 @@ describe('EraDataConfigService', () => {
   it('throws when identity is not an object', () => {
     withLeague({
       name: 'x',
-      eras: [
-        {
-          identity: 'x',
-          dates: { startDate: '2013-01-01' },
-          dataSubdir: 'third-era',
-        },
-      ],
+      eras: [{ identity: 'x', dataSubdir: 'third-era' }],
     });
     expect(() => service.getEras()).toThrow(
       'TP_ERAS[0].identity must be an object',
@@ -102,93 +93,17 @@ describe('EraDataConfigService', () => {
   it('throws when identity.name is empty', () => {
     withLeague({
       name: 'x',
-      eras: [
-        {
-          identity: { name: '', rulesSets: ['LRB6'] },
-          dates: { startDate: '2013-01-01' },
-          dataSubdir: 'third-era',
-        },
-      ],
+      eras: [{ identity: { name: '' }, dataSubdir: 'third-era' }],
     });
     expect(() => service.getEras()).toThrow(
       'TP_ERAS[0].identity.name must be a non-empty string',
     );
   });
 
-  it('throws when identity.rulesSets is missing or empty', () => {
-    withLeague({
-      name: 'x',
-      eras: [
-        {
-          identity: { name: 'Third era', rulesSets: [] },
-          dates: { startDate: '2013-01-01' },
-          dataSubdir: 'third-era',
-        },
-      ],
-    });
-    expect(() => service.getEras()).toThrow(
-      'TP_ERAS[0].identity.rulesSets must be a non-empty array of non-empty strings',
-    );
-  });
-
-  it('throws when dates is not an object', () => {
-    withLeague({
-      name: 'x',
-      eras: [
-        {
-          identity: { name: 'Third era', rulesSets: ['LRB6'] },
-          dates: null,
-          dataSubdir: 'third-era',
-        },
-      ],
-    });
-    expect(() => service.getEras()).toThrow(
-      'TP_ERAS[0].dates must be an object',
-    );
-  });
-
-  it('throws when dates.startDate is missing or not an ISO date', () => {
-    withLeague({
-      name: 'x',
-      eras: [
-        {
-          identity: { name: 'Third era', rulesSets: ['LRB6'] },
-          dates: { startDate: '01-01-2013' },
-          dataSubdir: 'third-era',
-        },
-      ],
-    });
-    expect(() => service.getEras()).toThrow(
-      'TP_ERAS[0].dates.startDate must be an ISO date (YYYY-MM-DD)',
-    );
-  });
-
-  it('throws when dates.endDate is present but not an ISO date', () => {
-    withLeague({
-      name: 'x',
-      eras: [
-        {
-          identity: { name: 'Third era', rulesSets: ['LRB6'] },
-          dates: { startDate: '2013-01-01', endDate: 'nope' },
-          dataSubdir: 'third-era',
-        },
-      ],
-    });
-    expect(() => service.getEras()).toThrow(
-      'TP_ERAS[0].dates.endDate must be an ISO date (YYYY-MM-DD) when present',
-    );
-  });
-
   it('throws when dataSubdir is empty', () => {
     withLeague({
       name: 'x',
-      eras: [
-        {
-          identity: { name: 'Third era', rulesSets: ['LRB6'] },
-          dates: { startDate: '2013-01-01' },
-          dataSubdir: '',
-        },
-      ],
+      eras: [{ identity: { name: 'Third era' }, dataSubdir: '' }],
     });
     expect(() => service.getEras()).toThrow(
       'TP_ERAS[0].dataSubdir must be a non-empty string',
@@ -199,16 +114,8 @@ describe('EraDataConfigService', () => {
     withLeague({
       name: 'x',
       eras: [
-        {
-          identity: { name: 'Third era', rulesSets: ['LRB6'] },
-          dates: { startDate: '2013-01-01' },
-          dataSubdir: 'third-era',
-        },
-        {
-          identity: { name: 'Third era', rulesSets: ['LRB6'] },
-          dates: { startDate: '2016-01-01' },
-          dataSubdir: 'other',
-        },
+        { identity: { name: 'Third era' }, dataSubdir: 'third-era' },
+        { identity: { name: 'Third era' }, dataSubdir: 'other' },
       ],
     });
     expect(() => service.getEras()).toThrow(
@@ -220,16 +127,8 @@ describe('EraDataConfigService', () => {
     withLeague({
       name: 'x',
       eras: [
-        {
-          identity: { name: 'Third era', rulesSets: ['LRB6'] },
-          dates: { startDate: '2013-01-01' },
-          dataSubdir: 'third-era',
-        },
-        {
-          identity: { name: 'Other', rulesSets: ['LRB6'] },
-          dates: { startDate: '2016-01-01' },
-          dataSubdir: 'third-era',
-        },
+        { identity: { name: 'Third era' }, dataSubdir: 'third-era' },
+        { identity: { name: 'Other' }, dataSubdir: 'third-era' },
       ],
     });
     expect(() => service.getEras()).toThrow(

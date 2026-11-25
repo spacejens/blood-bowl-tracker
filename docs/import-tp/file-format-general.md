@@ -39,9 +39,11 @@ rule-set codes are — and are not — used. See
   competitions, `match.matchId` for matches, roster `id` for teams,
   `coachTpId` for coaches, `player.id` (the line-up id) for players,
   `lineUpMasterId` for positions and `skillMasterId` for skills.
-  Era and rule-set identity are fully operator-config-supplied (see
-  [index.md](./index.md)), since TP's data carries no human-readable name for
-  either.
+  Era and rule-set identity are curated in batch 001
+  (`tools/import-manual/data/batches/001-initial-seed`), not supplied by the
+  config, since TP's data carries no human-readable name for either. The
+  config names only which curated era each data subdirectory holds (see
+  [index.md](./index.md)).
 - `tournament.ruleSet` (and the same field mirrored on `match` and `rosters`
   bodies) is an **opaque numeric code** with no name anywhere in the API
   response — e.g. `20` for `third-era`, `21` for `second-dungeon-bowl-era`,

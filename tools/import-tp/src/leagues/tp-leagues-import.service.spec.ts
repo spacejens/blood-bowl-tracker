@@ -89,11 +89,11 @@ async function makeService({
 }
 
 describe('TpLeaguesImportService', () => {
-  it('upserts the league under the TP and Name external systems', async () => {
+  it('attaches the TP id to the curated league, found by its Name id, sending no name', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsert = vi.fn().mockResolvedValue({ id: 10, name: 'tLoEGBBL' });
+    const upsert = vi.fn().mockResolvedValue({ id: 10, name: 'tLoEG' });
     const { service, importResults } = await makeService({
-      getLeagueName: () => 'tLoEGBBL',
+      getLeagueName: () => 'tLoEG',
       bootstrap,
       upsert,
     });
@@ -107,16 +107,43 @@ describe('TpLeaguesImportService', () => {
       { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
+    // The Name id is batch 001's, so the TP league lands on the curated
+    // tLoEG row whether or not the BBL importer ran first.
     expect(upsert).toHaveBeenCalledWith(
       {
-        name: 'tLoEGBBL',
         externalIds: [
-          { externalSystemId: 1, externalId: 'tLoEGBBL' },
-          { externalSystemId: 2, externalId: 'tLoEGBBL' },
+          { externalSystemId: 2, externalId: 'tLoEG' },
+          { externalSystemId: 1, externalId: 'tLoEG' },
         ],
       },
       expect.any(Array),
     );
+  });
+
+  it('keeps only the upsert error for a league missing from the catalog', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const missingField = {
+      item: { externalIds: [] },
+      message: 'Failed to import league "Unknown": name is required',
+    };
+    const upsert = vi
+      .fn()
+      .mockImplementation((_data: unknown, errors: unknown[]) => {
+        errors.push(missingField);
+        return Promise.resolve(undefined);
+      });
+    const { service, importResults } = await makeService({
+      getLeagueName: () => 'Unknown',
+      bootstrap,
+      upsert,
+    });
+
+    await service.importLeague();
+
+    expect(resultArgs(importResults)).toEqual({
+      imported: 0,
+      errors: [missingField],
+    });
   });
 
   it('records one error and imports nothing when the league name is unset', async () => {
@@ -164,7 +191,7 @@ describe('TpLeaguesImportService', () => {
     });
     const upsert = vi.fn();
     const { service, importResults } = await makeService({
-      getLeagueName: () => 'tLoEGBBL',
+      getLeagueName: () => 'tLoEG',
       bootstrap,
       upsert,
     });
@@ -180,32 +207,11 @@ describe('TpLeaguesImportService', () => {
     expect(upsert).not.toHaveBeenCalled();
   });
 
-  it('reports zero imported when the league upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsert = vi
-      .fn()
-      .mockImplementation((_data: unknown, errors: { message: string }[]) => {
-        errors.push({ message: 'league boom' });
-        return Promise.resolve(undefined);
-      });
-    const { service, importResults } = await makeService({
-      getLeagueName: () => 'tLoEGBBL',
-      bootstrap,
-      upsert,
-    });
-
-    await service.importLeague();
-
-    const { imported, errors } = resultArgs(importResults);
-    expect(imported).toBe(0);
-    expect(errors).toHaveLength(1);
-  });
-
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsert = vi.fn().mockResolvedValue({ id: 10, name: 'tLoEGBBL' });
+    const upsert = vi.fn().mockResolvedValue({ id: 10, name: 'tLoEG' });
     const { service } = await makeService({
-      getLeagueName: () => 'tLoEGBBL',
+      getLeagueName: () => 'tLoEG',
       bootstrap,
       upsert,
     });
