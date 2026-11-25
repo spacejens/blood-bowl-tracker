@@ -115,6 +115,22 @@ describe('TpFilesReaderService', () => {
       expect(await service.listTeamsFiles(dir, 'BB2025')).toEqual([]);
     });
 
+    it('lists rules sets and their files sorted', async () => {
+      mkdirSync(join(dir, 'teams', 'BB2025'), { recursive: true });
+      mkdirSync(join(dir, 'teams', 'BB2020'));
+      writeFileSync(join(dir, 'teams', 'BB2020', 'zzz.json'), '{}');
+      writeFileSync(join(dir, 'teams', 'BB2020', 'aaa.json'), '{}');
+
+      expect(await service.listTeamsRulesSets(dir)).toEqual([
+        'BB2020',
+        'BB2025',
+      ]);
+      expect(await service.listTeamsFiles(dir, 'BB2020')).toEqual([
+        'aaa.json',
+        'zzz.json',
+      ]);
+    });
+
     it('lists only directories as rules sets', async () => {
       mkdirSync(join(dir, 'teams', 'BB2025'), { recursive: true });
       writeFileSync(join(dir, 'teams', 'stray.json'), '{}');
