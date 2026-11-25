@@ -3,6 +3,7 @@ import {
   type TpRoster,
   type TpRosterPlayer,
 } from '@blood-bowl-tracker/parse-tp';
+import { TpFileNameService } from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -30,6 +31,7 @@ describe('TpRosterCopyReaderService', () => {
       providers: [
         TpRosterCopyReaderService,
         { provide: RosterParserService, useValue: parser },
+        TpFileNameService,
       ],
     }).compile();
     service = moduleRef.get(TpRosterCopyReaderService);

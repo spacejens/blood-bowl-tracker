@@ -1,10 +1,4 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,6 +6,10 @@ import {
   GitRootsService,
   WriteFileService,
 } from '@blood-bowl-tracker/cli-shared';
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
@@ -52,6 +50,7 @@ describe('TpRosterSnapshotsStoreService', () => {
   let service: TpRosterSnapshotsStoreService;
   let gitRoots: MockProxy<GitRootsService>;
   let writeFile: MockProxy<WriteFileService>;
+  let tpFiles: MockProxy<TpFilesReaderService>;
   let root: string;
   let dataDir: string;
 
@@ -60,6 +59,8 @@ describe('TpRosterSnapshotsStoreService', () => {
     dataDir = join(root, 'tools/import-tp/data');
     gitRoots = mock<GitRootsService>();
     writeFile = mock<WriteFileService>();
+    tpFiles = mock<TpFilesReaderService>();
+    tpFiles.listEras.mockResolvedValue([]);
     gitRoots.resolve.mockResolvedValue({
       mainRoot: root,
       worktreeRoot: root,
@@ -70,6 +71,8 @@ describe('TpRosterSnapshotsStoreService', () => {
         TpRosterSnapshotsStoreService,
         { provide: GitRootsService, useValue: gitRoots },
         { provide: WriteFileService, useValue: writeFile },
+        { provide: TpFilesReaderService, useValue: tpFiles },
+        TpFileNameService,
       ],
     }).compile();
     service = moduleRef.get(TpRosterSnapshotsStoreService);
@@ -79,9 +82,15 @@ describe('TpRosterSnapshotsStoreService', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  function put(relative: string, text = '{}'): void {
-    mkdirSync(join(dataDir, relative, '..'), { recursive: true });
-    writeFileSync(join(dataDir, relative), text);
+  function layout(tree: Record<string, Record<string, string[]>>): void {
+    mkdirSync(dataDir, { recursive: true });
+    tpFiles.listEras.mockResolvedValue(Object.keys(tree));
+    tpFiles.listCompetitions.mockImplementation((_dir, era) =>
+      Promise.resolve(Object.keys(tree[era])),
+    );
+    tpFiles.listFiles.mockImplementation((_dir, era, competition) =>
+      Promise.resolve(tree[era][competition]),
+    );
   }
 
   it('reads the TP downloads of this checkout, resolving the root once', async () => {
@@ -92,11 +101,12 @@ describe('TpRosterSnapshotsStoreService', () => {
   });
 
   it('lists every match and roster file, sorted, and nothing else', async () => {
-    put('third-era/s29/match_2.json');
-    put('fourth-era/s30/rosters_41063.json');
-    put('fourth-era/s30/match_10.json');
-    put('teams/BB2020/rosters_masters?ruleSet=20.json');
-    put('third-era/s29/tournament_s29.json');
+    layout({
+      'third-era': { s29: ['match_2.json', 'tournament_s29.json'] },
+      'fourth-era': {
+        s30: ['rosters_41063.json', 'match_10.json', 'awards_x_awards.json'],
+      },
+    });
 
     await expect(service.listSources()).resolves.toEqual([
       {
@@ -115,39 +125,50 @@ describe('TpRosterSnapshotsStoreService', () => {
         path: join(dataDir, 'third-era/s29/match_2.json'),
       },
     ]);
+    expect(tpFiles.listEras).toHaveBeenCalledWith(dataDir);
   });
 
-  it('follows a symlinked data directory, as a worktree has', async () => {
-    const real = join(root, 'main-checkout-data');
-    mkdirSync(join(real, 'e/c'), { recursive: true });
-    writeFileSync(join(real, 'e/c/match_1.json'), '{}');
-    mkdirSync(join(dataDir, '..'), { recursive: true });
-    symlinkSync(real, dataDir);
+  it('lists neither the official-teams masters nor a rosters file under teams', async () => {
+    layout({
+      teams: {
+        BB2020: ['rosters_masters?ruleSet=20.json', 'rosters_1.json'],
+      },
+    });
+    tpFiles.listEras.mockResolvedValue([]);
 
-    const files = await service.listSources();
-
-    expect(files).toHaveLength(1);
-    expect(files[0].source).toBe('e/c/match_1.json');
+    await expect(service.listSources()).resolves.toEqual([]);
   });
 
   it('tells how to link the downloads when the data directory is missing', async () => {
     await expect(service.listSources()).rejects.toThrow(/sync-gitignored/);
   });
 
-  it('reads a source file as JSON', async () => {
-    put('e/match_1.json', '{"a":1}');
-    const [file] = await service.listSources();
+  it('reads a source file through the TP files reader', async () => {
+    tpFiles.readJson.mockResolvedValue({ path: 'p', content: { a: 1 } });
+    const file = {
+      kind: 'match' as const,
+      source: 'e/c/match_1.json',
+      path: join(dataDir, 'e/c/match_1.json'),
+    };
 
     await expect(service.readSource(file)).resolves.toEqual({ a: 1 });
+    expect(tpFiles.readJson).toHaveBeenCalledWith(dataDir, [
+      'e',
+      'c',
+      'match_1.json',
+    ]);
   });
 
-  it('names the file that is not valid JSON', async () => {
-    put('e/match_1.json', '{');
-    const [file] = await service.listSources();
+  it('names a source file that is gone', async () => {
+    tpFiles.readJson.mockResolvedValue(null);
 
-    await expect(service.readSource(file)).rejects.toThrow(
-      /match_1\.json is not valid JSON/,
-    );
+    await expect(
+      service.readSource({
+        kind: 'match',
+        source: 'e/c/match_1.json',
+        path: join(dataDir, 'e/c/match_1.json'),
+      }),
+    ).rejects.toThrow(/match_1\.json does not exist/);
   });
 
   it('writes the snapshots through WriteFileService', async () => {
@@ -211,8 +232,7 @@ describe('TpRosterSnapshotsStoreService', () => {
   });
 
   it('passes on a data directory error other than a missing one', async () => {
-    mkdirSync(join(dataDir, '..'), { recursive: true });
-    writeFileSync(dataDir, 'not a directory');
+    writeFileSync(join(root, 'tools'), 'not a directory');
 
     await expect(service.listSources()).rejects.toThrow(/ENOTDIR/);
   });

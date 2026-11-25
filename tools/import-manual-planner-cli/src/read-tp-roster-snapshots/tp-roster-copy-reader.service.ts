@@ -2,6 +2,7 @@ import {
   RosterParserService,
   type TpRoster,
 } from '@blood-bowl-tracker/parse-tp';
+import { TpFileNameService } from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 /** One (era directory, roster id) group of roster copies. */
@@ -25,8 +26,6 @@ export type ReadRosterCopyResult =
   | { kind: 'copy'; copy: TpRosterCopy }
   | { kind: 'unreadable'; location: TpRosterCopyLocation; reason: string };
 
-const ROSTER_ID = /rosters_(\d+)\.json$/u;
-
 /**
  * Reads what tells one downloaded roster copy apart from the others of its
  * roster: its era directory, roster id, players and the instant its newest
@@ -37,7 +36,10 @@ const ROSTER_ID = /rosters_(\d+)\.json$/u;
  */
 @Injectable()
 export class TpRosterCopyReaderService {
-  constructor(private readonly parser: RosterParserService) {}
+  constructor(
+    private readonly parser: RosterParserService,
+    private readonly names: TpFileNameService,
+  ) {}
 
   read(input: { source: string; content: unknown }): ReadRosterCopyResult {
     const location = this.locate(input.source);
@@ -67,9 +69,11 @@ export class TpRosterCopyReaderService {
 
   /** The group a copy belongs to, from its path alone. */
   locate(source: string): TpRosterCopyLocation {
+    const segments = source.split('/');
+    const kind = this.names.classify(segments[segments.length - 1]);
     return {
-      era: source.split('/')[0],
-      rosterId: ROSTER_ID.exec(source)?.[1] ?? source,
+      era: segments[0],
+      rosterId: kind.kind === 'rosters' ? kind.rosterId : source,
     };
   }
 }

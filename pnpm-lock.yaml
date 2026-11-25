@@ -1630,6 +1630,9 @@ importers:
       '@blood-bowl-tracker/parse-tp-feed':
         specifier: workspace:*
         version: link:../../packages/parse-tp-feed
+      '@blood-bowl-tracker/read-tp-files':
+        specifier: workspace:*
+        version: link:../../packages/read-tp-files
       '@nestjs/common':
         specifier: ^12.0.0
         version: 12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)

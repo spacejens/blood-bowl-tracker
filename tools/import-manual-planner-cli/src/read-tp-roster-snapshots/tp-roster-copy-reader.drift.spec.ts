@@ -2,6 +2,7 @@ import {
   ParseTpModule,
   RosterParserService,
 } from '@blood-bowl-tracker/parse-tp';
+import { TpFileNameService } from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -94,7 +95,7 @@ describe('TpRosterCopyReaderService against packages/parse-tp', () => {
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ParseTpModule],
-      providers: [TpRosterCopyReaderService],
+      providers: [TpRosterCopyReaderService, TpFileNameService],
     }).compile();
     reader = moduleRef.get(TpRosterCopyReaderService);
     parser = moduleRef.get(RosterParserService);

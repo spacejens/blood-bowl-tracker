@@ -1,11 +1,15 @@
-import { readdir, readFile } from 'node:fs/promises';
-import { basename, join, sep } from 'node:path';
+import { readFile, stat } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import {
   GitRootsService,
   type WriteFileResult,
   WriteFileService,
 } from '@blood-bowl-tracker/cli-shared';
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import type { TpRosterSnapshotSourceKind } from './tp-roster-snapshot-extractor.service';
@@ -20,8 +24,6 @@ export const TP_DATA_DIR = 'tools/import-tp/data';
 /** Gitignored; `tools/import-manual-planner-cli/data` is symlinked back to the main checkout. */
 export const TP_ROSTER_SNAPSHOTS_FILE =
   'tools/import-manual-planner-cli/data/tp-roster-snapshots/snapshots.json';
-
-const SOURCE_FILE = /^(match|rosters)_\d+\.json$/u;
 
 export interface TpRosterSnapshotSourceFile {
   readonly kind: TpRosterSnapshotSourceKind;
@@ -42,6 +44,8 @@ export class TpRosterSnapshotsStoreService {
   constructor(
     private readonly gitRoots: GitRootsService,
     private readonly writeFile: WriteFileService,
+    private readonly tpFiles: TpFilesReaderService,
+    private readonly names: TpFileNameService,
   ) {}
 
   async dataDir(): Promise<string> {
@@ -50,9 +54,8 @@ export class TpRosterSnapshotsStoreService {
 
   async listSources(): Promise<TpRosterSnapshotSourceFile[]> {
     const dir = await this.dataDir();
-    let names: string[];
     try {
-      names = await readdir(dir, { recursive: true });
+      await stat(dir);
     } catch (error) {
       if (this.errorCode(error) === 'ENOENT') {
         throw new Error(
@@ -63,25 +66,37 @@ export class TpRosterSnapshotsStoreService {
       }
       throw error;
     }
-    return names
-      .flatMap((name): TpRosterSnapshotSourceFile[] => {
-        const match = SOURCE_FILE.exec(basename(name));
-        if (match === null) {
-          return [];
+    const sources: TpRosterSnapshotSourceFile[] = [];
+    for (const era of await this.tpFiles.listEras(dir)) {
+      for (const competition of await this.tpFiles.listCompetitions(dir, era)) {
+        for (const filename of await this.tpFiles.listFiles(
+          dir,
+          era,
+          competition,
+        )) {
+          const kind = this.names.classify(filename).kind;
+          if (kind === 'match' || kind === 'rosters') {
+            sources.push({
+              kind: kind === 'match' ? 'match' : 'roster',
+              source: [era, competition, filename].join('/'),
+              path: join(dir, era, competition, filename),
+            });
+          }
         }
-        return [
-          {
-            kind: match[1] === 'match' ? 'match' : 'roster',
-            source: name.split(sep).join('/'),
-            path: join(dir, name),
-          },
-        ];
-      })
-      .sort((a, b) => this.compare(a.source, b.source));
+      }
+    }
+    return sources.sort((a, b) => this.compare(a.source, b.source));
   }
 
   async readSource(file: TpRosterSnapshotSourceFile): Promise<unknown> {
-    return this.parseJson(await readFile(file.path, 'utf8'), file.path);
+    const json = await this.tpFiles.readJson(
+      await this.dataDir(),
+      file.source.split('/'),
+    );
+    if (json === null) {
+      throw new Error(`${file.path} does not exist.`);
+    }
+    return json.content;
   }
 
   async writeSnapshots(snapshots: TpRosterSnapshots): Promise<WriteFileResult> {

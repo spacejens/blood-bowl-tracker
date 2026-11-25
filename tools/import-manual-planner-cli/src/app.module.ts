@@ -6,6 +6,7 @@ import {
 import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
+import { ReadTpFilesModule } from '@blood-bowl-tracker/read-tp-files';
 import { Module } from '@nestjs/common';
 
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
@@ -50,6 +51,7 @@ import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-ros
     ProductionQueryModule,
     ParseTpModule,
     ParseTpFeedModule,
+    ReadTpFilesModule,
   ],
   providers: [
     CharacteristicValidityService,
