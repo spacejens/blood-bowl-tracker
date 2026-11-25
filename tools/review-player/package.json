@@ -19,6 +19,7 @@
   "dependencies": {
     "@blood-bowl-tracker/db": "workspace:*",
     "@blood-bowl-tracker/domain-enums": "workspace:*",
+    "@blood-bowl-tracker/manual-batch": "workspace:*",
     "@blood-bowl-tracker/read-bbl-mirror": "workspace:*",
     "@blood-bowl-tracker/read-tp-files": "workspace:*",
     "@blood-bowl-tracker/review-harness": "workspace:*",

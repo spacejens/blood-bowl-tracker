@@ -1,3 +1,4 @@
+import { ManualBatchModule } from '@blood-bowl-tracker/manual-batch';
 import { BblMirrorReaderModule } from '@blood-bowl-tracker/read-bbl-mirror';
 import { ReadTpFilesModule } from '@blood-bowl-tracker/read-tp-files';
 import { ManualBatchReaderService } from '@blood-bowl-tracker/review-harness';
@@ -36,7 +37,12 @@ const SOURCES = [
 ];
 
 @Module({
-  imports: [BblMirrorReaderModule, ReadTpFilesModule, NameMatcherModule],
+  imports: [
+    BblMirrorReaderModule,
+    ManualBatchModule,
+    ReadTpFilesModule,
+    NameMatcherModule,
+  ],
   providers: SOURCES,
   exports: [...SOURCES, NameMatcherModule],
 })

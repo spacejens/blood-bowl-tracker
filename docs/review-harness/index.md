@@ -36,8 +36,9 @@ all four at once.
     in name order, pooling each top-level array section (a missing, malformed
     or non-object file counts as empty), memoized per batches directory, plus
     the later-entry-wins `latestByKey`. Used by `review-player`, `review-race`
-    and `review-star-player`. It shapes no entry: each tool still reads what a
-    curated entry means itself.
+    and `review-star-player`. The batch and file listing is
+    [manual-batch](../manual-batch/index.md)'s lenient flavour, and it still
+    shapes no entry: each tool still reads what a curated entry means itself.
 
 ## What it never owns
 
