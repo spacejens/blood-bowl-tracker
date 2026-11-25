@@ -81,15 +81,16 @@ export interface GenerateIncompletePlayerFillsResult {
 }
 
 /**
- * `generate-incomplete-player-fills`: reads production read-only, plans a
- * fill for every incomplete TP player whose data can be proven (optionally
- * from the saved TP feed reports and roster snapshots), lists the complete
- * TP players whose stored line shows a lasting stat reduction the server
- * would record, and prints or writes the batch file. Its report tells which
- * competitions were treated as ongoing, who was filled by which proof, who
- * was skipped and why, and how many repairs are listed, left out with
- * nothing to record, or left out because a database built from scratch
- * would still have the player incomplete.
+ * `generate-incomplete-player-fills`: reads the local database (a restored
+ * production backup) read-only and plans a fill for every incomplete TP
+ * player whose data can be proven (optionally from the saved TP feed reports
+ * and roster snapshots). It also lists the complete TP players whose stored
+ * line shows a lasting stat reduction the server would record, and prints or
+ * writes the batch file. Its report tells which competitions were treated as
+ * ongoing, who was filled by which proof, who was skipped and why, and how
+ * many repairs are listed, left out with nothing to record, or left out
+ * because a database built from scratch would still have the player
+ * incomplete.
  */
 @Injectable()
 export class GenerateIncompletePlayerFillsService {
