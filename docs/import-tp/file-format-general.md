@@ -18,10 +18,10 @@ rule-set codes are — and are not — used. See
   API URL, not a real query string on disk).
 - Files are JSON (unlike BBL's HTML), one JSON document per file. Encoding is
   UTF-8.
-- Filename convention: `<type>_<rest>.json`, where `type` is the text before
-  the first `_` (the whole basename minus `.json` when there's no `_`). Types
-  seen in the reference dataset: `match`, `rosters`, `tournament`, `awards`,
-  `inscriptions`.
+- Filename convention: `<type>_<rest>.json`. The importer's `type` is
+  [read-tp-files](../read-tp-files/index.md)' classification of the filename.
+  Kinds: `match`, `rosters`, `tournament`, `awards`, `inscriptions`,
+  `rosters-masters` and `other`.
 - `tournament_*` files have a base form and several suffix variants that
   share the same `tournament_` prefix but carry additional detail for one
   tournament: `tournament_<slug>.json` (base — the only variant parsed so
@@ -29,10 +29,9 @@ rule-set codes are — and are not — used. See
   `tournament_<slug>_lineup-stats.json`, `tournament_<slug>_statistics.json`,
   `tournament_<slug>_news.json`, `tournament_<slug>_clasifications?type=COACH.json`,
   `tournament_<slug>_phases?type=COACH.json`. Since TP slugs use hyphens, never
-  underscores, the base file is distinguished from its variants by a regex
-  requiring no further `_` after the `tournament_` prefix
-  (`isBaseTournamentFile` in `tp-source-reader.ts`:
-  `/^tournament_[^_]+\.json$/`).
+  underscores, the base file is the one the read-tp-files classifier gives a
+  `tournament` kind with no subpage (`isBaseTournamentFile` in
+  `tp-source-reader.ts` asks it).
 
 ## Entity identifiers
 

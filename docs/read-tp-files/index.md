@@ -26,6 +26,8 @@ It carries no [parse-tp](../parse-tp/index.md) logic, no configuration and no
 interpretation of a file's contents. Which files matter and what they mean stay
 with each consumer, so sharing this package shares no interpretation.
 
+[import-tp](../import-tp/index.md) reads its files through it.
+
 Like [read-bbl-mirror](../read-bbl-mirror/index.md), it depends on no other
 workspace package.
 

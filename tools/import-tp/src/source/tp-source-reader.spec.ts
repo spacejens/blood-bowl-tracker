@@ -2,6 +2,10 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import {
+  TpFileNameService,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -25,6 +29,8 @@ async function makeReader(
       TpSourceReader,
       { provide: SourceConfigService, useValue: sourceConfig },
       { provide: EraDataConfigService, useValue: eraConfig },
+      TpFilesReaderService,
+      TpFileNameService,
     ],
   }).compile();
   return moduleRef.get(TpSourceReader);
@@ -97,7 +103,7 @@ describe('TpSourceReader', () => {
     expect(file.era).toBe('Fourth era');
   });
 
-  it('extracts type from the whole filename when there is no underscore', async () => {
+  it('classifies a file outside the known kinds as other', async () => {
     const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
     await mkdir(compDir, { recursive: true });
     await writeFile(join(compDir, 'standings.json'), '{}');
@@ -112,7 +118,7 @@ describe('TpSourceReader', () => {
     ]);
     const [file] = await collect(reader.files());
 
-    expect(file.type).toBe('standings');
+    expect(file.type).toBe('other');
   });
 
   it('skips non-JSON files in a competition directory', async () => {
@@ -238,6 +244,59 @@ describe('TpSourceReader', () => {
     ]);
     await expect(collect(reader.files())).rejects.toThrow(
       /Era data directory not found.*Fourth era/,
+    );
+  });
+
+  const fourthEra: EraDataConfig = {
+    name: 'Fourth era',
+    dataSubdir: 'fourth-era',
+    rulesSets: ['BB2020'],
+    startDate: '2020-11-28',
+  };
+
+  it('never surfaces the teams directory, even alongside configured eras', async () => {
+    const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
+    await mkdir(compDir, { recursive: true });
+    await writeFile(join(compDir, 'match_1.json'), '{}');
+    const teamsDir = join(dir, 'teams', 'BB2020');
+    await mkdir(teamsDir, { recursive: true });
+    await writeFile(join(teamsDir, 'teams_Amazon.json'), '{}');
+
+    const reader = await makeReader(dir, [fourthEra]);
+    const files = await collect(reader.files());
+
+    expect(files.map((f) => f.filename)).toEqual(['match_1.json']);
+  });
+
+  it('rejects with the file path when a JSON file is malformed', async () => {
+    const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
+    await mkdir(compDir, { recursive: true });
+    await writeFile(join(compDir, 'match_1.json'), '{not json');
+
+    const reader = await makeReader(dir, [fourthEra]);
+
+    await expect(collect(reader.files())).rejects.toThrow(
+      join(compDir, 'match_1.json'),
+    );
+  });
+
+  it('types a tournament variant file as tournament but not a base file', async () => {
+    const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
+    await mkdir(compDir, { recursive: true });
+    await writeFile(join(compDir, 'tournament_x_coach-stats.json'), '{}');
+
+    const reader = await makeReader(dir, [fourthEra]);
+    const [file] = await collect(reader.files());
+
+    expect(file.type).toBe('tournament');
+    expect(reader.isBaseTournamentFile(file.filename)).toBe(false);
+  });
+
+  it('names the directory and era when an era directory is missing', async () => {
+    const reader = await makeReader(dir, [fourthEra]);
+
+    await expect(collect(reader.files())).rejects.toThrow(
+      `Era data directory not found: ${join(dir, 'fourth-era')} (configured for era "Fourth era").`,
     );
   });
 });

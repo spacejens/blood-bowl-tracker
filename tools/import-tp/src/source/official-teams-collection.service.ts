@@ -1,16 +1,16 @@
-import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { TpOfficialRace } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
 import { OfficialTeamsParserService } from '@blood-bowl-tracker/parse-tp';
+import {
+  TP_TEAMS_DIR,
+  TpFilesReaderService,
+} from '@blood-bowl-tracker/read-tp-files';
 import { Injectable } from '@nestjs/common';
 
 import { SourceConfigService } from './source-config.service';
-
-/** The `<dataDir>` subfolder holding one subdirectory per rules set. */
-const OFFICIAL_TEAMS_DIR = 'teams';
 
 /**
  * One official-list race, tagged with the rules set folder it was read from.
@@ -28,6 +28,7 @@ export class OfficialTeamsCollectionService {
     private readonly sourceConfig: SourceConfigService,
     private readonly parser: OfficialTeamsParserService,
     private readonly importResults: ImportResultService,
+    private readonly files: TpFilesReaderService,
   ) {}
 
   /**
@@ -43,10 +44,11 @@ export class OfficialTeamsCollectionService {
    */
   async collect(errors: ImportError[]): Promise<OfficialTeamsEntry[]> {
     const entries: OfficialTeamsEntry[] = [];
-    const teamsDir = join(this.sourceConfig.getDataDir(), OFFICIAL_TEAMS_DIR);
-    let rulesSetDirs;
+    const dataDir = this.sourceConfig.getDataDir();
+    const teamsDir = join(dataDir, TP_TEAMS_DIR);
+    let rulesSets: string[];
     try {
-      rulesSetDirs = await readdir(teamsDir, { withFileTypes: true });
+      rulesSets = await this.files.listTeamsRulesSets(dataDir);
     } catch (error) {
       errors.push(
         this.importResults.error({
@@ -59,31 +61,24 @@ export class OfficialTeamsCollectionService {
       return entries;
     }
 
-    for (const rulesSetDir of rulesSetDirs) {
-      if (!rulesSetDir.isDirectory()) {
-        continue;
-      }
-      await this.collectRulesSet({
-        dir: join(teamsDir, rulesSetDir.name),
-        rulesSet: rulesSetDir.name,
-        entries,
-        errors,
-      });
+    for (const rulesSet of rulesSets) {
+      await this.collectRulesSet({ dataDir, rulesSet, entries, errors });
     }
     return entries;
   }
 
   /** Every `*.json` file in one rules set's folder, parsed and tagged. */
   private async collectRulesSet(options: {
-    dir: string;
+    dataDir: string;
     rulesSet: string;
     entries: OfficialTeamsEntry[];
     errors: ImportError[];
   }): Promise<void> {
-    const { dir, rulesSet, entries, errors } = options;
-    let files;
+    const { dataDir, rulesSet, entries, errors } = options;
+    const dir = join(dataDir, TP_TEAMS_DIR, rulesSet);
+    let filenames: string[];
     try {
-      files = await readdir(dir, { withFileTypes: true });
+      filenames = await this.files.listTeamsFiles(dataDir, rulesSet);
     } catch (error) {
       errors.push(
         this.importResults.error({
@@ -95,23 +90,25 @@ export class OfficialTeamsCollectionService {
       );
       return;
     }
-    for (const file of files) {
-      if (!file.isFile() || !file.name.endsWith('.json')) {
-        continue;
-      }
+    for (const filename of filenames) {
       try {
-        const content: unknown = JSON.parse(
-          await readFile(join(dir, file.name), 'utf8'),
-        );
-        for (const race of this.parser.parse(content)) {
+        const file = await this.files.readJson(dataDir, [
+          TP_TEAMS_DIR,
+          rulesSet,
+          filename,
+        ]);
+        if (file === null) {
+          continue;
+        }
+        for (const race of this.parser.parse(file.content)) {
           entries.push({ race, rulesSet });
         }
       } catch (error) {
         errors.push(
           this.importResults.error({
-            item: { rulesSet, filename: file.name },
+            item: { rulesSet, filename },
             message:
-              `Could not parse official team list file "${file.name}" in ` +
+              `Could not parse official team list file "${filename}" in ` +
               `"${rulesSet}": ` +
               `${error instanceof Error ? error.message : String(error)}`,
           }),

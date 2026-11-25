@@ -151,9 +151,10 @@ other.
   enforcing unique era names and data subdirectories.
 - **SourceModule** — the reusable traversal core. `SourceConfigService`
   resolves `dataDir` against the current working directory; `TpSourceReader`
-  walks `<dataDir>/<era>/<competition>/*.json` and streams one `TpSourceFile`
-  per file (era name, competition, type, filename, JSON-parsed content),
-  keeping only one file in memory at a time. This is the pattern future
+  walks the configured eras through
+  [`packages/read-tp-files`](../read-tp-files/index.md), classifies each file
+  with its `TpFileNameService` and streams one `TpSourceFile` per file (era
+  name, competition, type, filename, JSON-parsed content), one at a time. This is the pattern future
   data-type extractors reuse.
 
 ### Leagues, rules sets, eras and coaches
