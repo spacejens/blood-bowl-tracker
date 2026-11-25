@@ -34,9 +34,8 @@ The evidence the two collectors save lives in the gitignored `tools/import-manua
 runner as production-ops-cli's `run-production-query`, one per kind of
 row. The query runner has a `tuplesOnly` mode for this: it passes `psql` its tuples-only
 flag so the output holds just the result. Each query is wrapped in
-`json_agg`, so that output is parsed as JSON. The selection repeats
-game-data's `INCOMPLETE_PLAYER_CRITERIA` in SQL, and a spec keeps the two in
-step. A competition counts as ongoing when it has a `tourplay.net` id and no end
+`json_agg`, so that output is parsed as JSON. The selection renders
+game-rules' `INCOMPLETE_PLAYER_GAPS` as SQL. A competition counts as ongoing when it has a `tourplay.net` id and no end
 date: the TP importers store an end date only once TP shows the
 competition finished, so one that has ended but is not fully imported still
 counts. No list of competition names is kept, and a run with no ongoing
@@ -60,10 +59,11 @@ gets a `lastingInjuryRepairs` section listing every complete non-star TP
 player with a stat reduction recorded in a match and none stored whose
 stored line shows a reduction the server would record (see
 [Recording lasting reductions](../import-manual/filling-missing-players.md#recording-lasting-reductions)).
-`LastingInjuryRepairSelectorService` derives each candidate's counts from
-his stored line, active characteristic increases and the rules set context
-the query resolves, the way game-data's `PlayerFillReductionsService` does,
-and leaves out every candidate with nothing to record.
+The generator works out each candidate's counts from his stored line,
+active characteristic increases and the rules set context the query
+resolves, with game-rules' `LastingReductionService`, the same rule
+game-data's `PlayerFillReductionsService` applies, and leaves out every
+candidate with nothing to record.
 `report.lastingInjuryRepairs` counts the listed players and
 `report.lastingInjuryRepairsNothingToRecord` the ones left out.
 `ScratchCompletenessService` then leaves out every repair a database built
@@ -224,19 +224,12 @@ The package depends on `@blood-bowl-tracker/domain-enums` for the status,
 characteristic-format, skill, advancement-kind and match-event enums, and
 on `@blood-bowl-tracker/parse-tp`, whose `RosterParserService` reads each
 roster copy the way the TP import does, so a copy the import drops is
-unreadable here too. `@blood-bowl-tracker/db` and
-`@blood-bowl-tracker/game-data` are dev dependencies, used only by
-drift-guard specs. Four drift-guard specs keep the tool in step with the
-code it mirrors. One keeps the SQL selection in step with
-`INCOMPLETE_PLAYER_CRITERIA`. Another runs the generator's advancement
-pricing next to game-data's own order check
-(`AdvancementOrderDeductionService`) and requires the server to accept
-exactly the spend the generator prices. The third runs the repair
-selector's reduction counts next to game-data's
-`PlayerFillReductionsService` and requires both to agree. The fourth reads
-roster copies next to parse-tp's `RosterParserService` and requires the
-same finish instant and players, or an unreadable copy where parse-tp
-rejects the file.
+unreadable here too. `@blood-bowl-tracker/game-rules` supplies the advancement pricing, lasting
+reductions, incomplete-player gaps, free-extra skills and deduction limit, so
+the tool applies the same rules as the server. One drift-guard spec reads
+roster copies next to parse-tp's `RosterParserService` and requires the same
+finish instant and players, or an unreadable copy where parse-tp rejects the
+file.
 
 ## Development
 

@@ -1,8 +1,8 @@
+import { ReportedAdvancementPricingService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { AdvancementPricingService } from './advancement-pricing.service';
 import type { FeedFitInput } from './feed-owner-fit.service';
 import { FeedOwnerFitService } from './feed-owner-fit.service';
 import { FeedSkillResolverService } from './feed-skill-resolver.service';
@@ -50,18 +50,18 @@ function fitInput(overrides: Partial<FeedFitInput> = {}): FeedFitInput {
 describe('FeedOwnerFitService', () => {
   let service: FeedOwnerFitService;
   let skills: MockProxy<FeedSkillResolverService>;
-  let pricing: MockProxy<AdvancementPricingService>;
+  let pricing: MockProxy<ReportedAdvancementPricingService>;
 
   beforeEach(async () => {
     skills = mock<FeedSkillResolverService>();
-    pricing = mock<AdvancementPricingService>();
+    pricing = mock<ReportedAdvancementPricingService>();
     skills.resolve.mockReturnValue([skillStep()]);
     pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [6], total: 6 });
     const moduleRef = await Test.createTestingModule({
       providers: [
         FeedOwnerFitService,
         { provide: FeedSkillResolverService, useValue: skills },
-        { provide: AdvancementPricingService, useValue: pricing },
+        { provide: ReportedAdvancementPricingService, useValue: pricing },
       ],
     }).compile();
     service = moduleRef.get(FeedOwnerFitService);

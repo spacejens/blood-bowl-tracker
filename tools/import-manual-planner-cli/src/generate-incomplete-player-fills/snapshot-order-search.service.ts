@@ -1,7 +1,7 @@
 import type { SkillAccess } from '@blood-bowl-tracker/domain-enums';
+import { ReportedAdvancementPricingService } from '@blood-bowl-tracker/game-rules';
 import { Injectable } from '@nestjs/common';
 
-import { AdvancementPricingService } from './advancement-pricing.service';
 import type {
   FeedSelection,
   ResolvedStep,
@@ -50,7 +50,7 @@ const SELECTIONS: readonly FeedSelection[] = ['chosen', 'random'];
  * snapshot shows neither. Each skill is primary or secondary by the
  * position's access to its category, which must be the same under every
  * rules set of the era. Every order and every assignment is priced with
- * AdvancementPricingService, so each is priced the way the server's order
+ * ReportedAdvancementPricingService, so each is priced the way the server's order
  * check prices a fill. Exactly one that fits proves the steps; none, or
  * more than one, proves nothing. A granted skill, a category mismatch or
  * rules sets that disagree end the search, since no order changes them.
@@ -75,7 +75,7 @@ const SELECTIONS: readonly FeedSelection[] = ['chosen', 'random'];
  */
 @Injectable()
 export class SnapshotOrderSearchService {
-  constructor(private readonly pricing: AdvancementPricingService) {}
+  constructor(private readonly pricing: ReportedAdvancementPricingService) {}
 
   search(input: OrderSearchInput): OrderSearchOutcome {
     const skills = this.categorised(input);

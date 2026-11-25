@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { AdvancementPricingService } from './advancement-pricing.service';
+import { ReportedAdvancementPricingService } from './reported-advancement-pricing.service';
 import {
   BB2020_COSTS,
   BB2025_COSTS,
@@ -10,25 +10,22 @@ import {
   increaseStep,
   pricingInput,
   skillStep,
-} from './pricing.test-helpers';
+} from './reported-pricing.test-helpers';
 
 const GUARD = skillStep({
   skillId: 201,
-  skillName: 'Guard',
-  nameId: 'Guard',
   selection: 'random',
   category: 'secondary',
-  reportedCost: 8,
 });
 
-describe('AdvancementPricingService', () => {
-  let service: AdvancementPricingService;
+describe('ReportedAdvancementPricingService', () => {
+  let service: ReportedAdvancementPricingService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [AdvancementPricingService],
+      providers: [ReportedAdvancementPricingService],
     }).compile();
-    service = moduleRef.get(AdvancementPricingService);
+    service = moduleRef.get(ReportedAdvancementPricingService);
   });
 
   it('prices each step by its kind at its own advancement number', () => {
@@ -97,8 +94,6 @@ describe('AdvancementPricingService', () => {
     const costs = [
       ...costRows(FIXED_COSTS),
       {
-        eraId: 4,
-        rulesSetId: 7,
         leagueId: 3,
         advancementNumber: 7,
         advancementKind: 'granted_skill' as const,
@@ -116,8 +111,6 @@ describe('AdvancementPricingService', () => {
     const costs = [
       ...costRows(BB2020_COSTS),
       {
-        eraId: 4,
-        rulesSetId: 7,
         leagueId: 3,
         advancementNumber: 7,
         advancementKind: 'granted_skill' as const,
@@ -156,8 +149,8 @@ describe('AdvancementPricingService', () => {
       service.price({
         steps: [skillStep(), GUARD],
         rulesSets: [
-          pricingInput(costRows(BB2020_COSTS, 7)),
-          pricingInput(costRows(BB2020_COSTS, 8), { rulesSetId: 8 }),
+          pricingInput(costRows(BB2020_COSTS)),
+          pricingInput(costRows(BB2020_COSTS), { rulesSetId: 8 }),
         ],
       }),
     ).toEqual({ kind: 'priced', stepCosts: [6, 8], total: 14 });
@@ -170,8 +163,8 @@ describe('AdvancementPricingService', () => {
       service.price({
         steps: [guard],
         rulesSets: [
-          pricingInput(costRows(BB2020_COSTS, 7)),
-          pricingInput(costRows(BB2025_COSTS, 8), { rulesSetId: 8 }),
+          pricingInput(costRows(BB2020_COSTS)),
+          pricingInput(costRows(BB2025_COSTS), { rulesSetId: 8 }),
         ],
       }),
     ).toEqual({ kind: 'disagree' });
@@ -182,8 +175,8 @@ describe('AdvancementPricingService', () => {
       service.price({
         steps: [GUARD],
         rulesSets: [
-          pricingInput(costRows(BB2020_COSTS, 7)),
-          pricingInput(costRows(BB2025_COSTS, 8), { rulesSetId: 8 }),
+          pricingInput(costRows(BB2020_COSTS)),
+          pricingInput(costRows(BB2025_COSTS), { rulesSetId: 8 }),
         ],
       }),
     ).toEqual({ kind: 'disagree' });
@@ -199,8 +192,6 @@ describe('AdvancementPricingService', () => {
     const costs = [
       ...costRows(BB2020_COSTS),
       {
-        eraId: 4,
-        rulesSetId: 7,
         leagueId: 3,
         advancementNumber: 1,
         advancementKind: 'chosen_primary_skill' as const,
@@ -218,8 +209,6 @@ describe('AdvancementPricingService', () => {
     const costs = [
       ...costRows(BB2020_COSTS),
       {
-        eraId: 4,
-        rulesSetId: 7,
         leagueId: 3,
         advancementNumber: 1,
         advancementKind: 'chosen_primary_skill' as const,
@@ -247,8 +236,6 @@ describe('AdvancementPricingService', () => {
       advancementKind: 'random_primary_skill' | 'random_characteristic',
       advancementNumber: number,
     ) => ({
-      eraId: 4,
-      rulesSetId: 7,
       leagueId: 5,
       advancementNumber,
       advancementKind,

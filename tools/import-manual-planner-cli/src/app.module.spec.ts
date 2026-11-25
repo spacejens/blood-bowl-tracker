@@ -14,7 +14,6 @@ import { describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
-import { AdvancementPricingService } from './generate-incomplete-player-fills/advancement-pricing.service';
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
 import { CharacteristicReplayService } from './generate-incomplete-player-fills/characteristic-replay.service';
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
@@ -29,7 +28,6 @@ import { IncompletePlayerFillPlannerService } from './generate-incomplete-player
 import { IncompletePlayerFillQueriesService } from './generate-incomplete-player-fills/incomplete-player-fill-queries.service';
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
-import { LastingInjuryRepairSelectorService } from './generate-incomplete-player-fills/lasting-injury-repair-selector.service';
 import { ManualBatchFillsStoreService } from './generate-incomplete-player-fills/manual-batch-fills-store.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
@@ -60,7 +58,6 @@ const SERVICES: readonly Type<unknown>[] = [
   DiscordRestService,
   TpFeedAdvancementParserService,
   CharacteristicValidityService,
-  AdvancementPricingService,
   PricingRulesSetsService,
   SnapshotSkillResolverService,
   SnapshotOrderSearchService,
@@ -72,7 +69,6 @@ const SERVICES: readonly Type<unknown>[] = [
   CharacteristicChangeService,
   CharacteristicReplayService,
   LastingInjuryProofService,
-  LastingInjuryRepairSelectorService,
   ManualBatchFillsStoreService,
   ScratchCompletenessService,
   FeedPlayerMatcherService,

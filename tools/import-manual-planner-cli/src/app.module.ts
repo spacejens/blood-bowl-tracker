@@ -3,12 +3,12 @@ import {
   DiscordRestModule,
   ProductionQueryModule,
 } from '@blood-bowl-tracker/cli-shared';
+import { GameRulesModule } from '@blood-bowl-tracker/game-rules';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { ParseTpFeedModule } from '@blood-bowl-tracker/parse-tp-feed';
 import { Module } from '@nestjs/common';
 
 import { AdvancementFillStageService } from './generate-incomplete-player-fills/advancement-fill-stage.service';
-import { AdvancementPricingService } from './generate-incomplete-player-fills/advancement-pricing.service';
 import { CharacteristicChangeService } from './generate-incomplete-player-fills/characteristic-change.service';
 import { CharacteristicReplayService } from './generate-incomplete-player-fills/characteristic-replay.service';
 import { CharacteristicValidityService } from './generate-incomplete-player-fills/characteristic-validity.service';
@@ -23,7 +23,6 @@ import { IncompletePlayerFillPlannerService } from './generate-incomplete-player
 import { IncompletePlayerFillQueriesService } from './generate-incomplete-player-fills/incomplete-player-fill-queries.service';
 import { InjuryFillStageService } from './generate-incomplete-player-fills/injury-fill-stage.service';
 import { LastingInjuryProofService } from './generate-incomplete-player-fills/lasting-injury-proof.service';
-import { LastingInjuryRepairSelectorService } from './generate-incomplete-player-fills/lasting-injury-repair-selector.service';
 import { ManualBatchFillsStoreService } from './generate-incomplete-player-fills/manual-batch-fills-store.service';
 import { PositionProfileService } from './generate-incomplete-player-fills/position-profile.service';
 import { PricingRulesSetsService } from './generate-incomplete-player-fills/pricing-rules-sets.service';
@@ -47,13 +46,13 @@ import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-ros
   imports: [
     CliSharedModule,
     DiscordRestModule,
+    GameRulesModule,
     ProductionQueryModule,
     ParseTpModule,
     ParseTpFeedModule,
   ],
   providers: [
     CharacteristicValidityService,
-    AdvancementPricingService,
     PricingRulesSetsService,
     SnapshotSkillResolverService,
     SnapshotOrderSearchService,
@@ -65,7 +64,6 @@ import { TpRosterSnapshotsStoreService } from './read-tp-roster-snapshots/tp-ros
     CharacteristicChangeService,
     CharacteristicReplayService,
     LastingInjuryProofService,
-    LastingInjuryRepairSelectorService,
     ManualBatchFillsStoreService,
     ScratchCompletenessService,
     FeedPlayerMatcherService,

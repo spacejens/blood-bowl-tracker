@@ -4,6 +4,7 @@ import {
   NAME_EXTERNAL_SYSTEM_NAME,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
+import { INCOMPLETE_PLAYER_GAPS } from '@blood-bowl-tracker/game-rules';
 
 /** The TP and Name external-system names as SQL string literals. */
 const TP_SYSTEM = `'${TP_EXTERNAL_SYSTEM_NAME}'`;
@@ -16,20 +17,13 @@ const NAME_SYSTEM = `'${NAME_EXTERNAL_SYSTEM_NAME}'`;
  */
 
 /**
- * `INCOMPLETE_PLAYER_CRITERIA` (packages/game-data) as SQL over
- * `game_data.players`. incomplete-player-conditions.spec.ts renders the
- * drizzle criteria and requires this list to match them, so the generator
- * selects exactly the players `/debugincompleteimport` counts.
+ * game-rules' INCOMPLETE_PLAYER_GAPS as SQL over `game_data.players`, so the
+ * generator selects exactly the players `/debugincompleteimport` counts.
  */
-export const INCOMPLETE_PLAYER_CONDITIONS = [
-  'move = 0',
-  'strength = 0',
-  'agility = 0',
-  'armour = 0',
-  'spp_total is null',
-  'spp_adjustment is null',
-  'status is null',
-] as const;
+export const INCOMPLETE_PLAYER_CONDITIONS: readonly string[] =
+  INCOMPLETE_PLAYER_GAPS.map(({ column, test }) =>
+    test === 'eq0' ? `${column} = 0` : `${column} is null`,
+  );
 
 /** INCOMPLETE_PLAYER_CONDITIONS as one SQL predicate over `game_data.players p`. */
 const INCOMPLETE_PLAYER_PREDICATE = INCOMPLETE_PLAYER_CONDITIONS.map(
@@ -365,8 +359,9 @@ const LINE_COLUMNS = (alias: string): string =>
  * PositionRulesSetsService.findCharacteristicsContext resolves for his
  * position and his team era's era (the last-listed era rules set with a
  * row for the position, else the last-listed one with no start line; null
- * when the era lists none). LastingInjuryRepairSelectorService keeps those
- * the server would record a reduction for. INCOMPLETE_PLAYER_CONDITIONS
+ * when the era lists none). The generator applies game-rules'
+ * LastingReductionService to each candidate and keeps those the server would
+ * record a reduction for. INCOMPLETE_PLAYER_CONDITIONS
  * never yields NULL (the characteristic columns are NOT NULL and the rest
  * are `is null` tests), so NOT (...) selects exactly the complete players.
  * The rules-set context subquery must track

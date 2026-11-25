@@ -1,8 +1,8 @@
+import { ReportedAdvancementPricingService } from '@blood-bowl-tracker/game-rules';
 import { Injectable } from '@nestjs/common';
 
 import type { TpFeedHistoryReport } from '../read-tp-feed-history/tp-feed-history-index.service';
 import { MAX_PAID_ADVANCEMENTS } from './advancement-fill-stage.service';
-import { AdvancementPricingService } from './advancement-pricing.service';
 import { FeedSkillResolverService } from './feed-skill-resolver.service';
 import type {
   FeedFit,
@@ -47,7 +47,7 @@ export interface FeedFitInput {
 export class FeedOwnerFitService {
   constructor(
     private readonly skills: FeedSkillResolverService,
-    private readonly pricing: AdvancementPricingService,
+    private readonly pricing: ReportedAdvancementPricingService,
   ) {}
 
   fit(input: FeedFitInput): FeedFit {

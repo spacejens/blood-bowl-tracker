@@ -18,11 +18,19 @@ implementation here means a rule change reaches both together.
 - **Spend range** — `AdvancementSpendRangeService` turns those candidates and
   the cost rows into the least and most SPP the advancements can have cost,
   and answers whether an exact spend is possible.
+- **Reported pricing** — `ReportedAdvancementPricingService` prices
+  advancements whose kind a report fixes (a TP feed report or a roster
+  snapshot), the way the server's order check prices a fill.
 - **Limits** — `MAX_DEDUCED`, the most new advancements whose orders are
   searched, and `FREE_EXTRA_SKILL_NAMES`, the skills gained as free extras
   that never take an advancement number.
 - **Types** — the inputs and outputs of those services, such as
   `AdvancementCandidatesInput` and `SpendRange`.
+
+Consumers: game-data uses the candidates, spend range, limits, lasting
+reduction and incomplete-player gaps; import-manual-planner-cli uses reported
+pricing, lasting reduction, the gaps and the limits. An agreement spec ties
+reported pricing to the server's order check inside this package.
 
 The package exports `GameRulesModule`, which provides and exports every
 service. `packages/game-data` imports it through its `SppModule` and

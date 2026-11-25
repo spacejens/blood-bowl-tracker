@@ -19,7 +19,7 @@ export interface PricingRulesSetsInput {
 }
 
 /**
- * What AdvancementPricingService reads about each rules set of one player's
+ * What ReportedAdvancementPricingService reads about each rules set of one player's
  * era: the rules set's cost rows, its skill categories and the position's
  * access to them.
  *

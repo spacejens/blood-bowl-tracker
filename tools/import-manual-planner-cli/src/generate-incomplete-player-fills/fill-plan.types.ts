@@ -3,12 +3,18 @@ import type {
   CharacteristicFormat,
   NAME_EXTERNAL_SYSTEM_NAME,
   PlayerCharacteristic,
-  PlayerSkillSource,
   PlayerStatus,
   SkillAccess,
   SkillCategory,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/domain-enums';
+import {
+  FREE_EXTRA_SKILL_NAMES as SHARED_FREE_EXTRA_SKILL_NAMES,
+  type ReportedCharacteristicStep,
+  type ReportedSelection,
+  type ReportedSkillStep,
+  type RulesSetPricingInput,
+} from '@blood-bowl-tracker/game-rules';
 
 import type {
   TpFeedHistoryReport,
@@ -286,11 +292,10 @@ export interface BigGuyPositionRow {
   eraId: number;
 }
 
-/** Skills the server's free-extra rules make free when gained outside the paid advancements. */
-export const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set([
-  LONER_SKILL_NAME,
-  'Hatred',
-]);
+/** Skills the server's free-extra rules make free when gained outside the paid advancements; the list is the server's own, from game-rules. */
+export const FREE_EXTRA_SKILL_NAMES: ReadonlySet<string> = new Set(
+  SHARED_FREE_EXTRA_SKILL_NAMES,
+);
 
 /** How many reductions each characteristic has suffered. */
 export type ReductionCounts = Record<CharacteristicKey, number>;
@@ -427,43 +432,25 @@ export interface FeedMatchResult {
   summary: FeedSummary;
 }
 
-export type FeedSelection = Extract<PlayerSkillSource, 'chosen' | 'random'>;
+export type FeedSelection = ReportedSelection;
 
 /** One feed report, its skill resolved to a stored skill. */
 export type ResolvedStep =
-  | {
-      kind: 'skill';
-      skillId: number;
+  | (ReportedSkillStep & {
       skillName: string;
       nameId: string;
       attributeValue: string | null;
-      selection: FeedSelection;
-      category: SkillAccess;
       reportedCost: number;
-    }
-  | {
-      kind: 'characteristic';
+    })
+  | (ReportedCharacteristicStep & {
       characteristic: CharacteristicKey;
-      selection: FeedSelection;
       reportedCost: number;
-    };
+    });
 
-/** What pricing reads about one rules set of a candidate's era. */
-export interface RulesSetPricingInput {
-  rulesSetId: number;
-  costs: readonly AdvancementCostRow[];
-  /** Skill id -> its category under this rules set. */
-  skillCategories: ReadonlyMap<number, SkillCategory>;
-  /** The position's access to each category under this rules set. */
-  positionAccess: ReadonlyMap<SkillCategory, SkillAccess>;
-}
-
-export type PricingOutcome =
-  | { kind: 'priced'; stepCosts: number[]; total: number }
-  | { kind: 'granted-skill' }
-  | { kind: 'category-mismatch' }
-  | { kind: 'disagree' }
-  | { kind: 'unpriced' };
+export type {
+  PricingOutcome,
+  RulesSetPricingInput,
+} from '@blood-bowl-tracker/game-rules';
 
 /** What deciding whether a stored player owns a list of feed reports reads of him. */
 export interface FeedOwner {

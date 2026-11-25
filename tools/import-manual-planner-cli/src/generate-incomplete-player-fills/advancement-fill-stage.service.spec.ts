@@ -1,10 +1,10 @@
+import { ReportedAdvancementPricingService } from '@blood-bowl-tracker/game-rules';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import type { AdvancementStageInput } from './advancement-fill-stage.service';
 import { AdvancementFillStageService } from './advancement-fill-stage.service';
-import { AdvancementPricingService } from './advancement-pricing.service';
 import { CharacteristicChangeService } from './characteristic-change.service';
 import { CharacteristicReplayService } from './characteristic-replay.service';
 import { CharacteristicValidityService } from './characteristic-validity.service';
@@ -83,18 +83,18 @@ function injuredInput(
 describe('AdvancementFillStageService', () => {
   let service: AdvancementFillStageService;
   let skills: MockProxy<FeedSkillResolverService>;
-  let pricing: MockProxy<AdvancementPricingService>;
+  let pricing: MockProxy<ReportedAdvancementPricingService>;
 
   beforeEach(async () => {
     skills = mock<FeedSkillResolverService>();
-    pricing = mock<AdvancementPricingService>();
+    pricing = mock<ReportedAdvancementPricingService>();
     skills.resolve.mockReturnValue([skillStep()]);
     pricing.price.mockReturnValue({ kind: 'priced', stepCosts: [6], total: 6 });
     const moduleRef = await Test.createTestingModule({
       providers: [
         AdvancementFillStageService,
         { provide: FeedSkillResolverService, useValue: skills },
-        { provide: AdvancementPricingService, useValue: pricing },
+        { provide: ReportedAdvancementPricingService, useValue: pricing },
         // Pure and dependency-free, so passed real: the pricing assertions
         // below check the rules sets it builds.
         PricingRulesSetsService,
