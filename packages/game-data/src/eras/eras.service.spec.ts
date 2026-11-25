@@ -1,5 +1,5 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, eraRulesSets, eras } from '@blood-bowl-tracker/db';
+import { asc, DB, eraRulesSets, eras } from '@blood-bowl-tracker/db';
 import type { QueryChain } from '@blood-bowl-tracker/db/test-helpers';
 import {
   extractAllFilterValues,
@@ -11,6 +11,11 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 import { ErasService, EraUpsertConflictError } from './eras.service';
+
+const linked = [
+  { rulesSetId: 20, name: 'CRP' },
+  { rulesSetId: 21, name: 'BB2020' },
+];
 
 const fakeEra = {
   id: 1,
@@ -54,12 +59,16 @@ describe('ErasService', () => {
       // returns the row; query 2: both external IDs are new and get
       // inserted; query 3: no existing rules-set links; query 4: both
       // rules-set links are new and get inserted.
-      const { db, chains } = await build([], [fakeEra]);
+      const { db, chains } = await build([], [fakeEra], [], [], [], linked);
 
       const result = await service.upsert(baseData);
 
       expect(result).toEqual({
-        era: { ...fakeEra, rulesSetIds: [20, 21] },
+        era: {
+          ...fakeEra,
+          rulesSetIds: [20, 21],
+          rulesSetNames: ['CRP', 'BB2020'],
+        },
         created: true,
       });
       expect(firstCallArg(chains[1].values)).toEqual({
@@ -137,7 +146,14 @@ describe('ErasService', () => {
     });
 
     it('inserts only the era_rules_sets rows that are new', async () => {
-      const { chains } = await build([], [fakeEra], [], [{ rulesSetId: 20 }]);
+      const { chains } = await build(
+        [],
+        [fakeEra],
+        [],
+        [{ rulesSetId: 20 }],
+        [],
+        linked,
+      );
 
       const result = await service.upsert(baseData);
 
@@ -153,14 +169,35 @@ describe('ErasService', () => {
         [fakeEra],
         [],
         [{ rulesSetId: 20 }, { rulesSetId: 21 }],
+        linked,
       );
 
       const result = await service.upsert(baseData);
 
-      expect(chains).toHaveLength(4);
+      expect(chains).toHaveLength(5);
       expect(db.insert).not.toHaveBeenCalledWith(eraRulesSets);
       expect(result.era.rulesSetIds).toEqual([20, 21]);
     });
+  });
+
+  it('returns rules-set ids and names from one read ordered by link id', async () => {
+    const { chains } = await build(
+      [],
+      [fakeEra],
+      [],
+      [{ rulesSetId: 2 }],
+      [],
+      [
+        { rulesSetId: 2, name: 'CRP' },
+        { rulesSetId: 5, name: 'BB2016' },
+      ],
+    );
+
+    const result = await service.upsert({ ...baseData, rulesSetIds: [5] });
+
+    expect(result.era.rulesSetIds).toEqual([2, 5]);
+    expect(result.era.rulesSetNames).toEqual(['CRP', 'BB2016']);
+    expect(chains[5].orderBy).toHaveBeenCalledWith(asc(eraRulesSets.id));
   });
 
   describe('listByRulesSetAndExternalSystem', () => {

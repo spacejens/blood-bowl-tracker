@@ -58,6 +58,7 @@ function makeEraRecord(overrides: { id: number; name: string }) {
   return {
     leagueId: 10,
     rulesSetIds: [100],
+    rulesSetNames: ['BB2020'],
     startDate: '2011-09-09',
     endDate: null,
     createdAt: new Date('2026-01-01'),
