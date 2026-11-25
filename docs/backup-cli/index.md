@@ -86,6 +86,7 @@ Behaviors worth knowing:
   the docker-compose database) and applies the same localhost-only rule as
   `verify`, with no override: a URL carrying a `host` or `hostaddr` query
   parameter is refused too. Unlike `verify`, the target need not be empty.
+  The rule is `packages/cli-shared`'s `LocalDatabaseGuardService`.
 - `psql`, `pg_dump` and `pg_restore` run through `packages/cli-shared`'s `PgClientService`,
   which removes the libpq variables `PGHOSTADDR`, `PGHOST`, `PGSERVICE` and
   `PGSERVICEFILE` from their environment, so they cannot redirect a
@@ -93,6 +94,15 @@ Behaviors worth knowing:
   through `packages/cli-shared`'s `DatabaseUrlRedactorService`, masks the URL's
   password in every error. `tools/production-ops-cli`'s
   `run-production-query` uses the same runner.
+- The three checks of a restored database (its applied migrations, which
+  key tables exist, and their row counts, in `RestoredDatabaseQueryService`)
+  use `psql` rather than `packages/db`, deliberately. The target is a fresh
+  local restore, so a consistent snapshot across the checks does not matter;
+  the tool needs `pg_dump`, `pg_restore` and `psql` anyway; the output is
+  parsed with a line split and one regex; and `PgClientService` already
+  scrubs the environment, redacts the URL and enforces a timeout. Code that
+  reads many structured rows goes through `packages/db` instead (see
+  [import-manual-planner-cli](../import-manual-planner-cli/index.md#generating-incomplete-player-fills)).
 - `restore` downloads first, so a network or credential failure never
   touches existing data. It then drops every schema except `pg_*` and
   `information_schema` in one atomic statement and recreates an empty

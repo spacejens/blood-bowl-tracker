@@ -1578,9 +1578,15 @@ importers:
       '@blood-bowl-tracker/cli-shared':
         specifier: workspace:*
         version: link:../../packages/cli-shared
+      '@blood-bowl-tracker/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@blood-bowl-tracker/domain-enums':
         specifier: workspace:*
         version: link:../../packages/domain-enums
+      '@blood-bowl-tracker/game-data':
+        specifier: workspace:*
+        version: link:../../packages/game-data
       '@blood-bowl-tracker/game-rules':
         specifier: workspace:*
         version: link:../../packages/game-rules

@@ -157,7 +157,7 @@ function dispatch(
 void runCli({
   argv: process.argv,
   subcommands: SUBCOMMANDS,
-  module: AppModule,
+  module: AppModule.register(process.argv[2]),
   readArgs,
   dispatch,
 });

@@ -1,7 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { LocalDatabaseGuardService } from './local-database-guard.service';
+import {
+  DEFAULT_LOCAL_DATABASE_URL,
+  LocalDatabaseGuardService,
+} from './local-database-guard.service';
 
 describe('LocalDatabaseGuardService', () => {
   let service: LocalDatabaseGuardService;
@@ -32,7 +35,7 @@ describe('LocalDatabaseGuardService', () => {
   ])('refuses the non-local target %s without echoing it', (url) => {
     expect(() => service.assertLocal(url)).toThrow(
       new Error(
-        'Refusing to restore into a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
+        'Refusing to use a non-local database: the target host must be localhost, 127.0.0.1 or ::1.',
       ),
     );
   });
@@ -47,4 +50,8 @@ describe('LocalDatabaseGuardService', () => {
       );
     },
   );
+
+  it('accepts the docker-compose default', () => {
+    expect(() => service.assertLocal(DEFAULT_LOCAL_DATABASE_URL)).not.toThrow();
+  });
 });
