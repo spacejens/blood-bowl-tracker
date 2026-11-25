@@ -292,6 +292,30 @@ describe('TpSourceReader', () => {
     expect(reader.isBaseTournamentFile(file.filename)).toBe(false);
   });
 
+  it.each(['./fourth-era', 'archive/fourth-era'])(
+    'resolves a configured dataSubdir of %s relative to the data dir',
+    async (dataSubdir) => {
+      const compDir = join(dir, dataSubdir, 'chaos-cup-8');
+      await mkdir(compDir, { recursive: true });
+      await writeFile(join(compDir, 'match_1.json'), '{}');
+
+      const reader = await makeReader(dir, [{ ...fourthEra, dataSubdir }]);
+      const files = await collect(reader.files());
+
+      expect(files.map((f) => f.filename)).toEqual(['match_1.json']);
+    },
+  );
+
+  it('names the resolved path when a nested era directory is missing', async () => {
+    const reader = await makeReader(dir, [
+      { ...fourthEra, dataSubdir: 'archive/fourth-era' },
+    ]);
+
+    await expect(collect(reader.files())).rejects.toThrow(
+      `Era data directory not found: ${join(dir, 'archive', 'fourth-era')} (configured for era "Fourth era").`,
+    );
+  });
+
   it('names the directory and era when an era directory is missing', async () => {
     const reader = await makeReader(dir, [fourthEra]);
 

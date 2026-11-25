@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
 import type { TpFileKind } from '@blood-bowl-tracker/read-tp-files';
 import {
@@ -68,21 +68,23 @@ export class TpSourceReader {
     types?: readonly TpFileKind['kind'][],
   ): AsyncIterable<TpSourceFile> {
     const dataDir = this.sourceConfig.getDataDir();
-    const present = new Set(await this.tpFiles.listEras(dataDir));
     for (const era of this.eraConfig.getEras()) {
-      if (!present.has(era.dataSubdir)) {
+      // dataSubdir may be `./x` or nested `a/b`: resolve it against dataDir,
+      // then address the era as the last segment under its parent directory.
+      const eraDir = join(dataDir, era.dataSubdir);
+      const parent = dirname(eraDir);
+      const eraName = basename(eraDir);
+      const present = await this.tpFiles.listEras(parent);
+      if (!present.includes(eraName)) {
         throw new Error(
-          `Era data directory not found: ${join(dataDir, era.dataSubdir)} (configured for era "${era.name}").`,
+          `Era data directory not found: ${eraDir} (configured for era "${era.name}").`,
         );
       }
-      const competitions = await this.tpFiles.listCompetitions(
-        dataDir,
-        era.dataSubdir,
-      );
+      const competitions = await this.tpFiles.listCompetitions(parent, eraName);
       for (const competition of competitions) {
         const filenames = await this.tpFiles.listFiles(
-          dataDir,
-          era.dataSubdir,
+          parent,
+          eraName,
           competition,
         );
         for (const filename of filenames) {
@@ -90,8 +92,8 @@ export class TpSourceReader {
           if (types !== undefined && !types.includes(type)) {
             continue;
           }
-          const file = await this.tpFiles.readJson(dataDir, [
-            era.dataSubdir,
+          const file = await this.tpFiles.readJson(parent, [
+            eraName,
             competition,
             filename,
           ]);
