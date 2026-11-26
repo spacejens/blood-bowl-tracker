@@ -1,3 +1,4 @@
+import type { Era } from '@blood-bowl-tracker/api-contract';
 import {
   ImportResultService,
   NameExternalIdService,
@@ -51,10 +52,29 @@ export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
 }
 
 /**
+ * A curated era as the eras step's upsert answers with it: the catalog's
+ * dates and rules sets, which the importer reads back instead of declaring
+ * them in its own config. Pass overrides for the fields a test cares about.
+ */
+export function curatedEra(overrides: Partial<Era> = {}): Era {
+  return {
+    id: 1,
+    name: 'Third era',
+    leagueId: 1,
+    rulesSetIds: [],
+    rulesSetNames: [],
+    startDate: '2023-06-15',
+    endDate: null,
+    createdAt: new Date(0),
+    ...overrides,
+  };
+}
+
+/**
  * A `MockProxy<EraDataConfigService>` whose `getEras()` returns one dummy
  * `EraDataConfig` entry per name (only `name` matters to the services under
  * test here -- they enumerate era *names* to build the reference-lookup
- * batch; the other fields are never read). Consumed alongside
+ * batch; `dataSubdir` is never read). Consumed alongside
  * `mockReferenceLookupService` below.
  */
 export function mockEraDataConfigService(
@@ -64,8 +84,6 @@ export function mockEraDataConfigService(
   const eras: EraDataConfig[] = names.map((name) => ({
     name,
     dataSubdir: name,
-    rulesSets: ['BB2020'],
-    startDate: '2020-01-01',
   }));
   eraDataConfig.getEras.mockReturnValue(eras);
   return eraDataConfig;

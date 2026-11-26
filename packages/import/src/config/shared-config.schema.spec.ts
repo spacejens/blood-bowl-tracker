@@ -3,38 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   configGroupSchema,
   connectionConfigSchema,
-  isoDateSchema,
   nonBlankStringSchema,
   nonEmptyStringSchema,
   optionalIsoDateSchema,
-  rulesSetsSchema,
 } from './shared-config.schema';
-
-describe('isoDateSchema', () => {
-  it('accepts a real calendar day', () => {
-    expect(isoDateSchema.parse('2021-02-28')).toBe('2021-02-28');
-  });
-
-  it('rejects a non-ISO shape with its custom message', () => {
-    const result = isoDateSchema.safeParse('28/02/2021');
-    expect(result.success).toBe(false);
-    expect(result.error?.issues[0].message).toBe(
-      'must be an ISO date (YYYY-MM-DD).',
-    );
-  });
-
-  it('rejects a day that does not exist in that month', () => {
-    expect(isoDateSchema.safeParse('2021-02-30').success).toBe(false);
-  });
-
-  it('rejects a non-string with the same custom message', () => {
-    const result = isoDateSchema.safeParse(20210228);
-    expect(result.success).toBe(false);
-    expect(result.error?.issues[0].message).toBe(
-      'must be an ISO date (YYYY-MM-DD).',
-    );
-  });
-});
 
 describe('optionalIsoDateSchema', () => {
   it('accepts undefined', () => {
@@ -80,31 +52,6 @@ describe('nonBlankStringSchema', () => {
     const result = nonBlankStringSchema.safeParse(7);
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].message).toBe('must be a non-empty string.');
-  });
-});
-
-describe('rulesSetsSchema', () => {
-  it('accepts a non-empty list of non-empty names', () => {
-    expect(rulesSetsSchema.parse(['BB2016', 'BB2020'])).toEqual([
-      'BB2016',
-      'BB2020',
-    ]);
-  });
-
-  it('rejects an empty list, a blank entry, and a non-array', () => {
-    expect(rulesSetsSchema.safeParse([]).success).toBe(false);
-    expect(rulesSetsSchema.safeParse(['BB2020', '  ']).success).toBe(false);
-    expect(rulesSetsSchema.safeParse([1]).success).toBe(false);
-    expect(rulesSetsSchema.safeParse('BB2020').success).toBe(false);
-  });
-
-  it('reports one issue at the field itself', () => {
-    const result = rulesSetsSchema.safeParse([]);
-    expect(result.error?.issues).toHaveLength(1);
-    expect(result.error?.issues[0].path).toEqual([]);
-    expect(result.error?.issues[0].message).toBe(
-      'must be a non-empty array of non-empty strings.',
-    );
   });
 });
 

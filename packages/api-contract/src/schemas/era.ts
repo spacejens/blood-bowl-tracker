@@ -11,6 +11,10 @@ export const EraSchema = z.object({
   name: z.string(),
   leagueId: z.number(),
   rulesSetIds: z.array(z.number()),
+  // The era's rules sets by name, in the order they were linked (the
+  // era_rules_sets row id), index-aligned with rulesSetIds; the last one is
+  // the era's "last-listed" rules set.
+  rulesSetNames: z.array(z.string()),
   startDate: z.string(),
   endDate: z.string().nullable(),
   createdAt: z.coerce.date(),

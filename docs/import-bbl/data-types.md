@@ -5,28 +5,39 @@ competition, skill, position, team or race that already exists keeps its
 stored name, which `tools/import-manual` may have curated (see
 [Upserts overlay](../api/imports.md#upserts-overlay-they-do-not-replace)).
 
+Leagues, eras and rules sets are curated in
+`tools/import-manual/data/batches/001-initial-seed`, which holds each era's
+league, dates and rules sets. The three steps below create nothing: each
+finds the curated row by its `Name` external id and attaches the same name
+under the BBL external system (`tloeg.bbleague.se`). A row missing from
+the catalog fails with the server's missing-field error, recorded for that
+row, and the step goes on to the next.
+
 ## Leagues
 
-One league per `leagues[]` entry, each from its `name`
-config value (not parsed from the data). Each league is keyed by that name
-under the BBL external system (`tloeg.bbleague.se`) and the `Name`
-external system. Imported before coaches, as the foundational entity.
-
-## Rules sets
-
-The distinct names across all eras' `rulesSets` arrays in
-the `eras` config (not parsed from the data). Keyed by that name under
-the BBL external system (`tloeg.bbleague.se`) and the `Name` external system. Imported
-after the league.
+One league per `leagues[]` entry, each from its `name` config value (not
+parsed from the data). The step finds the curated league by that name under
+the `Name` external system and attaches the BBL id. Imported before
+coaches, as the foundational entity.
 
 ## Eras
 
-From the `eras` config within each `leagues[]` entry (not parsed
-from the data). Each era references its league (from its containing
-`leagues[]` entry) and one or more rules sets (all imported first) and carries
-a `startDate` and optional `endDate`. Keyed by the era name under the
-BBL external system (`tloeg.bbleague.se`) and the `Name` external system. Imported
-after rules sets.
+One era per entry in the `eras` config within each `leagues[]` entry (not
+parsed from the data). The step finds the curated era by its name under the
+`Name` external system and attaches the BBL id, sending nothing else: the
+era's league, dates and rules sets stay as batch 001 curates them. The
+upsert answers with the curated era, and the step hands every era on, keyed
+by name, to the rules-sets, competitions, players and position race-eras
+steps. Imported after the league.
+
+## Rules sets
+
+The distinct rules-set names across the curated eras the eras step
+returned, in first-seen order (not parsed from the data, and not read from
+the config). The step finds each curated rules set by its name under the
+`Name` external system and attaches the BBL id. The upsert answers with the
+curated characteristic formats, which the position-characteristics and
+players steps read. Imported after eras.
 
 ## Coaches
 
@@ -128,16 +139,16 @@ range, whose team code was not imported, or whose position cannot be
 resolved is skipped with a recorded error.
 
 Its scraped MA/ST/AG/PA/AV line is sent with the upsert, validated
-server-side against the last rules set listed for the player's era (an era
-can span several, listed oldest-first). `Passing` is resolved the same way
+server-side against the last rules set the player's curated era links (an
+era can span several, linked oldest-first). `Passing` is resolved the same way
 position characteristics are: `null` where that rules set declares no
 Passing characteristic at all, and otherwise the scraped value, or `0` where
 the page showed `-`. BBL's BB2016-to-BB2020 conversion wrote a Passing value
 onto most players, including many whose era has no such characteristic, so
 the page's own figure never decides this — the rules set does. A player whose
 characteristics line cannot be read fails page parsing outright and is
-skipped with a recorded error, as is one whose era names a rules set that was
-not imported.
+skipped with a recorded error, as is one whose era was not returned by the
+eras step or names a rules set that was not imported.
 
 Its `status` is read from the icons in the page's player header: `dead` for
 the cross icon, `retired` for the retired icon, `temporarily_retired` for
@@ -156,9 +167,10 @@ From the master competition dropdown on the `se`/`sr`
 pages (id/name) plus each competition's `p=ma&so=s&s=<id>` match-list page
 (dates). Keyed by the numeric BBL id (`s` param) under the BBL
 external system (`tloeg.bbleague.se`). `type` is `cup` when the match dates
-span 3 days or fewer, else `season`; `eraId` is the era whose configured
-date range contains the earliest match date, considering only eras with
-`autoAssignByDate: true` — an era with `autoAssignByDate: false` is reached
+span 3 days or fewer, else `season`; `eraId` is the first configured era
+whose curated date range (the dates the eras step returned) contains the
+earliest match date, considering only eras with `autoAssignByDate: true`
+that the eras step returned — an era with `autoAssignByDate: false` is reached
 only through its `competitions.overrides` entries. A competition listed in
 an era's `competitions.overrides` is instead hard-assigned that era and
 forced to that entry's `type`, bypassing match-date resolution entirely —

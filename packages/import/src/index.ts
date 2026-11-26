@@ -9,11 +9,9 @@ export { createImportConfigPaths } from './config/import-config-paths';
 export { createImportConfigServiceBase } from './config/import-config-service-base';
 export {
   configGroupSchema,
-  isoDateSchema,
   nonBlankStringSchema,
   nonEmptyStringSchema,
   optionalIsoDateSchema,
-  rulesSetsSchema,
 } from './config/shared-config.schema';
 export { createSourceConfigServiceBase } from './config/source-config-service-base';
 export { ErasImportService } from './eras-import.service';

@@ -9,8 +9,8 @@ import { MatchResultConfigService } from './match-result-config.service';
 
 function era(resultOverrides: unknown[]): EraConfig {
   return {
-    identity: { name: 'First era', rulesSets: [] },
-    dates: { startDate: '2000-01-01', autoAssignByDate: true },
+    identity: { name: 'First era' },
+    dates: { autoAssignByDate: true },
     players: { autoAssignByPlayerId: true },
     matches: { resultOverrides },
   };

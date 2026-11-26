@@ -1,3 +1,4 @@
+import type { Era } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -10,16 +11,14 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { EraDataConfig } from '../eras/era-data-config.service';
-import { EraDataConfigService } from '../eras/era-data-config.service';
 import {
   asProviderMethod,
+  curatedEra,
   mockImportResultService,
 } from '../import-package.test-helpers';
 import { TpRulesSetsImportService } from './tp-rules-sets-import.service';
 
 interface MakeServiceOptions {
-  getEras: () => EraDataConfig[];
   bootstrap: ReturnType<typeof vi.fn>;
   upsertRulesSet: ReturnType<typeof vi.fn>;
 }
@@ -46,15 +45,12 @@ function resultArgs(importResults: MockProxy<ImportResultService>): {
 }
 
 async function makeService({
-  getEras,
   bootstrap,
   upsertRulesSet,
 }: MakeServiceOptions): Promise<{
   service: TpRulesSetsImportService;
   importResults: MockProxy<ImportResultService>;
 }> {
-  const eraDataConfig = mock<EraDataConfigService>();
-  eraDataConfig.getEras.mockImplementation(getEras);
   const rulesSetsImport = mock<RulesSetsImportService>();
   rulesSetsImport.upsert.mockImplementation(asProviderMethod(upsertRulesSet));
   const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
@@ -76,7 +72,6 @@ async function makeService({
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpRulesSetsImportService,
-      { provide: EraDataConfigService, useValue: eraDataConfig },
       { provide: RulesSetsImportService, useValue: rulesSetsImport },
       {
         provide: ExternalSystemBootstrapService,
@@ -92,35 +87,28 @@ async function makeService({
   };
 }
 
-const eras: EraDataConfig[] = [
-  {
-    name: 'Third era',
-    dataSubdir: 'third-era',
-    rulesSets: ['LRB6'],
-    startDate: '2013-01-01',
-  },
-  {
-    name: 'Fourth era',
-    dataSubdir: 'fourth-era',
-    rulesSets: ['BB2020', 'LRB6'],
-    startDate: '2020-11-28',
-  },
-];
+/** Curated eras as the eras step returns them, keyed by configured name. */
+const erasByName = new Map<string, Era>([
+  ['Third era', curatedEra({ name: 'Third era', rulesSetNames: ['LRB6'] })],
+  [
+    'Fourth era',
+    curatedEra({ name: 'Fourth era', rulesSetNames: ['BB2020', 'LRB6'] }),
+  ],
+]);
 
 describe('TpRulesSetsImportService', () => {
-  it('upserts each distinct rules-set name', async () => {
+  it('attaches the TP id to each distinct curated rules set, found by its Name id', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRulesSet = vi
       .fn()
       .mockResolvedValueOnce({ id: 100, name: 'LRB6' })
       .mockResolvedValueOnce({ id: 200, name: 'BB2020' });
     const { service, importResults } = await makeService({
-      getEras: () => eras,
       bootstrap,
       upsertRulesSet,
     });
 
-    await service.importRulesSets();
+    await service.importRulesSets(erasByName);
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(2);
@@ -129,42 +117,43 @@ describe('TpRulesSetsImportService', () => {
       { name: TP_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    // Distinct across eras, first-seen order: LRB6 then BB2020.
+    // Distinct across the curated eras, first-seen order: LRB6 then BB2020.
     expect(upsertRulesSet).toHaveBeenCalledTimes(2);
     expect(upsertRulesSet).toHaveBeenNthCalledWith(
       1,
       {
-        name: 'LRB6',
         externalIds: [
-          { externalSystemId: 1, externalId: 'LRB6' },
           { externalSystemId: 2, externalId: 'LRB6' },
+          { externalSystemId: 1, externalId: 'LRB6' },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(upsertRulesSet).toHaveBeenNthCalledWith(
+      2,
+      {
+        externalIds: [
+          { externalSystemId: 2, externalId: 'BB2020' },
+          { externalSystemId: 1, externalId: 'BB2020' },
         ],
       },
       expect.any(Array),
     );
   });
 
-  it('records one error and imports nothing when getEras() throws', async () => {
-    const bootstrap = vi.fn();
+  it('upserts nothing when no era was imported', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRulesSet = vi.fn();
     const { service, importResults } = await makeService({
-      getEras: () => {
-        throw new Error('TP_ERAS is not set.');
-      },
       bootstrap,
       upsertRulesSet,
     });
 
-    await service.importRulesSets();
+    const outcome = await service.importRulesSets(new Map());
 
-    const { errors } = resultArgs(importResults);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('TP_ERAS is not set.');
-    expect(errors[0].item).toEqual({
-      externalSystems: [TP_EXTERNAL_SYSTEM_NAME, 'Name'],
-    });
-    expect(bootstrap).not.toHaveBeenCalled();
+    expect(resultArgs(importResults)).toEqual({ imported: 0, errors: [] });
     expect(upsertRulesSet).not.toHaveBeenCalled();
+    expect(outcome.rulesSetsByName.size).toBe(0);
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
@@ -177,12 +166,11 @@ describe('TpRulesSetsImportService', () => {
     });
     const upsertRulesSet = vi.fn();
     const { service, importResults } = await makeService({
-      getEras: () => eras,
       bootstrap,
       upsertRulesSet,
     });
 
-    await service.importRulesSets();
+    await service.importRulesSets(erasByName);
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
@@ -193,28 +181,31 @@ describe('TpRulesSetsImportService', () => {
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
 
-  it('records one error but still imports the rest when one rules-set upsert fails', async () => {
+  it('keeps only the upsert error for a rules set missing from the catalog, and imports the rest', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const missingField = {
+      item: { externalIds: [] },
+      message: 'Failed to import rules set "BB2020": name is required',
+    };
     const upsertRulesSet = vi
       .fn()
       .mockResolvedValueOnce({ id: 100, name: 'LRB6' })
-      .mockImplementationOnce(
-        (_data: unknown, errors: { message: string }[]) => {
-          errors.push({ message: 'rules set boom' });
-          return Promise.resolve(undefined);
-        },
-      );
+      .mockImplementationOnce((_data: unknown, errors: unknown[]) => {
+        errors.push(missingField);
+        return Promise.resolve(undefined);
+      });
     const { service, importResults } = await makeService({
-      getEras: () => eras,
       bootstrap,
       upsertRulesSet,
     });
 
-    await service.importRulesSets();
+    const outcome = await service.importRulesSets(erasByName);
 
-    const { imported, errors } = resultArgs(importResults);
-    expect(imported).toBe(1);
-    expect(errors).toHaveLength(1);
+    expect(resultArgs(importResults)).toEqual({
+      imported: 1,
+      errors: [missingField],
+    });
+    expect([...outcome.rulesSetsByName.keys()]).toEqual(['LRB6']);
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
@@ -223,13 +214,9 @@ describe('TpRulesSetsImportService', () => {
       .fn()
       .mockResolvedValueOnce({ id: 100, name: 'LRB6' })
       .mockResolvedValueOnce({ id: 200, name: 'BB2020' });
-    const { service } = await makeService({
-      getEras: () => eras,
-      bootstrap,
-      upsertRulesSet,
-    });
+    const { service } = await makeService({ bootstrap, upsertRulesSet });
 
-    const { result } = await service.importRulesSets();
+    const { result } = await service.importRulesSets(erasByName);
 
     expect(result).toBe(CANNED_RESULT);
   });
@@ -249,29 +236,11 @@ describe('TpRulesSetsImportService', () => {
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    const { service } = await makeService({
-      getEras: () => eras,
-      bootstrap,
-      upsertRulesSet,
-    });
+    const { service } = await makeService({ bootstrap, upsertRulesSet });
 
-    const outcome = await service.importRulesSets();
+    const outcome = await service.importRulesSets(erasByName);
 
     expect(outcome.rulesSetsByName.get('BB2020')?.agilityFormat).toBe('plus');
     expect(outcome.rulesSetsByName.get('BB2020')?.id).toBe(900);
-  });
-
-  it('returns an empty map when no rules set could be upserted', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRulesSet = vi.fn().mockResolvedValue(undefined);
-    const { service } = await makeService({
-      getEras: () => eras,
-      bootstrap,
-      upsertRulesSet,
-    });
-
-    const outcome = await service.importRulesSets();
-
-    expect(outcome.rulesSetsByName.size).toBe(0);
   });
 });

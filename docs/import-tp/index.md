@@ -37,31 +37,23 @@ Top-level keys:
 - `dataDir` — path to the folder that directly contains one subdirectory per
   era. This is a subfolder of the git-ignored `data/` directory. A relative
   path resolves against the current working directory.
-- `league` — everything that describes the league being imported: its name
-  and the eras it played through. Rule sets and eras are not present in TP's
-  data (only an opaque numeric rule-set code is), so they are supplied here,
-  same as `import-bbl-config.json5`.
-  - `name` — the league's display name. Used as the league's external ID
-    under both the TP and Name external systems.
-  - `eras` — an array mapping each era to its data subdirectory and rule
-    sets:
-    - `identity.name` — the era's display name in the database.
-    - `identity.rulesSets` — a non-empty array of rule-set names the era
-      spans, in chronological order.
-    - `dates.startDate` — the era's start date (required, `YYYY-MM-DD`).
-    - `dates.endDate` — the era's end date (optional; omit for an era still
-      ongoing).
+- `league` — the league being imported and the eras it played through.
+  - `name` — the name of a league in batch 001's `leagues.json5`.
+  - `eras` — an array mapping each era to its data subdirectory:
+    - `identity.name` — the era's name in batch 001's `eras.json5`.
     - `dataSubdir` — the subdirectory under `dataDir` holding that era's TP
       files. TP's subdirectory names are its own slugs and don't necessarily
-      match the era's display name. Every `identity.name` and every
-      `dataSubdir` must be unique across the array.
-      See `import-tp-config.example.json5` for a worked example with real era
-      names, rule sets, and dates.
+      match the era's name. Every `identity.name` and every `dataSubdir`
+      must be unique across the array.
+      See `import-tp-config.example.json5` for a worked example.
 
-Rule-set names and era dates are config-supplied because TP's data carries
-only an opaque numeric rule-set code, not a name or a date range. The tool
-still reads that code out of each era's data files and cross-checks it's
-consistent within the era directory — a diagnostic that catches data
+The league, its eras' dates and their rules sets come from batch 001's
+curated catalog (`tools/import-manual/data/batches/001-initial-seed`), since
+TP's data carries only an opaque numeric rule-set code, not a name or a date
+range. The steps attach TP ids to the curated Name-keyed rows (see
+[Leagues, rules sets, eras and coaches](#leagues-rules-sets-eras-and-coaches)).
+The tool still reads that code out of each era's data files and cross-checks
+it's consistent within the era directory — a diagnostic that catches data
 misplaced under the wrong era subdirectory, not a source of truth for naming.
 
 ## Data layout
@@ -146,9 +138,9 @@ other.
   `getApiBaseUrl()`. A missing file is treated as empty so each getter throws
   its own friendly error.
 - **LeagueConfigService** — reads the `league.name` config key.
-- **EraDataConfigService** — reads the `league.eras` array into structured
-  entries (`identity`, `dates`, `dataSubdir`), validating each field and
-  enforcing unique era names and data subdirectories.
+- **EraDataConfigService** — reads the `league.eras` array into flat
+  `{ name, dataSubdir }` entries, validating each field and enforcing unique
+  era names and data subdirectories.
 - **SourceModule** — the reusable traversal core. `SourceConfigService`
   resolves `dataDir` against the current working directory; `TpSourceReader`
   walks the configured eras through
@@ -159,14 +151,21 @@ other.
 
 ### Leagues, rules sets, eras and coaches
 
-- **TpLeaguesImportService** — upserts the league from `league.name`, under
-  both the TP and Name external systems.
-- **TpRulesSetsImportService** — upserts the rule sets named across
-  `league.eras[].identity.rulesSets`.
-- **TpErasImportService** — upserts each configured era, linking it to the
-  league and its rule sets. Also cross-checks TP's numeric rule-set code for
+The first three steps send only external ids: each finds a batch 001 row by
+its Name id and adds the same name under the TP system, so the TP league
+lands on the curated tLoEG row whether or not BBL ran first. A name missing
+from the catalog fails for that row.
+
+- **TpLeaguesImportService** — attaches the TP id to the curated league
+  named by `league.name`.
+- **TpErasImportService** — attaches the TP id to each configured era and
+  returns the curated eras the upserts answer with, keyed by name
+  (`erasByName`). Also cross-checks TP's numeric rule-set code for
   consistency within each era's data directory, using
   `TournamentParserService.parse()` from `packages/parse-tp`.
+- **TpRulesSetsImportService** — attaches the TP id to each distinct rules
+  set across the curated eras' `rulesSetNames`, read from `erasByName`. The
+  official team list import resolves a rules set by this TP id.
 - **TpCompetitionSourcesService** — scans every competition found under the
   era directories once, up front, writing nothing. A competition is one
   `<era>/<competition>` subdirectory. Its base `tournament_<slug>.json` gives
@@ -201,9 +200,9 @@ other.
   stars (race-scoped / bare Name ids, official characteristics winning over
   legacy), their availability in every TP era declaring the rules set, and
   their characteristics, keywords, starting skills and skill categories. The `teams/<rulesSet>`
-  folder name must be spelled exactly like the rules set's name in
-  `league.eras[].identity.rulesSets`, since the server resolves the rules set
-  by that name. Returns one `ImportResult` per stage.
+  folder name must be spelled exactly like the curated rules set's name in
+  batch 001, since the server resolves the rules set by that name under the
+  TP system. Returns one `ImportResult` per stage.
 
 ### Rosters
 
@@ -422,8 +421,8 @@ which would take a data migration (see
 `ImportRunSummaryService`, like `tools/import-bbl/src/main.ts`. The order is:
 
 1. League.
-2. Rule sets.
-3. Eras.
+2. Eras.
+3. Rule sets (named by the curated eras the previous step returned).
 4. The competition scan (producing `matchesByCompetitionTpId`, consumed by the match-snapshot pass and the match-file step below).
 5. Coaches.
 6. The roster files and TP's official team list, each scanned and parsed once client-side (the roster import call re-sends each file's raw content, which `TpRosterImportService.importRawRoster` parses a second time, server-side).
@@ -448,7 +447,7 @@ Why the order is what it is:
 ### Reference resolution
 
 Where an import step needs the database id of an entity it does not create
-itself — an era's league and rules sets, a competition's era, a team's race
+itself — a competition's era, a team's race
 and coach, a position's race, a player's position, a competition id — it
 asks the API to resolve that entity's external id (see
 [RPC conventions](../api/rpc-conventions.md#reference-resolution)) rather

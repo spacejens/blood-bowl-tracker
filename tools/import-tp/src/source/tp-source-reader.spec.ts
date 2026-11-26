@@ -18,8 +18,6 @@ const DATA_DIR = '/data';
 const fourthEra: EraDataConfig = {
   name: 'Fourth era',
   dataSubdir: 'fourth-era',
-  rulesSets: ['BB2020'],
-  startDate: '2020-11-28',
 };
 
 async function makeReader(eras: EraDataConfig[] = [fourthEra]): Promise<{

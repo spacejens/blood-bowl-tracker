@@ -1,11 +1,11 @@
 import type { RulesSet } from '@blood-bowl-tracker/api-contract';
 import { describe, expect, it } from 'vitest';
 
-import { type EraConfig } from '../eras/era-config.service';
 import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import {
   defaultEras as eras,
   eraIdsByName,
+  erasByNameOf,
   goodPlayer,
   importOptions,
   makeRulesSet,
@@ -13,19 +13,6 @@ import {
   plPage,
   resultArgs,
 } from './bbl-players-import.test-helpers';
-
-/** An era whose rules sets change mid-era, oldest first. */
-const spanningEras: EraConfig[] = [
-  {
-    identity: { name: 'LRB', rulesSets: ['CRP', 'CRP+', 'BB2016'] },
-    dates: { startDate: '2011-09-09', autoAssignByDate: true },
-    players: {
-      firstPlayerId: 1,
-      lastPlayerId: 9999,
-      autoAssignByPlayerId: true,
-    },
-  },
-];
 
 describe('BblPlayersImportService characteristics', () => {
   it('sends the parsed characteristics with the era rules set id when the rules set has Passing', async () => {
@@ -98,11 +85,12 @@ describe('BblPlayersImportService characteristics', () => {
   it('validates against the last rules set of an era that spans several', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
-      spanningEras,
+      eras,
     );
 
     await service.importPlayers({
       ...importOptions,
+      erasByName: erasByNameOf(['LRB'], ['CRP', 'CRP+', 'BB2016']),
       rulesSetsByName: new Map<string, RulesSet>([
         [
           'CRP',
@@ -145,6 +133,24 @@ describe('BblPlayersImportService characteristics', () => {
         item: { pid: '42', era: 'LRB', rulesSet: 'LRB' },
         message:
           'Skipped player "Griff Oberwald" (42): rules set "LRB" for era "LRB" not imported',
+      },
+    ]);
+  });
+
+  it('records the not-imported error and skips the player when the eras step did not return the era', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+      eras,
+    );
+
+    await service.importPlayers({ ...importOptions, erasByName: new Map() });
+
+    expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
+    expect(resultArgs(mocks.importResults).errors).toEqual([
+      {
+        item: { pid: '42', era: 'LRB', rulesSet: undefined },
+        message:
+          'Skipped player "Griff Oberwald" (42): rules set "?" for era "LRB" not imported',
       },
     ]);
   });

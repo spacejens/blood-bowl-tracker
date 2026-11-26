@@ -6,6 +6,10 @@ import { createUpsertImportServiceBase } from './upsert-import-service-base';
 @Injectable()
 export class LeaguesImportService extends createUpsertImportServiceBase({
   resource: (client) => client.leagues,
-  buildErrorMessage: (data: UpsertLeague, err) =>
-    `Failed to import league "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+  // A step that only attaches an external id to a curated league sends no
+  // name, so the league is then named by its first external id.
+  buildErrorMessage: (data: UpsertLeague, err) => {
+    const label = data.name ?? data.externalIds.at(0)?.externalId;
+    return `Failed to import league "${label}": ${err instanceof Error ? err.message : String(err)}`;
+  },
 }) {}

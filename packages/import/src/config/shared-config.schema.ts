@@ -23,9 +23,6 @@ const isoDate = (message: string) =>
       );
     }, message);
 
-/** A required ISO date field. */
-export const isoDateSchema = isoDate('must be an ISO date (YYYY-MM-DD).');
-
 /** An ISO date field that may be omitted entirely. */
 export const optionalIsoDateSchema = isoDate(
   'must be an ISO date (YYYY-MM-DD) when present.',
@@ -48,20 +45,6 @@ export const nonEmptyStringSchema = z.string().min(1);
 export const nonBlankStringSchema = z
   .string({ error: NOT_A_NON_EMPTY_STRING })
   .refine((value) => value.trim() !== '', NOT_A_NON_EMPTY_STRING);
-
-/**
- * An era's `identity.rulesSets`: the rule set names the era spans. Written as
- * one `custom` check rather than a nested array schema so a bad list reports
- * a single issue at the field itself, keeping the message the one sentence
- * the config file's author needs to read.
- */
-export const rulesSetsSchema = z.custom<string[]>(
-  (value) =>
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((entry) => typeof entry === 'string' && entry.trim() !== ''),
-  'must be a non-empty array of non-empty strings.',
-);
 
 /**
  * A config group — a top-level JSON5 object, or one nested inside it. Never

@@ -7,7 +7,7 @@
 // (position, rules set) rather than a single overwritable value, so an
 // importer writing to a rules set this file also curates would merge into a
 // union instead of being correctable by re-running curation afterwards. TP
-// never writes here because its configured eras (import-tp-config.json5) are
+// never writes here because its eras (the TP eras in eras.json5) are
 // only BB2020, DB2021 and BB2025 -- none of the three rules sets this file
 // curates -- not because its data is per-rules-set (an older TP era, if ever
 // configured, would need the same exclusion BBL has). BBL IS excluded for

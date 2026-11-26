@@ -234,6 +234,8 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    ```
    followed by setting the `dataDir` field in that file to the path the developer gave, replacing the existing `dataDir:` value (a single flat quoted string, e.g. `dataDir: 'data/tloeg.bbleague.se',`).
 
+   The BBL and TP configs hold only era names and source-specific mapping: the league, era and rules-set catalog comes from batch 001, so batch 001 must be applied before a standalone BBL or TP import (the full import does that).
+
    Also confirm `connection.apiToken` is not still the `import-bbl-config.example.json5` placeholder (`your-import-bbl-token-here`) and matches `IMPORT_BBL_API_TOKEN` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — an unchanged or mismatched value is syntactically valid and only surfaces as a `401` from the api-server at request time, not a config error.
 2. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
@@ -250,7 +252,7 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
    ```bash
    cat tools/import-tp/import-tp-config.json5 2>/dev/null
    ```
-   If the file doesn't exist, or its `eras` array still has the `import-tp-config.example.json5` placeholder entry (`{ name: '<era name>', dataSubdir: '<era-slug>' }`), the tool will fail validation. In that case, list the actual era subdirectories present under `tools/import-tp/data/` (`ls tools/import-tp/data/`) and ask the developer to confirm the display name for each era slug found, per `docs/import-tp/index.md`. Then write the result into `import-tp-config.json5`:
+   If the file doesn't exist, or its `eras` array still has the `import-tp-config.example.json5` placeholder entry (`{ name: '<era name>', dataSubdir: '<era-slug>' }`), the tool will fail validation. In that case, list the actual era subdirectories present under `tools/import-tp/data/` (`ls tools/import-tp/data/`) and ask the developer which curated era (from `tools/import-manual/data/batches/001-initial-seed/eras.json5`) each era slug found belongs to, per `docs/import-tp/index.md`: each era's `name` must be exactly a curated TP era name (Third era, Second Dungeon Bowl era, Fourth era), and `league.name` must be a curated league (`tLoEG`), not the `<league name>` placeholder. Then write the result into `import-tp-config.json5`:
    ```bash
    if [ ! -f tools/import-tp/import-tp-config.json5 ]; then
      cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.json5

@@ -59,4 +59,23 @@ describe('RulesSetsImportService', () => {
       'Failed to import rules set "BB2020": boom',
     );
   });
+
+  it('names the rules set by its first external id when no name is sent', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.upsert(
+      {
+        externalIds: [
+          { externalSystemId: 2, externalId: 'CRP' },
+          { externalSystemId: 1, externalId: 'crp' },
+        ],
+      },
+      [],
+    );
+
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('name is required'))).toBe(
+      'Failed to import rules set "CRP": name is required',
+    );
+  });
 });

@@ -27,7 +27,8 @@ interpretation of a file's contents. Which files matter and what they mean stay
 with each consumer, so sharing this package shares no interpretation.
 
 [import-tp](../import-tp/index.md), [download-tp](../download-tp/index.md) (for its
-layout constants) and the review tools
+layout constants), [import-manual-planner-cli](../import-manual-planner-cli/index.md)
+(which reads roster snapshots through it) and the review tools
 ([review-match](../review-match/index.md),
 [review-player](../review-player/index.md),
 [review-race](../review-race/index.md),

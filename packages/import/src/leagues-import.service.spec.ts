@@ -59,4 +59,23 @@ describe('LeaguesImportService', () => {
       'Failed to import league "Test League": boom',
     );
   });
+
+  it('names the league by its first external id when no name is sent', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.upsert(
+      {
+        externalIds: [
+          { externalSystemId: 2, externalId: 'tLoEG' },
+          { externalSystemId: 1, externalId: 'tLoEGBBL' },
+        ],
+      },
+      [],
+    );
+
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('name is required'))).toBe(
+      'Failed to import league "tLoEG": name is required',
+    );
+  });
 });

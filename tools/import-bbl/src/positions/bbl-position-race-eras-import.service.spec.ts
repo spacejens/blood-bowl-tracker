@@ -12,13 +12,14 @@ import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
+import { era } from '../shared/curated-era.test-helpers';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import { BblPositionRaceErasImportService } from './bbl-position-race-eras-import.service';
 
 function makeEra(overrides: Partial<EraConfig> = {}): EraConfig {
   return {
-    identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-    dates: { startDate: '2011-09-09', autoAssignByDate: true },
+    identity: { name: 'Living rulebook' },
+    dates: { autoAssignByDate: true },
     players: { firstPlayerId: 1, autoAssignByPlayerId: true },
     ...overrides,
   };
@@ -46,6 +47,14 @@ function makeRulesSet(
 const rulesSetsByName = new Map([
   ['Living rulebook', makeRulesSet(10, 'Living rulebook', 'absent')],
   ['BB2020', makeRulesSet(20, 'BB2020', 'plus')],
+]);
+
+/** The curated eras the eras step hands over, keyed by configured name. */
+const erasByName = new Map([
+  [
+    'Living rulebook',
+    era({ name: 'Living rulebook', rulesSetNames: ['Living rulebook'] }),
+  ],
 ]);
 
 /**
@@ -157,6 +166,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -187,6 +197,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -217,6 +228,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -252,6 +264,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra,
     });
@@ -278,6 +291,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra,
     });
@@ -304,6 +318,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra,
     });
@@ -330,6 +345,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra,
     });
@@ -359,6 +375,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra,
     });
@@ -396,6 +413,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra,
     });
@@ -427,6 +445,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra,
     });
@@ -457,6 +476,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -488,6 +508,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -500,7 +521,7 @@ describe('BblPositionRaceErasImportService', () => {
   it('records an ImportError when an override containing era name does not resolve', async () => {
     const eras = [
       makeEra({
-        identity: { name: 'Unknown era', rulesSets: ['Living rulebook'] },
+        identity: { name: 'Unknown era' },
         positions: [{ positionId: '10', raceId: '7', available: false }],
       }),
     ];
@@ -518,6 +539,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -545,6 +567,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -570,6 +593,7 @@ describe('BblPositionRaceErasImportService', () => {
       positionRaceCandidates,
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId,
       positionsUsedByEra: new Set(),
     });
@@ -578,14 +602,7 @@ describe('BblPositionRaceErasImportService', () => {
   });
 
   it('returns every rules set of a multi-rules-set era for an available position', async () => {
-    const eras = [
-      makeEra({
-        identity: {
-          name: 'Living rulebook',
-          rulesSets: ['Living rulebook', 'BB2020'],
-        },
-      }),
-    ];
+    const eras = [makeEra()];
     const { service, mocks } = await makeService(eras);
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
@@ -598,6 +615,15 @@ describe('BblPositionRaceErasImportService', () => {
       ]),
       racesByBblId,
       rulesSetsByName,
+      erasByName: new Map([
+        [
+          'Living rulebook',
+          era({
+            name: 'Living rulebook',
+            rulesSetNames: ['Living rulebook', 'BB2020'],
+          }),
+        ],
+      ]),
       eraIdsByRaceId: new Map([[7, new Set([500])]]),
       positionsUsedByEra: new Set(),
     });
@@ -605,6 +631,28 @@ describe('BblPositionRaceErasImportService', () => {
     expect(outcome.rulesSetIdsByPositionId).toEqual(
       new Map([[100, new Set([10, 20])]]),
     );
+  });
+
+  it('gives no characteristics rules sets for an era the eras step did not return', async () => {
+    const { service, mocks } = await makeService([makeEra()]);
+    mocks.positionsImport.syncRaceEras.mockResolvedValue({
+      positionId: 100,
+      raceEraIds: [1],
+    });
+
+    const outcome = await service.syncPositionRaceEras({
+      positionRaceCandidates: new Map([
+        [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+      ]),
+      racesByBblId,
+      rulesSetsByName,
+      erasByName: new Map(),
+      eraIdsByRaceId: new Map([[7, new Set([500])]]),
+      positionsUsedByEra: new Set(),
+    });
+
+    expect(outcome.rulesSetIdsByPositionId.size).toBe(0);
+    expect(resultArgs(mocks.importResults).errors).toEqual([]);
   });
 
   it('omits a position with no determined availability', async () => {
@@ -616,6 +664,7 @@ describe('BblPositionRaceErasImportService', () => {
       ]),
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       // The race is in no era at all, so no raceEras are produced.
       eraIdsByRaceId: new Map(),
       positionsUsedByEra: new Set(),
@@ -625,11 +674,7 @@ describe('BblPositionRaceErasImportService', () => {
   });
 
   it('records a per-position error when an era names an unimported rules set', async () => {
-    const eras = [
-      makeEra({
-        identity: { name: 'Living rulebook', rulesSets: ['Nonexistent'] },
-      }),
-    ];
+    const eras = [makeEra()];
     const { service, mocks } = await makeService(eras);
     mocks.positionsImport.syncRaceEras.mockResolvedValue({
       positionId: 100,
@@ -642,6 +687,12 @@ describe('BblPositionRaceErasImportService', () => {
       ]),
       racesByBblId,
       rulesSetsByName,
+      erasByName: new Map([
+        [
+          'Living rulebook',
+          era({ name: 'Living rulebook', rulesSetNames: ['Nonexistent'] }),
+        ],
+      ]),
       eraIdsByRaceId: new Map([[7, new Set([500])]]),
       positionsUsedByEra: new Set(),
     });
@@ -680,6 +731,7 @@ describe('BblPositionRaceErasImportService', () => {
       ]),
       racesByBblId,
       rulesSetsByName,
+      erasByName,
       eraIdsByRaceId: new Map([[7, new Set([500])]]),
       positionsUsedByEra: new Set(),
     });

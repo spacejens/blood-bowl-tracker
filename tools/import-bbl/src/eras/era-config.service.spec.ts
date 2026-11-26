@@ -35,12 +35,8 @@ function makeServiceForLeagues(leagues: unknown): Promise<EraConfigService> {
 
 const validEras = [
   {
-    identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-    dates: {
-      startDate: '2011-09-09',
-      endDate: '2021-09-01',
-      autoAssignByDate: true,
-    },
+    identity: { name: 'Living rulebook' },
+    dates: { autoAssignByDate: true },
     players: {
       firstPlayerId: 1,
       lastPlayerId: 5000,
@@ -48,34 +44,43 @@ const validEras = [
     },
   },
   {
-    identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-    dates: { startDate: '2021-09-01', autoAssignByDate: true },
+    identity: { name: 'BB2020' },
+    dates: { autoAssignByDate: true },
     players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
   },
 ];
 
 describe('EraConfigService', () => {
-  it('parses a valid eras array, leaving an omitted endDate/lastPlayerId undefined', async () => {
+  it('parses a valid eras array, leaving an omitted lastPlayerId undefined', async () => {
     const service = await makeService(validEras);
     const eras = service.getEras();
     expect(eras).toHaveLength(2);
-    expect(eras[0].identity).toEqual({
-      name: 'Living rulebook',
-      rulesSets: ['Living rulebook'],
-    });
-    expect(eras[0].dates).toEqual({
-      startDate: '2011-09-09',
-      endDate: '2021-09-01',
-      autoAssignByDate: true,
-    });
+    expect(eras[0].identity).toEqual({ name: 'Living rulebook' });
+    expect(eras[0].dates).toEqual({ autoAssignByDate: true });
     expect(eras[0].players).toEqual({
       firstPlayerId: 1,
       lastPlayerId: 5000,
       autoAssignByPlayerId: true,
     });
-    expect(eras[1].dates.endDate).toBeUndefined();
     expect(eras[1].players.lastPlayerId).toBeUndefined();
     expect(eras[1].players.firstPlayerId).toBe(5001);
+  });
+
+  it('loads a config still carrying rulesSets, startDate and endDate, leaving those keys out', async () => {
+    const service = await makeService([
+      {
+        identity: { name: 'First era', rulesSets: ['CRP', 'CRP+', 'BB2016'] },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+      },
+    ]);
+    const [era] = service.getEras();
+    expect(era.identity).toEqual({ name: 'First era' });
+    expect(era.dates).toEqual({ autoAssignByDate: true });
   });
 
   it('names the correctly flattened index for a shape error in a later league', async () => {
@@ -83,7 +88,7 @@ describe('EraConfigService', () => {
       { name: 'tLoEG', eras: [validEras[0], validEras[1]] },
       {
         name: 'GBBL',
-        eras: [{ ...validEras[0], identity: { name: '', rulesSets: ['x'] } }],
+        eras: [{ ...validEras[0], identity: { name: '' } }],
       },
     ]);
     expect(() => service.getEras()).toThrow('BBL_ERAS[2].identity.name');
@@ -107,8 +112,8 @@ describe('EraConfigService', () => {
         name: 'tLoEG',
         eras: [
           {
-            identity: { name: 'First era', rulesSets: ['BB2016'] },
-            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            identity: { name: 'First era' },
+            dates: { autoAssignByDate: true },
             players: { firstPlayerId: 1, autoAssignByPlayerId: true },
           },
         ],
@@ -117,12 +122,8 @@ describe('EraConfigService', () => {
         name: 'GBBL',
         eras: [
           {
-            identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
-            dates: {
-              startDate: '2019-08-03',
-              endDate: '2019-11-13',
-              autoAssignByDate: false,
-            },
+            identity: { name: 'GBBL 1' },
+            dates: { autoAssignByDate: false },
             players: { autoAssignByPlayerId: false },
             competitions: { overrides: [{ bblId: '55', type: 'season' }] },
             teams: { teamCodeOverrides: ['fes2'] },
@@ -145,8 +146,8 @@ describe('EraConfigService', () => {
         name: '',
         eras: [
           {
-            identity: { name: 'First era', rulesSets: ['BB2016'] },
-            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            identity: { name: 'First era' },
+            dates: { autoAssignByDate: true },
             players: { firstPlayerId: 1, autoAssignByPlayerId: true },
           },
         ],
@@ -162,8 +163,8 @@ describe('EraConfigService', () => {
         name: 'tLoEG',
         eras: [
           {
-            identity: { name: 'Shared', rulesSets: ['BB2016'] },
-            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            identity: { name: 'Shared' },
+            dates: { autoAssignByDate: true },
             players: { firstPlayerId: 1, autoAssignByPlayerId: true },
           },
         ],
@@ -172,8 +173,8 @@ describe('EraConfigService', () => {
         name: 'GBBL',
         eras: [
           {
-            identity: { name: 'Shared', rulesSets: ['BB2016'] },
-            dates: { startDate: '2019-08-03', autoAssignByDate: false },
+            identity: { name: 'Shared' },
+            dates: { autoAssignByDate: false },
             players: { autoAssignByPlayerId: false },
             teams: { teamCodeOverrides: ['fes2'] },
           },
@@ -187,8 +188,8 @@ describe('EraConfigService', () => {
   it('throws when an entry has an empty name', async () => {
     const eras = [
       {
-        identity: { name: '', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: '' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
@@ -196,78 +197,11 @@ describe('EraConfigService', () => {
     expect(() => service.getEras()).toThrow('identity.name');
   });
 
-  it('throws when an entry has an empty rulesSets array', async () => {
-    const eras = [
-      {
-        identity: { name: 'BB2020', rulesSets: [] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ];
-    const service = await makeService(eras);
-    expect(() => service.getEras()).toThrow('identity.rulesSets');
-  });
-
-  it('accepts an era spanning multiple rules sets', async () => {
-    const eras = [
-      {
-        identity: {
-          name: 'Living rulebook',
-          rulesSets: ['CRP', 'CRP+', 'BB2016'],
-        },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
-        players: {
-          firstPlayerId: 1,
-          lastPlayerId: 1000,
-          autoAssignByPlayerId: true,
-        },
-      },
-    ];
-    const service = await makeService(eras);
-    expect(service.getEras()[0].identity.rulesSets).toEqual([
-      'CRP',
-      'CRP+',
-      'BB2016',
-    ]);
-  });
-
-  it('throws when startDate is not a real calendar date', async () => {
-    const eras = [
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-02-30', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ];
-    const service = await makeService(eras);
-    expect(() => service.getEras()).toThrow('dates.startDate');
-  });
-
-  it('throws when endDate is present but not an ISO date', async () => {
-    const eras = [
-      {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: {
-          startDate: '2021-09-01',
-          endDate: 'later',
-          autoAssignByDate: true,
-        },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ];
-    const service = await makeService(eras);
-    expect(() => service.getEras()).toThrow('dates.endDate');
-  });
-
   it('throws when autoAssignByDate is missing or not a boolean', async () => {
     const eras = [
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01' },
+        identity: { name: 'BB2020' },
+        dates: {},
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
@@ -278,8 +212,8 @@ describe('EraConfigService', () => {
   it('throws when autoAssignByPlayerId is missing or not a boolean', async () => {
     const eras = [
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1 },
       },
     ];
@@ -290,8 +224,8 @@ describe('EraConfigService', () => {
   it('requires firstPlayerId when autoAssignByPlayerId is true', async () => {
     const eras = [
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { autoAssignByPlayerId: true },
       },
     ];
@@ -302,12 +236,8 @@ describe('EraConfigService', () => {
   it('allows firstPlayerId/lastPlayerId to be omitted when autoAssignByPlayerId is false', async () => {
     const eras = [
       {
-        identity: { name: 'Stunty', rulesSets: ['CRP'] },
-        dates: {
-          startDate: '2016-03-12',
-          endDate: '2016-11-26',
-          autoAssignByDate: false,
-        },
+        identity: { name: 'Stunty' },
+        dates: { autoAssignByDate: false },
         players: { autoAssignByPlayerId: false },
         teams: { teamCodeOverrides: ['rad'] },
       },
@@ -317,18 +247,13 @@ describe('EraConfigService', () => {
     expect(era.players.firstPlayerId).toBeUndefined();
     expect(era.players.lastPlayerId).toBeUndefined();
     expect(era.players.autoAssignByPlayerId).toBe(false);
-    expect(era.dates.endDate).toBe('2016-11-26');
   });
 
   it('validates firstPlayerId when present even though autoAssignByPlayerId is false', async () => {
     const eras = [
       {
-        identity: { name: 'Stunty', rulesSets: ['CRP'] },
-        dates: {
-          startDate: '2016-03-12',
-          endDate: '2016-11-26',
-          autoAssignByDate: false,
-        },
+        identity: { name: 'Stunty' },
+        dates: { autoAssignByDate: false },
         players: { firstPlayerId: 0, autoAssignByPlayerId: false },
       },
     ];
@@ -339,8 +264,8 @@ describe('EraConfigService', () => {
   it('rejects a non-integer lastPlayerId', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 1.5,
@@ -355,8 +280,8 @@ describe('EraConfigService', () => {
   it('rejects firstPlayerId greater than lastPlayerId', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 10,
           lastPlayerId: 5,
@@ -371,8 +296,8 @@ describe('EraConfigService', () => {
   it('rejects lastPlayerId set without firstPlayerId', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: false },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: false },
         players: { lastPlayerId: 5, autoAssignByPlayerId: false },
       },
     ];
@@ -383,12 +308,8 @@ describe('EraConfigService', () => {
   it('parses playerIdOverrides when present, leaving it undefined when absent', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -397,8 +318,8 @@ describe('EraConfigService', () => {
         },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
       },
     ];
@@ -411,8 +332,8 @@ describe('EraConfigService', () => {
   it('rejects playerIdOverrides containing a non-positive-integer', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           autoAssignByPlayerId: true,
@@ -427,12 +348,8 @@ describe('EraConfigService', () => {
   it('rejects the same pid overridden into more than one era', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -441,8 +358,8 @@ describe('EraConfigService', () => {
         },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 5001,
           autoAssignByPlayerId: true,
@@ -457,12 +374,8 @@ describe('EraConfigService', () => {
   it('parses competitions.overrides when present, leaving the group undefined when absent', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -482,8 +395,8 @@ describe('EraConfigService', () => {
         },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
       },
     ];
@@ -505,8 +418,8 @@ describe('EraConfigService', () => {
   it('rejects competitions.overrides that is not an array', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: { overrides: { bblId: '74', type: 'season' } },
       },
@@ -518,8 +431,8 @@ describe('EraConfigService', () => {
   it('rejects an override entry that is not an object', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: { overrides: ['74'] },
       },
@@ -531,8 +444,8 @@ describe('EraConfigService', () => {
   it('rejects an override with a missing or empty bblId', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '', type: 'season' }] },
       },
@@ -544,8 +457,8 @@ describe('EraConfigService', () => {
   it('rejects an override with an invalid type', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '74', type: 'exhibition' }] },
       },
@@ -557,8 +470,8 @@ describe('EraConfigService', () => {
   it('rejects an override startDate that is not a real ISO date', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: {
           overrides: [{ bblId: '74', type: 'season', startDate: '2023-02-30' }],
@@ -574,8 +487,8 @@ describe('EraConfigService', () => {
   it('rejects an override endDate that is not an ISO date', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: {
           overrides: [
@@ -598,8 +511,8 @@ describe('EraConfigService', () => {
   it('rejects an override endDate given without a startDate', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: {
           overrides: [{ bblId: '74', type: 'season', endDate: '2023-12-31' }],
@@ -615,8 +528,8 @@ describe('EraConfigService', () => {
   it('rejects an override endDate before startDate', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: {
           overrides: [
@@ -639,8 +552,8 @@ describe('EraConfigService', () => {
   it("rejects the same competition id appearing twice within one era's overrides", async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: {
           overrides: [
@@ -657,12 +570,8 @@ describe('EraConfigService', () => {
   it('rejects the same competition id across overrides in different eras', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -671,8 +580,8 @@ describe('EraConfigService', () => {
         competitions: { overrides: [{ bblId: '30', type: 'season' }] },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
@@ -684,12 +593,8 @@ describe('EraConfigService', () => {
   it('parses teamCodeOverrides when present, leaving the group undefined when absent', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -698,8 +603,8 @@ describe('EraConfigService', () => {
         teams: { teamCodeOverrides: ['rad', 'sl-'] },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
       },
     ];
@@ -712,12 +617,8 @@ describe('EraConfigService', () => {
   it('rejects the same team code overridden into more than one era', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -726,8 +627,8 @@ describe('EraConfigService', () => {
         teams: { teamCodeOverrides: ['rad'] },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         teams: { teamCodeOverrides: ['rad'] },
       },
@@ -739,12 +640,8 @@ describe('EraConfigService', () => {
   it('parses matches.merges when present, leaving the group undefined when absent', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -753,8 +650,8 @@ describe('EraConfigService', () => {
         matches: { merges: [['1061', '1062']] },
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
       },
     ];
@@ -767,8 +664,8 @@ describe('EraConfigService', () => {
   it('rejects a matches group whose merges is not an array', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         matches: { merges: 'nope' },
       },
@@ -780,8 +677,8 @@ describe('EraConfigService', () => {
   it('parses matches.categoryOverrides alongside merges', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         matches: {
           merges: [['1', '2']],
@@ -798,8 +695,8 @@ describe('EraConfigService', () => {
   it('allows a matches group with only categoryOverrides', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         matches: {
           categoryOverrides: [{ matchId: '1', category: 'cup_final' }],
@@ -817,8 +714,8 @@ describe('EraConfigService', () => {
   it('rejects a non-array categoryOverrides', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         matches: { categoryOverrides: 'nope' },
       },
@@ -832,8 +729,8 @@ describe('EraConfigService', () => {
   it('parses matches.resultOverrides alongside merges', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         matches: {
           merges: [['1', '2']],
@@ -850,8 +747,8 @@ describe('EraConfigService', () => {
   it('allows a matches group with only resultOverrides', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         matches: {
           resultOverrides: [{ matchId: '1', winnerTeamCode: 'draw' }],
@@ -869,8 +766,8 @@ describe('EraConfigService', () => {
   it('rejects a non-array resultOverrides', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         matches: { resultOverrides: 'nope' },
       },
@@ -884,12 +781,8 @@ describe('EraConfigService', () => {
   it('parses positions overrides when present, leaving it undefined when absent', async () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: {
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          autoAssignByDate: true,
-        },
+        identity: { name: 'Living rulebook' },
+        dates: { autoAssignByDate: true },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -898,8 +791,8 @@ describe('EraConfigService', () => {
         positions: [{ positionId: '12', raceId: '3', available: false }],
       },
       {
-        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        identity: { name: 'BB2020' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
       },
     ];
@@ -914,8 +807,8 @@ describe('EraConfigService', () => {
   it('rejects a non-array positions', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         positions: 'nope',
       },
@@ -927,8 +820,8 @@ describe('EraConfigService', () => {
   it('rejects a positions entry with a non-string positionId', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         positions: [{ positionId: 12, raceId: '3', available: false }],
       },
@@ -940,8 +833,8 @@ describe('EraConfigService', () => {
   it('rejects a positions entry with a non-string raceId', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         positions: [{ positionId: '12', raceId: 3, available: false }],
       },
@@ -953,8 +846,8 @@ describe('EraConfigService', () => {
   it('rejects a positions entry with a non-boolean available', async () => {
     const eras = [
       {
-        identity: { name: 'LRB', rulesSets: ['LRB'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        identity: { name: 'LRB' },
+        dates: { autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         positions: [{ positionId: '12', raceId: '3', available: 'no' }],
       },

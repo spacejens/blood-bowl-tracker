@@ -1,12 +1,9 @@
-import type { ExternalId } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
-  ReferenceLookupService,
-  type ResolvableEntityKind,
   TP_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import type { TpTournament } from '@blood-bowl-tracker/parse-tp';
@@ -17,35 +14,21 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
+  curatedEra,
   mockImportResultService,
-  mockKeyOf,
   mockNameExternalIdService,
 } from '../import-package.test-helpers';
-import { LeagueConfigService } from '../leagues/league-config.service';
 import type { TpSourceFile } from '../source/tp-source-reader';
 import { TpSourceReader } from '../source/tp-source-reader';
 import type { EraDataConfig } from './era-data-config.service';
 import { EraDataConfigService } from './era-data-config.service';
 import { TpErasImportService } from './tp-eras-import.service';
 
-/** The numeric id the mocked bootstrap assigns to the TP external system. */
-const TP_SYSTEM_ID = 1;
-
 interface MakeServiceOptions {
   getEras: () => EraDataConfig[];
   files: () => AsyncIterable<TpSourceFile>;
   bootstrap: ReturnType<typeof vi.fn>;
   upsertEra: ReturnType<typeof vi.fn>;
-  getLeagueName?: () => string;
-  /**
-   * Answers a canned resolution per kind. `keyOf` is the mocked
-   * `ReferenceLookupService.keyOf` -- build every key with it, never by
-   * hand, so no test depends on the real key format.
-   */
-  lookupMap?: (
-    kind: ResolvableEntityKind,
-    keyOf: (ref: ExternalId) => string,
-  ) => Promise<Map<string, number>>;
 }
 
 /**
@@ -89,35 +72,10 @@ async function makeService({
   files,
   bootstrap,
   upsertEra,
-  getLeagueName = () => 'My League',
-  lookupMap = (kind, keyOf) =>
-    Promise.resolve(
-      kind === 'league'
-        ? new Map([
-            [
-              keyOf({
-                externalSystemId: TP_SYSTEM_ID,
-                externalId: 'My League',
-              }),
-              10,
-            ],
-          ])
-        : new Map([
-            [
-              keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'LRB6' }),
-              100,
-            ],
-            [
-              keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'BB2020' }),
-              200,
-            ],
-          ]),
-    ),
 }: MakeServiceOptions): Promise<{
   service: TpErasImportService;
   importResults: MockProxy<ImportResultService>;
   tournamentParser: MockProxy<TournamentParserService>;
-  lookup: MockProxy<ReferenceLookupService>;
 }> {
   const eraDataConfig = mock<EraDataConfigService>();
   eraDataConfig.getEras.mockImplementation(getEras);
@@ -141,11 +99,6 @@ async function makeService({
   // ImportResultService.result's own success derivation is covered by
   // packages/import-shared/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
-  const leagueConfig = mock<LeagueConfigService>();
-  leagueConfig.getLeagueName.mockImplementation(getLeagueName);
-  const lookup = mock<ReferenceLookupService>();
-  mockKeyOf(lookup);
-  lookup.lookupMap.mockImplementation((kind) => lookupMap(kind, lookup.keyOf));
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -160,15 +113,12 @@ async function makeService({
       { provide: TournamentParserService, useValue: tournamentParser },
       { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
-      { provide: LeagueConfigService, useValue: leagueConfig },
-      { provide: ReferenceLookupService, useValue: lookup },
     ],
   }).compile();
   return {
     service: moduleRef.get(TpErasImportService),
     importResults,
     tournamentParser,
-    lookup,
   };
 }
 
@@ -213,122 +163,34 @@ function tournamentFile(
 }
 
 const eras: EraDataConfig[] = [
-  {
-    name: 'Third era',
-    dataSubdir: 'third-era',
-    rulesSets: ['LRB6'],
-    startDate: '2013-01-01',
-    endDate: '2016-12-31',
-  },
-  {
-    name: 'Fourth era',
-    dataSubdir: 'fourth-era',
-    rulesSets: ['BB2020'],
-    startDate: '2020-11-28',
-  },
+  { name: 'Third era', dataSubdir: 'third-era' },
+  { name: 'Fourth era', dataSubdir: 'fourth-era' },
 ];
 
-const oneEra: EraDataConfig = {
-  name: 'Era One',
-  dataSubdir: 'era-one',
-  rulesSets: ['CRP'],
-  startDate: '2011-09-09',
-};
+const thirdEra = curatedEra({
+  id: 500,
+  name: 'Third era',
+  rulesSetIds: [200],
+  rulesSetNames: ['BB2020'],
+  startDate: '2023-06-15',
+  endDate: '2026-01-01',
+});
+const fourthEra = curatedEra({
+  id: 600,
+  name: 'Fourth era',
+  rulesSetIds: [300],
+  rulesSetNames: ['BB2025'],
+  startDate: '2026-01-01',
+  endDate: null,
+});
 
 describe('TpErasImportService', () => {
-  it('resolves the league and every rules set through the api', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Era One' });
-    const { service, lookup } = await makeService({
-      getEras: () => [oneEra],
-      files: makeFiles([]),
-      bootstrap,
-      upsertEra,
-      lookupMap: (kind, keyOf) =>
-        Promise.resolve(
-          kind === 'league'
-            ? new Map([
-                [
-                  keyOf({
-                    externalSystemId: TP_SYSTEM_ID,
-                    externalId: 'My League',
-                  }),
-                  10,
-                ],
-              ])
-            : new Map([
-                [
-                  keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'CRP' }),
-                  100,
-                ],
-              ]),
-        ),
-    });
-
-    await service.importEras();
-
-    expect(lookup.lookupMap).toHaveBeenCalledWith('league', [
-      { externalSystemId: TP_SYSTEM_ID, externalId: 'My League' },
-    ]);
-    expect(lookup.lookupMap).toHaveBeenCalledWith('rulesSet', [
-      { externalSystemId: TP_SYSTEM_ID, externalId: 'CRP' },
-    ]);
-  });
-
-  it('records an error and imports no era when the league does not resolve', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn();
-    const { service, importResults } = await makeService({
-      getEras: () => [oneEra],
-      files: makeFiles([]),
-      bootstrap,
-      upsertEra,
-      lookupMap: () => Promise.resolve(new Map()),
-    });
-
-    await service.importEras();
-
-    const { errors } = resultArgs(importResults);
-    expect(errors[0].message).toContain(
-      'Cannot import eras: the league could not be resolved',
-    );
-    expect(upsertEra).not.toHaveBeenCalled();
-  });
-
-  it('records an error and imports no era, without throwing, when the league name cannot be read from config', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn();
-    const { service, importResults, lookup } = await makeService({
-      getEras: () => eras,
-      files: makeFiles([]),
-      bootstrap,
-      upsertEra,
-      getLeagueName: () => {
-        throw new Error(
-          'league.name is not set in import-tp-config.json5. Set league.name ' +
-            'to the name of the league the TP data covers (e.g. "tLoEGBBL").',
-        );
-      },
-    });
-
-    await service.importEras();
-
-    const { errors } = resultArgs(importResults);
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain(
-      'Cannot import eras: the league name could not be read',
-    );
-    expect(errors[0].message).toContain('league.name is not set');
-    expect(upsertEra).not.toHaveBeenCalled();
-    expect(lookup.lookupMap).not.toHaveBeenCalled();
-  });
-
-  it('upserts each era with resolved rule-set ids and dates', async () => {
+  it('attaches the TP id to each curated era, found by its Name id, sending nothing else', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi
       .fn()
-      .mockResolvedValueOnce({ id: 500, name: 'Third era' })
-      .mockResolvedValueOnce({ id: 600, name: 'Fourth era' });
+      .mockResolvedValueOnce(thirdEra)
+      .mockResolvedValueOnce(fourthEra);
     const { service, importResults } = await makeService({
       getEras: () => eras,
       files: makeFiles([
@@ -351,14 +213,10 @@ describe('TpErasImportService', () => {
     expect(upsertEra).toHaveBeenNthCalledWith(
       1,
       {
-        name: 'Third era',
-        leagueId: 10,
-        rulesSetIds: [100],
-        startDate: '2013-01-01',
-        endDate: '2016-12-31',
+        rulesSetIds: [],
         externalIds: [
-          { externalSystemId: 1, externalId: 'Third era' },
           { externalSystemId: 2, externalId: 'Third era' },
+          { externalSystemId: 1, externalId: 'Third era' },
         ],
       },
       expect.any(Array),
@@ -366,60 +224,65 @@ describe('TpErasImportService', () => {
     expect(upsertEra).toHaveBeenNthCalledWith(
       2,
       {
-        name: 'Fourth era',
-        leagueId: 10,
-        rulesSetIds: [200],
-        startDate: '2020-11-28',
-        endDate: undefined,
+        rulesSetIds: [],
         externalIds: [
-          { externalSystemId: 1, externalId: 'Fourth era' },
           { externalSystemId: 2, externalId: 'Fourth era' },
+          { externalSystemId: 1, externalId: 'Fourth era' },
         ],
       },
       expect.any(Array),
     );
   });
 
-  it('skips an era whose rule set was not imported, recording an error', async () => {
+  it('returns every upserted curated era keyed by its configured name', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
+    const upsertEra = vi
+      .fn()
+      .mockResolvedValueOnce(thirdEra)
+      .mockResolvedValueOnce(fourthEra);
+    const { service } = await makeService({
+      getEras: () => eras,
+      files: makeFiles([]),
+      bootstrap,
+      upsertEra,
+    });
+
+    const { erasByName } = await service.importEras();
+
+    expect([...erasByName.entries()]).toEqual([
+      ['Third era', thirdEra],
+      ['Fourth era', fourthEra],
+    ]);
+  });
+
+  it('leaves an era missing from the catalog out of the map, keeping only its upsert error', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const missingField = {
+      item: { externalIds: [] },
+      message: 'Failed to import era "Third era": name is required',
+    };
+    const upsertEra = vi
+      .fn()
+      .mockImplementationOnce((_data: unknown, errors: unknown[]) => {
+        errors.push(missingField);
+        return Promise.resolve(undefined);
+      })
+      .mockResolvedValueOnce(fourthEra);
     const { service, importResults } = await makeService({
       getEras: () => eras,
       files: makeFiles([]),
       bootstrap,
       upsertEra,
-      lookupMap: (kind, keyOf) =>
-        Promise.resolve(
-          kind === 'league'
-            ? new Map([
-                [
-                  keyOf({
-                    externalSystemId: TP_SYSTEM_ID,
-                    externalId: 'My League',
-                  }),
-                  10,
-                ],
-              ])
-            : new Map([
-                [
-                  keyOf({ externalSystemId: TP_SYSTEM_ID, externalId: 'LRB6' }),
-                  100,
-                ],
-              ]),
-        ),
     });
 
-    await service.importEras();
+    const { erasByName } = await service.importEras();
 
-    // Third era resolves (LRB6), Fourth era does not (BB2020 missing).
-    const { imported, errors } = resultArgs(importResults);
-    expect(imported).toBe(1);
-    expect(upsertEra).toHaveBeenCalledTimes(1);
-    expect(
-      errors.some(
-        (e) => e.message.includes('Fourth era') && e.message.includes('BB2020'),
-      ),
-    ).toBe(true);
+    expect(upsertEra).toHaveBeenCalledTimes(2);
+    expect(resultArgs(importResults)).toEqual({
+      imported: 1,
+      errors: [missingField],
+    });
+    expect([...erasByName.keys()]).toEqual(['Fourth era']);
   });
 
   it('passes silently when one era directory reports a single rule-set code', async () => {

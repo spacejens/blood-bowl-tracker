@@ -1,4 +1,5 @@
 import type {
+  Era,
   RulesSet,
   UpsertRulesSet,
 } from '@blood-bowl-tracker/api-contract';
@@ -8,18 +9,14 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   NAME_EXTERNAL_SYSTEM,
-  NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
   RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import { EraConfigService } from '../eras/era-config.service';
-
 @Injectable()
 export class BblRulesSetsImportService {
   constructor(
-    private readonly eraConfig: EraConfigService,
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly nameExternalId: NameExternalIdService,
@@ -27,48 +24,29 @@ export class BblRulesSetsImportService {
   ) {}
 
   /**
-   * Import the rules sets the BBL league played under. Rules sets are not in
-   * the source data; their names are the distinct `rulesSet` values across the
-   * configured eras (BBL_ERAS). Each is keyed by its name under both the BBL
-   * and Name external systems. The eras import resolves each era's rules sets
-   * server-side, by that same external id, once this step has upserted them.
-   * Idempotent.
+   * Attach the BBL external id to every rules set the BBL eras played under.
+   * Rules sets are not in the source data, and are curated (batch 001): their
+   * names are the distinct `rulesSetNames` across the curated eras the eras
+   * step returned, in first-seen order. Each is found by its Name external id
+   * and gets the same name under the BBL system, sending nothing else. A rules
+   * set missing from the catalog fails with the server's missing-field error,
+   * recorded for that rules set. A rules set whose every era failed to import is not in
+   * `erasByName`, so it gets no BBL id from this step. Idempotent.
    */
-  async importRulesSets(): Promise<{
+  async importRulesSets(erasByName: ReadonlyMap<string, Era>): Promise<{
     result: ImportResult;
     rulesSetsByName: Map<string, RulesSet>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    // Each upsert already answers with the full RulesSet, formats included, so
-    // the characteristics import downstream needs no extra round trip to learn
-    // a target rules set's passingFormat.
+    // Each upsert already answers with the full curated RulesSet, formats
+    // included, so the characteristics import downstream needs no extra round
+    // trip to learn a target rules set's passingFormat.
     const rulesSetsByName = new Map<string, RulesSet>();
 
-    let names: string[];
-    try {
-      names = [
-        ...new Set(
-          this.eraConfig.getEras().flatMap((e) => e.identity.rulesSets),
-        ),
-      ];
-    } catch (error) {
-      errors.push(
-        this.importResults.error({
-          item: {
-            externalSystems: [
-              BBL_EXTERNAL_SYSTEM_NAME,
-              NAME_EXTERNAL_SYSTEM_NAME,
-            ],
-          },
-          message: error instanceof Error ? error.message : String(error),
-        }),
-      );
-      return {
-        result: this.importResults.result({ imported, errors }),
-        rulesSetsByName,
-      };
-    }
+    const names = [
+      ...new Set([...erasByName.values()].flatMap((e) => e.rulesSetNames)),
+    ];
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
@@ -85,13 +63,12 @@ export class BblRulesSetsImportService {
 
     for (const name of names) {
       const rulesSetData: UpsertRulesSet = {
-        name,
         externalIds: [
-          { externalSystemId: bblSystemId, externalId: name },
           {
             externalSystemId: nameSystemId,
             externalId: this.nameExternalId.forRulesSet(name),
           },
+          { externalSystemId: bblSystemId, externalId: name },
         ],
       };
       const rulesSet = await this.rulesSetsImport.upsert(rulesSetData, errors);

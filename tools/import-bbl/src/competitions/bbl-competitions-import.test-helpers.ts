@@ -1,3 +1,4 @@
+import type { Era } from '@blood-bowl-tracker/api-contract';
 import type {
   ImportError,
   ImportResult,
@@ -17,6 +18,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatch } from '../matches/match-list-page-parser';
+import { era } from '../shared/curated-era.test-helpers';
 import { mockReferenceLookup } from '../shared/reference-lookup-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
@@ -62,20 +64,32 @@ export const CANNED_PAGE_PARSE_ERROR: ImportError = {
 
 export const erasConfig: EraConfig[] = [
   {
-    identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-    dates: {
-      startDate: '2011-09-09',
-      endDate: '2021-09-01',
-      autoAssignByDate: true,
-    },
+    identity: { name: 'Living rulebook' },
+    dates: { autoAssignByDate: true },
     players: { firstPlayerId: 1, autoAssignByPlayerId: true },
   },
   {
-    identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-    dates: { startDate: '2021-09-01', autoAssignByDate: true },
+    identity: { name: 'BB2020' },
+    dates: { autoAssignByDate: true },
     players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
   },
 ];
+
+/**
+ * The curated eras the eras step hands over, keyed by configured name: the
+ * dates the match-date scan reads. Covers every era name these specs
+ * configure; an era configured but absent here is skipped by the scan.
+ */
+export const erasByName = new Map<string, Era>(
+  [
+    era({ name: 'Living rulebook', endDate: '2021-09-01' }),
+    era({ name: 'BB2020', startDate: '2021-09-01' }),
+    era({ name: 'Stunty', endDate: '2021-09-01' }),
+    era({ name: 'Main', startDate: '2016-01-01', endDate: '2017-01-01' }),
+    era({ name: 'Side', startDate: '2016-01-01', endDate: '2017-01-01' }),
+    era({ name: 'GBBL 1', startDate: '2019-08-03', endDate: '2019-11-13' }),
+  ].map((e) => [e.name, e]),
+);
 
 /** The numeric id the mocked bootstrap assigns to the BBL external system. */
 export const BBL_SYSTEM_ID = 1;

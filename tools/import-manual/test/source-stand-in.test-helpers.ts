@@ -202,11 +202,16 @@ export async function runSourceStandIn(
   const positionId = await writeCharacteristics(client, db, tpId);
 
   // A TP player: the roster pass writes no spp_total; the adjustments step does.
+  // It plays in a TP era, whose BB2020 rules set prices advancements by kind,
+  // so its unspent SPP is the source's own figure (none here) on both runs.
+  // An era priced by fixed thresholds would instead store a modelled value
+  // once batch 004's advancement costs exist, which on the first run they do
+  // not yet when this step runs.
   const [era] = await db
     .select({ id: eras.id })
     .from(eras)
-    .orderBy(eras.id)
-    .limit(1);
+    .where(eq(eras.name, 'Third era'));
+  if (era === undefined) throw new Error('Third era not seeded');
   const standInTeam = await client.teams.upsert({
     name: 'Stand-in Team',
     raceId: resent.raceId,

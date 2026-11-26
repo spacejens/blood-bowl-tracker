@@ -86,8 +86,8 @@ export class CharacteristicsChangeStratificationService implements PlayerStratif
     const externalSystemId = await this.externalSystems.getSystemId(source);
     const latest = alias(eraRulesSets, 'latest_era_rules_sets');
     // The era's last-listed rules set: era_rules_sets rows are inserted in
-    // the order the importers' own configs list them, so the highest id for
-    // an era is what those configs mean by "last-listed". Built through the
+    // the order batch 001's eras.json5 lists them, so the highest id for
+    // an era is its "last-listed" rules set. Built through the
     // query builder (not a raw sql fragment referencing the alias directly)
     // so drizzle registers the alias's FROM and schema-qualifies it — a raw
     // `sql` template referencing `latest` without a builder-owned FROM

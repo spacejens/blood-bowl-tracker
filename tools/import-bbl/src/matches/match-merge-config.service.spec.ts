@@ -10,8 +10,8 @@ import { MatchMergeConfigService } from './match-merge-config.service';
 /** Build a minimal EraConfig carrying only the fields getMerges() reads. */
 function era(name: string, merges?: unknown[]): EraConfig {
   return {
-    identity: { name, rulesSets: ['X'] },
-    dates: { startDate: '2011-09-09', autoAssignByDate: true },
+    identity: { name },
+    dates: { autoAssignByDate: true },
     players: { firstPlayerId: 1, autoAssignByPlayerId: true },
     ...(merges !== undefined ? { matches: { merges } } : {}),
   };

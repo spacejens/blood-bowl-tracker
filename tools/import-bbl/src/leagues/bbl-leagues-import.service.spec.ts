@@ -110,7 +110,7 @@ describe('BblLeaguesImportService', () => {
     ]);
   });
 
-  it('upserts every configured league', async () => {
+  it('attaches the BBL id to every configured league, found by its Name id', async () => {
     mocks.config.getLeagueNames.mockReturnValue(['tLoEG', 'GBBL']);
     mocks.leaguesImport.upsert
       .mockResolvedValueOnce({
@@ -132,10 +132,9 @@ describe('BblLeaguesImportService', () => {
     expect(mocks.leaguesImport.upsert).toHaveBeenNthCalledWith(
       1,
       {
-        name: 'tLoEG',
         externalIds: [
-          { externalSystemId: 1, externalId: 'tLoEG' },
           { externalSystemId: 2, externalId: 'tLoEG' },
+          { externalSystemId: 1, externalId: 'tLoEG' },
         ],
       },
       expect.any(Array),
@@ -143,33 +142,40 @@ describe('BblLeaguesImportService', () => {
     expect(mocks.leaguesImport.upsert).toHaveBeenNthCalledWith(
       2,
       {
-        name: 'GBBL',
         externalIds: [
-          { externalSystemId: 1, externalId: 'GBBL' },
           { externalSystemId: 2, externalId: 'GBBL' },
+          { externalSystemId: 1, externalId: 'GBBL' },
         ],
       },
       expect.any(Array),
     );
   });
 
-  it('records an error and omits a league whose upsert fails, keeping the others', async () => {
-    mocks.config.getLeagueNames.mockReturnValue(['tLoEG', 'GBBL']);
+  it('keeps only the upsert error for a league missing from the catalog, and continues', async () => {
+    mocks.config.getLeagueNames.mockReturnValue(['Unknown', 'GBBL']);
+    const missingField = {
+      item: { externalIds: [] },
+      message: 'Failed to import league: name is required',
+    };
     mocks.leaguesImport.upsert
-      .mockResolvedValueOnce({
-        id: 42,
-        name: 'tLoEG',
-        createdAt: new Date('2026-01-01'),
-        created: true,
-      })
       .mockImplementationOnce((_data, errors) => {
-        errors.push({ item: {}, message: 'Failed to import league' });
+        errors.push(missingField);
         return Promise.resolve(undefined);
+      })
+      .mockResolvedValueOnce({
+        id: 43,
+        name: 'GBBL',
+        createdAt: new Date('2026-01-01'),
+        created: false,
       });
 
     await service.importLeagues();
 
-    expect(resultArgs(mocks.importResults).imported).toBe(1);
+    expect(mocks.leaguesImport.upsert).toHaveBeenCalledTimes(2);
+    expect(resultArgs(mocks.importResults)).toEqual({
+      imported: 1,
+      errors: [missingField],
+    });
   });
 
   it('records one error and imports nothing when leagues config is invalid', async () => {

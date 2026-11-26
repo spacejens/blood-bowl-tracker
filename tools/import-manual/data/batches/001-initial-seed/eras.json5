@@ -1,31 +1,27 @@
-// The eras every curated competition instance belongs to.
+// The era catalog: every era's name, league, dates and rules sets.
 //
-// These exist here, ahead of the BBL and TP importers, purely so
-// competitions.json5 in this same batch has an era to reference: a
-// competition row cannot be created without an eraId (competitions.era_id is
-// NOT NULL with no default). Each era is keyed by its plain name under the
-// synthetic "Name" system -- exactly what BblErasImportService and
-// TpErasImportService key their eras by -- so their later upserts resolve
-// onto these very rows and overlay the real config-driven values rather than
-// creating duplicates.
-//
-// Names and dates are copied verbatim from tools/import-bbl/import-bbl-config.json5
-// and tools/import-tp/import-tp-config.json5, which remain authoritative.
-// rulesSets is deliberately not declared: that catalog is not curated in this
-// batch, and the API's rules-set sync is additive, so the real importers add
-// the links.
+// Each era is keyed by its plain name under the synthetic "Name" system. The
+// BBL and TP importer configs hold only era names and source-specific
+// mapping, and find each era by that `Name` id. The order of an era's rules
+// sets matters: where one rules set has to be chosen for an era, the
+// last-listed one is preferred.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
     { name: 'Name', category: 'bookkeeping' },
   ],
   eras: [
-    // -- BBL eras (tools/import-bbl/import-bbl-config.json5).
+    // -- BBL eras (named in tools/import-bbl's config).
     {
       name: 'First era',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       startDate: '2011-09-09',
       endDate: '2021-09-01',
+      rulesSets: [
+        { system: 'Name', id: 'CRP' },
+        { system: 'Name', id: 'CRP+' },
+        { system: 'Name', id: 'BB2016' },
+      ],
       externalIds: [{ system: 'Name', id: 'First era' }],
     },
     {
@@ -33,6 +29,7 @@
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       startDate: '2021-09-01',
       endDate: '2023-06-15',
+      rulesSets: [{ system: 'Name', id: 'BB2020' }],
       externalIds: [{ system: 'Name', id: 'Second era' }],
     },
     {
@@ -40,6 +37,11 @@
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       startDate: '2016-03-12',
       endDate: '2016-11-26',
+      rulesSets: [
+        { system: 'Name', id: 'CRP' },
+        { system: 'Name', id: 'CRP+' },
+        { system: 'Name', id: 'BB2016' },
+      ],
       externalIds: [{ system: 'Name', id: 'First Stunty Leeg era' }],
     },
     {
@@ -47,6 +49,7 @@
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       startDate: '2022-02-12',
       endDate: '2022-08-23',
+      rulesSets: [{ system: 'Name', id: 'DB2021' }],
       externalIds: [{ system: 'Name', id: 'First Dungeon Bowl era' }],
     },
     {
@@ -54,29 +57,33 @@
       league: { system: 'tloeg.bbleague.se', id: 'GBBL' },
       startDate: '2019-08-03',
       endDate: '2019-11-13',
+      rulesSets: [{ system: 'Name', id: 'BB2016' }],
       externalIds: [{ system: 'Name', id: 'GBBL 1' }],
     },
 
-    // -- TP eras (tools/import-tp/import-tp-config.json5). The two ongoing
-    // ones ("Second Dungeon Bowl era", "Fourth era") have no configured end
-    // date, so endDate is omitted entirely rather than guessed.
+    // -- TP eras (named in tools/import-tp's config). The two ongoing
+    // ones ("Second Dungeon Bowl era", "Fourth era") have no end date, so
+    // endDate is omitted entirely rather than guessed.
     {
       name: 'Third era',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       startDate: '2023-06-15',
       endDate: '2026-01-01',
+      rulesSets: [{ system: 'Name', id: 'BB2020' }],
       externalIds: [{ system: 'Name', id: 'Third era' }],
     },
     {
       name: 'Second Dungeon Bowl era',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       startDate: '2022-12-29',
+      rulesSets: [{ system: 'Name', id: 'DB2021' }],
       externalIds: [{ system: 'Name', id: 'Second Dungeon Bowl era' }],
     },
     {
       name: 'Fourth era',
       league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
       startDate: '2026-01-01',
+      rulesSets: [{ system: 'Name', id: 'BB2025' }],
       externalIds: [{ system: 'Name', id: 'Fourth era' }],
     },
   ],

@@ -1,4 +1,8 @@
-import type { RulesSet, UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type {
+  Era,
+  RulesSet,
+  UpsertTeam,
+} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
@@ -32,6 +36,11 @@ interface ImportPlayersOptions {
    * applies to their era at all.
    */
   rulesSetsByName: Map<string, RulesSet>;
+  /**
+   * The curated eras the eras step returned, keyed by configured name, for
+   * each era's rules-set names in link order.
+   */
+  erasByName: ReadonlyMap<string, Era>;
 }
 
 @Injectable()
@@ -62,7 +71,7 @@ export class BblPlayersImportService {
    * names are not guaranteed unique across the league. Players that cannot be
    * fully resolved are recorded as errors and skipped. Idempotent. Each
    * player's scraped MA/ST/AG/PA/AV line is sent alongside, validated
-   * server-side against the last rules set listed for their era — a rules set
+   * server-side against the last rules set the curated era links — a rules set
    * that declares no Passing characteristic receives a null Passing rather
    * than the value BBL's BB2020 migration wrote onto most players, and a
    * rules set that writes Agility/Armour as bare numbers receives those two
@@ -76,6 +85,7 @@ export class BblPlayersImportService {
     teamsByCode,
     racesByBblId,
     rulesSetsByName,
+    erasByName,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByPid: Map<string, number>;
@@ -267,15 +277,15 @@ export class BblPlayersImportService {
           continue;
         }
 
-        // An era can span several rules sets, listed chronologically
-        // oldest-first; the last one is the era's most current, and is what a
-        // BB2020-era scrape of the player's characteristics is measured
-        // against. Validation-only — nothing stores a rules set on a player.
-        // `rulesSets` is schema-enforced to be non-empty, so `.at(-1)` is
-        // undefined only for era config this import never actually loads
-        // (e.g. a hand-built test fixture); the `?? '?'` fallback below
-        // exists for that case only.
-        const rulesSetName = era.identity.rulesSets.at(-1);
+        // An era can span several rules sets, linked chronologically
+        // oldest-first in the curated catalog; the last one is the era's most
+        // current, and is what a BB2020-era scrape of the player's
+        // characteristics is measured against. An era the eras step did not
+        // return, or one with no linked rules set, has no name here and takes
+        // the "not imported" path below.
+        const rulesSetName = erasByName
+          .get(era.identity.name)
+          ?.rulesSetNames.at(-1);
         const rulesSet =
           rulesSetName === undefined
             ? undefined

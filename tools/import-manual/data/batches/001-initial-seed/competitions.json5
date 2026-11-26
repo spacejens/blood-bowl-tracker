@@ -16,11 +16,11 @@
 // with the era resolved by the same rules bbl-competitions-import.service.ts
 // and tp-competitions-import.service.ts use: an entry in an era's
 // competitions.overrides in import-bbl-config.json5 pins that era and type,
-// otherwise the first auto-assigning era whose [startDate, endDate) range
-// contains the earliest match day wins. type follows the same rule both
-// importers use -- a match-date span of at most 3 days is a cup, anything
-// longer a season. eras.json5 in this directory exists so `era` has something
-// to reference.
+// otherwise the first era the BBL config marks autoAssignByDate whose
+// [startDate, endDate) range in eras.json5 contains the earliest match day
+// wins. type follows the same rule both importers use -- a match-date span of
+// at most 3 days is a cup, anything longer a season. The eras come from
+// eras.json5, the era catalog in this directory.
 //
 // These values are deliberately real, not placeholders: BBL's and TP's own
 // competition upserts set type, eraId, startDate and endDate on every run (and

@@ -9,6 +9,7 @@ describe('era schemas', () => {
       name: 'Living rulebook',
       leagueId: 10,
       rulesSetIds: [20],
+      rulesSetNames: ['BB2020'],
       startDate: '2011-09-09',
       endDate: null,
       createdAt: '2026-01-01T00:00:00.000Z',
@@ -24,11 +25,28 @@ describe('era schemas', () => {
       name: 'Living rulebook',
       leagueId: 10,
       rulesSetIds: [20, 21],
+      rulesSetNames: ['CRP', 'BB2020'],
       startDate: '2011-09-09',
       endDate: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.rulesSetIds).toEqual([20, 21]);
+  });
+
+  it('EraSchema keeps rulesSetNames and rejects an era without them', () => {
+    const era = {
+      id: 1,
+      name: 'Living rulebook',
+      leagueId: 10,
+      rulesSetIds: [20],
+      startDate: '2011-09-09',
+      endDate: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
+    expect(
+      EraSchema.parse({ ...era, rulesSetNames: ['BB2020'] }).rulesSetNames,
+    ).toEqual(['BB2020']);
+    expect(() => EraSchema.parse(era)).toThrow();
   });
 
   it('UpsertEraSchema accepts an era without an endDate', () => {

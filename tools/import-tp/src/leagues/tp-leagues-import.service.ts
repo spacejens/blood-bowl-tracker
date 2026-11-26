@@ -24,10 +24,14 @@ export class TpLeaguesImportService {
   ) {}
 
   /**
-   * Import the single league the TP data covers. The name comes from the
-   * league.name config key (not parsed from the data) and is used as the
-   * league's external ID under two systems: TP (canonical) and Name (cross-tool
-   * matching). Idempotent: re-running upserts the existing league.
+   * Attach the TP external id to the single league the TP data covers. The
+   * name comes from the league.name config key (not parsed from the data).
+   * The league itself is curated (batch 001): this step finds it by its Name
+   * external id and adds the same name under the TP system, sending no name
+   * of its own. Because batch 001 holds that Name id, the TP league lands on
+   * the curated tLoEG row whether or not the BBL importer ran first. A league
+   * missing from the catalog fails with the server's missing-field error,
+   * recorded for that league. Idempotent.
    */
   async importLeague(): Promise<{ result: ImportResult }> {
     let imported = 0;
@@ -63,13 +67,12 @@ export class TpLeaguesImportService {
 
     const league = await this.leaguesImport.upsert(
       {
-        name,
         externalIds: [
-          { externalSystemId: tpSystemId, externalId: name },
           {
             externalSystemId: nameSystemId,
             externalId: this.nameExternalId.forLeague(name),
           },
+          { externalSystemId: tpSystemId, externalId: name },
         ],
       },
       errors,

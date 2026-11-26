@@ -518,7 +518,7 @@ describe('curated data files - characteristics', () => {
   });
 
   it('declares agilityFormat as bare for exactly CRP, CRP+ and BB2016', () => {
-    const rulesSets = readFile(BATCH_001, 'spp-award-values.json5').rulesSets;
+    const rulesSets = readFile(BATCH_001, 'rules-sets.json5').rulesSets;
 
     // tools/import-bbl's BblPositionCharacteristicsImportService relies on
     // agilityFormat === 'bare' as the signal for "one of the three rules

@@ -13,8 +13,8 @@ export class LeagueConfigService {
   /**
    * The name of the single league covered by the TP data, supplied via
    * league.name in import-tp-config.json5 (not parsed from the source data).
-   * Used as the league's external ID under both the TP and Name external
-   * systems.
+   * It names a league in batch 001's curated catalog, found by its Name
+   * external id, and is attached as the league's TP external id.
    */
   getLeagueName(): string {
     const league = configGroupSchema.parse(this.config.get('league'));
@@ -22,7 +22,7 @@ export class LeagueConfigService {
     if (!parsed.success) {
       throw new Error(
         'league.name is not set in import-tp-config.json5. Set league.name ' +
-          'to the name of the league the TP data covers (e.g. "tLoEGBBL").',
+          'to the curated name of the league the TP data covers (e.g. "tLoEG").',
       );
     }
     return parsed.data;

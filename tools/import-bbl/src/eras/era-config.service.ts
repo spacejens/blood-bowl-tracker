@@ -26,22 +26,24 @@ export interface CompetitionOverride {
 export interface EraConfig {
   /**
    * Name of the league this era belongs to, stamped by getEras() from the
-   * containing leagues[] entry. Used by the eras import to resolve the era's
-   * league id. Optional on the type because hand-built test fixtures may omit
-   * it; getEras() always sets it.
+   * containing leagues[] entry. Used to name both leagues when an era name
+   * is reused across them. Optional on the type because hand-built test
+   * fixtures may omit it; getEras() always sets it.
    */
   leagueName?: string;
+  /**
+   * The era's name, which is also how the eras step finds the curated era
+   * (by its Name external id). The era's league, dates and rules sets are the
+   * curated catalog's (batch 001) and are read back from the era upsert.
+   */
   identity: {
     name: string;
-    rulesSets: string[];
   };
   dates: {
-    startDate: string;
-    endDate?: string;
     /**
      * When false, this era is excluded from the match-date -> era resolution
-     * scan (bbl-competitions-import). Its startDate/endDate are still imported
-     * into the era DB record. Override lists resolve competitions regardless.
+     * scan (bbl-competitions-import), which reads the curated era's dates.
+     * Override lists resolve competitions regardless.
      */
     autoAssignByDate: boolean;
   };
@@ -125,9 +127,9 @@ export class EraConfigService {
    * The eras the BBL leagues played through, supplied via leagues[].eras in
    * import-bbl-config.json5 (not parsed from the source data). Each league
    * entry's eras are flattened into one list and stamped with that league's
-   * name. Each era is six nested groups: identity, dates, players (all
-   * required), and optional competitions, teams, matches. See EraConfig for
-   * field meanings.
+   * name. Each era is seven nested groups: identity, dates, players (all
+   * required), and optional competitions, teams, matches, positions. See
+   * EraConfig for field meanings.
    */
   getEras(): EraConfig[] {
     const leaguesRaw = this.config.get<unknown>('leagues');

@@ -5,13 +5,12 @@ import {
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
-  ReferenceLookupService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { mockKeyOf } from '../shared/reference-lookup-mock.test-helpers';
+import { era } from '../shared/curated-era.test-helpers';
 import { BblErasImportService } from './bbl-eras-import.service';
 import { type EraConfig, EraConfigService } from './era-config.service';
 
@@ -30,9 +29,6 @@ const CANNED_RESULT: ImportResult = {
   errors: [{ item: { canned: true }, message: 'canned import result' }],
 };
 
-/** The numeric id the mocked bootstrap assigns to the BBL external system. */
-const BBL_SYSTEM_ID = 1;
-
 /** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
 function resultArgs(importResults: MockProxy<ImportResultService>): {
   imported: number;
@@ -46,64 +42,36 @@ interface Mocks {
   erasImport: MockProxy<ErasImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   importResults: MockProxy<ImportResultService>;
-  lookup: MockProxy<ReferenceLookupService>;
 }
 
-/**
- * The full upsert result record (ErasImportService.upsert resolves the
- * API's Era + created shape). Pass overrides for the fields each test cares
- * about; the rest are filled with unremarkable defaults.
- */
-function makeEraRecord(overrides: { id: number; name: string }) {
+function configuredEra(name: string): EraConfig {
   return {
-    leagueId: 10,
-    rulesSetIds: [100],
-    startDate: '2011-09-09',
-    endDate: null,
-    createdAt: new Date('2026-01-01'),
-    created: true,
-    ...overrides,
+    leagueName: 'tLoEG',
+    identity: { name },
+    dates: { autoAssignByDate: true },
+    players: { firstPlayerId: 1, autoAssignByPlayerId: true },
   };
 }
 
-const eras: EraConfig[] = [
-  {
-    leagueName: 'tLoEG',
-    identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-    dates: {
-      startDate: '2011-09-09',
-      endDate: '2021-09-01',
-      autoAssignByDate: true,
-    },
-    players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-  },
-  {
-    leagueName: 'tLoEG',
-    identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-    dates: { startDate: '2021-09-01', autoAssignByDate: true },
-    players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-  },
-];
-
-const oneEra: EraConfig[] = [
-  {
-    leagueName: 'My League',
-    identity: { name: 'Era One', rulesSets: ['CRP'] },
-    dates: { startDate: '2011-09-09', autoAssignByDate: true },
-    players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-  },
-];
+const firstEra = era({
+  id: 500,
+  name: 'First era',
+  rulesSetIds: [1, 2, 3],
+  rulesSetNames: ['CRP', 'CRP+', 'BB2016'],
+  endDate: '2021-09-01',
+});
+const secondEra = era({
+  id: 501,
+  name: 'Second era',
+  rulesSetIds: [4],
+  rulesSetNames: ['BB2020'],
+  startDate: '2021-09-01',
+});
 
 describe('BblErasImportService', () => {
   let service: BblErasImportService;
   let mocks: Mocks;
 
-  /**
-   * Builds the service under test through a TestingModule with every
-   * collaborator mocked. Deterministic collaborators (name resolution, error
-   * building) mirror the real production logic so a regression in the
-   * service under test still fails these tests.
-   */
   beforeEach(async () => {
     const eraConfig = mock<EraConfigService>();
 
@@ -128,34 +96,6 @@ describe('BblErasImportService', () => {
     }));
     importResults.result.mockReturnValue(CANNED_RESULT);
 
-    const lookup = mock<ReferenceLookupService>();
-    mockKeyOf(lookup);
-    // A canned resolution per kind. Keys come from the mocked `keyOf`, so
-    // this never depends on the real key format.
-    lookup.lookupMap.mockImplementation((kind) =>
-      Promise.resolve(
-        kind === 'league'
-          ? new Map([
-              [
-                lookup.keyOf({
-                  externalSystemId: BBL_SYSTEM_ID,
-                  externalId: 'My League',
-                }),
-                11,
-              ],
-            ])
-          : new Map([
-              [
-                lookup.keyOf({
-                  externalSystemId: BBL_SYSTEM_ID,
-                  externalId: 'CRP',
-                }),
-                22,
-              ],
-            ]),
-      ),
-    );
-
     const moduleRef = await Test.createTestingModule({
       providers: [
         BblErasImportService,
@@ -164,201 +104,109 @@ describe('BblErasImportService', () => {
         { provide: ExternalSystemBootstrapService, useValue: bootstrap },
         { provide: NameExternalIdService, useValue: nameExternalId },
         { provide: ImportResultService, useValue: importResults },
-        { provide: ReferenceLookupService, useValue: lookup },
       ],
     }).compile();
 
     service = moduleRef.get(BblErasImportService);
-    mocks = {
-      eraConfig,
-      erasImport,
-      bootstrap,
-      importResults,
-      lookup,
-    };
+    mocks = { eraConfig, erasImport, bootstrap, importResults };
   });
 
-  it("resolves each era's league and rules sets through the api", async () => {
-    mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsert.mockResolvedValue(
-      makeEraRecord({ id: 500, name: 'Era One' }),
-    );
+  it('bootstraps the BBL and Name external systems once', async () => {
+    mocks.eraConfig.getEras.mockReturnValue([configuredEra('First era')]);
+    mocks.erasImport.upsert.mockResolvedValue({ ...firstEra, created: false });
 
     await service.importEras();
 
-    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('league', [
-      { externalSystemId: BBL_SYSTEM_ID, externalId: 'My League' },
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledTimes(1);
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
+      { name: BBL_EXTERNAL_SYSTEM_NAME, category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
     ]);
-    expect(mocks.lookup.lookupMap).toHaveBeenCalledWith('rulesSet', [
-      { externalSystemId: BBL_SYSTEM_ID, externalId: 'CRP' },
-    ]);
-    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(2);
-    expect(resultArgs(mocks.importResults).errors).toEqual([]);
   });
 
-  it('upserts each era referencing the resolved league id and rules set ids', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsert.mockResolvedValue(
-      makeEraRecord({ id: 500, name: 'Era One' }),
-    );
+  it('attaches the BBL id to each configured era, found by its Name id', async () => {
+    mocks.eraConfig.getEras.mockReturnValue([
+      configuredEra('First era'),
+      configuredEra('Second era'),
+    ]);
+    mocks.erasImport.upsert
+      .mockResolvedValueOnce({ ...firstEra, created: false })
+      .mockResolvedValueOnce({ ...secondEra, created: false });
 
     await service.importEras();
 
-    expect(resultArgs(mocks.importResults).imported).toBe(1);
-    expect(mocks.erasImport.upsert).toHaveBeenCalledWith(
+    expect(mocks.erasImport.upsert).toHaveBeenNthCalledWith(
+      1,
       {
-        name: 'Era One',
-        leagueId: 11,
-        rulesSetIds: [22],
-        startDate: '2011-09-09',
-        endDate: undefined,
+        rulesSetIds: [],
         externalIds: [
-          { externalSystemId: 1, externalId: 'Era One' },
-          { externalSystemId: 2, externalId: 'Era One' },
+          { externalSystemId: 2, externalId: 'First era' },
+          { externalSystemId: 1, externalId: 'First era' },
         ],
       },
       expect.any(Array),
     );
-  });
-
-  it('calls lookupMap once per kind even with several eras sharing a league', async () => {
-    mocks.eraConfig.getEras.mockReturnValue([
-      ...oneEra,
+    expect(mocks.erasImport.upsert).toHaveBeenNthCalledWith(
+      2,
       {
-        leagueName: 'My League',
-        identity: { name: 'Era Two', rulesSets: ['CRP'] },
-        dates: { startDate: '2016-01-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+        rulesSetIds: [],
+        externalIds: [
+          { externalSystemId: 2, externalId: 'Second era' },
+          { externalSystemId: 1, externalId: 'Second era' },
+        ],
       },
-    ]);
-    mocks.erasImport.upsert.mockResolvedValue(
-      makeEraRecord({ id: 1, name: 'x' }),
+      expect.any(Array),
     );
-
-    await service.importEras();
-
-    expect(mocks.lookup.lookupMap).toHaveBeenCalledTimes(2);
-  });
-
-  it('records an error and skips an era whose league does not resolve', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.lookup.lookupMap.mockResolvedValue(new Map());
-
-    await service.importEras();
-
-    expect(resultArgs(mocks.importResults).errors[0].message).toContain(
-      'could not be resolved',
-    );
-    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
-  });
-
-  it('records an error and skips an era whose league name is unset', async () => {
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        identity: { name: 'No League Era', rulesSets: ['CRP'] },
-        dates: { startDate: '2011-09-09', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ]);
-
-    await service.importEras();
-
-    const { errors } = resultArgs(mocks.importResults);
-    expect(
-      errors.some(
-        (e) => e.message.includes('(unset)') && e.message.includes('league'),
-      ),
-    ).toBe(true);
-    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
-  });
-
-  it('records an error and skips an era whose rules set does not resolve', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.lookup.lookupMap.mockImplementation((kind) =>
-      Promise.resolve(
-        kind === 'league'
-          ? new Map([
-              [
-                mocks.lookup.keyOf({
-                  externalSystemId: BBL_SYSTEM_ID,
-                  externalId: 'My League',
-                }),
-                11,
-              ],
-            ])
-          : new Map<string, number>(),
-      ),
-    );
-
-    await service.importEras();
-
-    expect(resultArgs(mocks.importResults).errors[0].message).toContain(
-      'could not be resolved',
-    );
-    expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
-  });
-
-  it('resolves all rules-set names to ids and passes the array', async () => {
-    mocks.eraConfig.getEras.mockReturnValue([
-      {
-        leagueName: 'My League',
-        identity: { name: 'CRP era', rulesSets: ['CRP', 'CRP+'] },
-        dates: { startDate: '2016-01-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-      },
-    ]);
-    mocks.lookup.lookupMap.mockImplementation((kind) =>
-      Promise.resolve(
-        kind === 'league'
-          ? new Map([
-              [
-                mocks.lookup.keyOf({
-                  externalSystemId: BBL_SYSTEM_ID,
-                  externalId: 'My League',
-                }),
-                11,
-              ],
-            ])
-          : new Map([
-              [
-                mocks.lookup.keyOf({
-                  externalSystemId: BBL_SYSTEM_ID,
-                  externalId: 'CRP',
-                }),
-                20,
-              ],
-              [
-                mocks.lookup.keyOf({
-                  externalSystemId: BBL_SYSTEM_ID,
-                  externalId: 'CRP+',
-                }),
-                21,
-              ],
-            ]),
-      ),
-    );
-    mocks.erasImport.upsert.mockResolvedValue(
-      makeEraRecord({ id: 1, name: 'CRP era' }),
-    );
-
-    await service.importEras();
-
-    expect(mocks.erasImport.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ rulesSetIds: [20, 21] }),
-      expect.anything(),
-    );
-  });
-
-  it('records an error when an era upsert fails', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsert.mockImplementation((_data, errors) => {
-      errors.push({ item: {}, message: 'era boom' });
-      return Promise.resolve(undefined);
+    expect(resultArgs(mocks.importResults)).toEqual({
+      imported: 2,
+      errors: [],
     });
+  });
 
-    await service.importEras();
+  it('returns each upserted curated era keyed by its configured name', async () => {
+    mocks.eraConfig.getEras.mockReturnValue([
+      configuredEra('First era'),
+      configuredEra('Second era'),
+    ]);
+    mocks.erasImport.upsert
+      .mockResolvedValueOnce({ ...firstEra, created: false })
+      .mockResolvedValueOnce({ ...secondEra, created: true });
 
-    expect(resultArgs(mocks.importResults).imported).toBe(0);
+    const { erasByName } = await service.importEras();
+
+    expect([...erasByName.keys()]).toEqual(['First era', 'Second era']);
+    expect(erasByName.get('First era')).toMatchObject({
+      id: 500,
+      rulesSetNames: ['CRP', 'CRP+', 'BB2016'],
+      startDate: '2011-09-09',
+      endDate: '2021-09-01',
+    });
+    expect(erasByName.get('Second era')?.rulesSetNames).toEqual(['BB2020']);
+  });
+
+  it('leaves an era whose upsert fails out of the map, keeping only its upsert error', async () => {
+    mocks.eraConfig.getEras.mockReturnValue([
+      configuredEra('Missing era'),
+      configuredEra('Second era'),
+    ]);
+    const missingField = {
+      item: { externalIds: [] },
+      message: 'Failed to import era: name is required',
+    };
+    mocks.erasImport.upsert
+      .mockImplementationOnce((_data, errors) => {
+        errors.push(missingField);
+        return Promise.resolve(undefined);
+      })
+      .mockResolvedValueOnce({ ...secondEra, created: false });
+
+    const { erasByName } = await service.importEras();
+
+    expect([...erasByName.keys()]).toEqual(['Second era']);
+    expect(resultArgs(mocks.importResults)).toEqual({
+      imported: 1,
+      errors: [missingField],
+    });
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {
@@ -366,7 +214,7 @@ describe('BblErasImportService', () => {
       throw new Error('BBL_ERAS is not set.');
     });
 
-    await service.importEras();
+    const { erasByName } = await service.importEras();
 
     expect(
       resultArgs(mocks.importResults).errors.some((e) =>
@@ -374,11 +222,11 @@ describe('BblErasImportService', () => {
       ),
     ).toBe(true);
     expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
-    expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();
+    expect(erasByName.size).toBe(0);
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.eraConfig.getEras.mockReturnValue([configuredEra('First era')]);
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
@@ -387,7 +235,7 @@ describe('BblErasImportService', () => {
       },
     });
 
-    await service.importEras();
+    const { erasByName } = await service.importEras();
 
     const { errors } = resultArgs(mocks.importResults);
     expect(errors).toHaveLength(1);
@@ -399,14 +247,12 @@ describe('BblErasImportService', () => {
       externalSystems: [BBL_EXTERNAL_SYSTEM_NAME, 'Name'],
     });
     expect(mocks.erasImport.upsert).not.toHaveBeenCalled();
-    expect(mocks.lookup.lookupMap).not.toHaveBeenCalled();
+    expect(erasByName.size).toBe(0);
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    mocks.eraConfig.getEras.mockReturnValue(oneEra);
-    mocks.erasImport.upsert.mockResolvedValue(
-      makeEraRecord({ id: 500, name: 'Era One' }),
-    );
+    mocks.eraConfig.getEras.mockReturnValue([configuredEra('First era')]);
+    mocks.erasImport.upsert.mockResolvedValue({ ...firstEra, created: false });
 
     const { result } = await service.importEras();
 

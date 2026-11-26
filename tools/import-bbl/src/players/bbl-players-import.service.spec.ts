@@ -122,8 +122,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'Second', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Second' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 100,
             lastPlayerId: 9999,
@@ -131,8 +131,8 @@ describe('BblPlayersImportService', () => {
           },
         },
         {
-          identity: { name: 'LRB', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'LRB' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 10,
@@ -162,8 +162,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'LRB', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'LRB' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -171,8 +171,8 @@ describe('BblPlayersImportService', () => {
           },
         },
         {
-          identity: { name: 'Second', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Second' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -208,8 +208,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'Regular', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Regular' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -217,8 +217,8 @@ describe('BblPlayersImportService', () => {
           },
         },
         {
-          identity: { name: 'Stunty', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Stunty' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -256,8 +256,8 @@ describe('BblPlayersImportService', () => {
       [
         {
           leagueName: 'tLoEG',
-          identity: { name: 'LRB', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'LRB' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -266,12 +266,8 @@ describe('BblPlayersImportService', () => {
         },
         {
           leagueName: 'GBBL',
-          identity: { name: 'GBBL 1', rulesSets: ['LRB'] },
-          dates: {
-            startDate: '2019-08-03',
-            endDate: '2019-11-13',
-            autoAssignByDate: false,
-          },
+          identity: { name: 'GBBL 1' },
+          dates: { autoAssignByDate: false },
           players: { autoAssignByPlayerId: false },
           teams: { teamCodeOverrides: ['knu'] },
         },
@@ -305,8 +301,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'Pid Era', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Pid Era' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -315,8 +311,8 @@ describe('BblPlayersImportService', () => {
           },
         },
         {
-          identity: { name: 'Team Era', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Team Era' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -352,8 +348,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'Main', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Main' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -361,12 +357,8 @@ describe('BblPlayersImportService', () => {
           },
         },
         {
-          identity: { name: 'Side', rulesSets: ['LRB'] },
-          dates: {
-            startDate: '2016-03-12',
-            endDate: '2016-11-26',
-            autoAssignByDate: false,
-          },
+          identity: { name: 'Side' },
+          dates: { autoAssignByDate: false },
           players: { autoAssignByPlayerId: false },
           teams: { teamCodeOverrides: ['knu'] },
         },
@@ -402,8 +394,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'Disabled', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Disabled' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -411,8 +403,8 @@ describe('BblPlayersImportService', () => {
           },
         },
         {
-          identity: { name: 'Enabled', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Enabled' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,
@@ -446,8 +438,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'Pinned', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Pinned' },
+          dates: { autoAssignByDate: true },
           players: {
             autoAssignByPlayerId: false,
             playerIdOverrides: [42],
@@ -474,8 +466,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'LRB', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'LRB' },
+          dates: { autoAssignByDate: true },
           players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         },
       ],
@@ -492,8 +484,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'LRB', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'LRB' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 10,
@@ -632,8 +624,8 @@ describe('BblPlayersImportService', () => {
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
-          identity: { name: 'Unimported Era', rulesSets: ['LRB'] },
-          dates: { startDate: '2011-09-09', autoAssignByDate: true },
+          identity: { name: 'Unimported Era' },
+          dates: { autoAssignByDate: true },
           players: {
             firstPlayerId: 1,
             lastPlayerId: 9999,

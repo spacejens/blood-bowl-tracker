@@ -402,7 +402,7 @@ Everything here automates the flow documented in `docs/discord-bot/production-im
    ```bash
    pnpm --filter "@blood-bowl-tracker/production-ops-cli..." run build
    ```
-3. Check that the production config each selected import needs exists:
+3. Check that the production config each selected import needs exists. Production BBL and TP configs hold only era names and source-specific mapping. TP's `league.name` must be a curated league (`tLoEG`) and its era names curated eras (Third era, Second Dungeon Bowl era, Fourth era), or the import fails per row:
    ```bash
    ls tools/import-manual/import-manual-config.production.json5 \
       tools/import-bbl/import-bbl-config.production.json5 \
