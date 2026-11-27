@@ -293,7 +293,7 @@ importers:
         version: 12.0.15(@swc/core@1.16.22)(@types/node@26.6.6)(prettier@3.10.1)
       '@nestjs/schematics':
         specifier: ^12.0.0
-        version: 12.0.16(chokidar@5.0.0)(prettier@3.10.1)(typescript@6.0.3)
+        version: 12.0.17(chokidar@5.0.0)(prettier@3.10.1)(typescript@6.0.3)
       '@nestjs/testing':
         specifier: ^12.0.0
         version: 12.6.3(@nestjs/common@12.6.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.6.3)(@nestjs/platform-express@12.6.3)
@@ -2689,8 +2689,8 @@ packages:
       '@nestjs/common': ^11.0.0 || ^12.0.0
       '@nestjs/core': ^11.0.0 || ^12.0.0
 
-  '@nestjs/schematics@12.0.16':
-    resolution: {integrity: sha512-7K+8NlvmXVd/x0nY4h7myrJdl4C31x58xAsHELYXEIc6AJqiL+FOj+MgyCvZm8CcfD6uoI1wRXI0w0xdW4rUHA==}
+  '@nestjs/schematics@12.0.17':
+    resolution: {integrity: sha512-gvYhkBjfK9NfDneVQkEpbne+z7Tq2A4/dwpTBdfYfjxSS/gV6w8DoMx2roYv9Ig5Dr3WWW9RXXE5SXTNDV+TZw==}
     engines: {node: ^22.22.3 || ^24.15.0 || >=26.0.0}
     peerDependencies:
       prettier: ^3.0.0
@@ -6614,7 +6614,7 @@ snapshots:
       '@angular-devkit/schematics': 22.2.7(chokidar@5.0.0)
       '@angular-devkit/schematics-cli': 22.2.7(@types/node@26.6.6)(chokidar@5.0.0)
       '@inquirer/prompts': 8.7.5(@types/node@26.6.6)
-      '@nestjs/schematics': 12.0.16(chokidar@5.0.0)(prettier@3.10.1)(typescript@6.0.3)
+      '@nestjs/schematics': 12.0.17(chokidar@5.0.0)(prettier@3.10.1)(typescript@6.0.3)
       ansis: 4.5.0
       chokidar: 5.0.0
       cli-table3: 0.6.5
@@ -6685,7 +6685,7 @@ snapshots:
       '@nestjs/core': 12.6.3(@nestjs/common@12.6.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.6.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       cron: 4.4.0
 
-  '@nestjs/schematics@12.0.16(chokidar@5.0.0)(prettier@3.10.1)(typescript@6.0.3)':
+  '@nestjs/schematics@12.0.17(chokidar@5.0.0)(prettier@3.10.1)(typescript@6.0.3)':
     dependencies:
       '@angular-devkit/core': 22.2.7(chokidar@5.0.0)
       '@angular-devkit/schematics': 22.2.7(chokidar@5.0.0)
