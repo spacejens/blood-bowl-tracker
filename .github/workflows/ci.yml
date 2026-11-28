@@ -284,7 +284,7 @@ jobs:
       POSTGRES_CLIENT_MAJOR_VERSION: '18'
     services:
       postgres:
-        image: postgres:18
+        image: postgres:19
         env:
           POSTGRES_PASSWORD: postgres
         ports:
