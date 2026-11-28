@@ -277,7 +277,7 @@ importers:
         version: 12.0.4(@nestjs/common@12.6.3(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.6.3)
       cron:
         specifier: ^4.4.0
-        version: 4.4.0
+        version: 4.4.2
       discord.js:
         specifier: ^14.27.0
         version: 14.28.1
@@ -3874,6 +3874,10 @@ packages:
 
   cron@4.4.0:
     resolution: {integrity: sha512-fkdfq+b+AHI4cKdhZlppHveI/mgz2qpiYxcm+t5E5TsxX7QrLS1VE0+7GENEk9z0EeGPcpSciGv6ez24duWhwQ==}
+    engines: {node: '>=18.x'}
+
+  cron@4.4.2:
+    resolution: {integrity: sha512-sXlg/D5CdX7M4q3isDCbBD3XCHXExr3yBFwfZ1xaSe/IUVd3DmsnVzeSRjLlJeohbK+j4UtdKmY9k735RMl5XQ==}
     engines: {node: '>=18.x'}
 
   cross-spawn@7.0.6:
@@ -7769,6 +7773,11 @@ snapshots:
       readable-stream: 4.7.0
 
   cron@4.4.0:
+    dependencies:
+      '@types/luxon': 3.7.5
+      luxon: 3.7.2
+
+  cron@4.4.2:
     dependencies:
       '@types/luxon': 3.7.5
       luxon: 3.7.2
